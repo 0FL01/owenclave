@@ -479,6 +479,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PROFILE_ID = "profileId"
         const val EXTRA_PROFILE_TYPE = "profileType"
+        const val EXTRA_DNSTT = "dnstt"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -489,6 +490,9 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
 
         var entity: ProxyEntity? = null
         var initialState = ProfileFieldState()
+        if (profileId == 0L && profileType == ProxyEntity.TYPE_SSH && intent.getBooleanExtra(EXTRA_DNSTT, false)) {
+            initialState = initialState.copy(dnsttEnabled = true, authType = SSHBean.AUTH_TYPE_PUBLIC_KEY)
+        }
 
         if (profileId > 0L) {
             runBlocking {
@@ -580,7 +584,10 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 val b = entity.sshBean ?: return s
                 s.copy(username = b.username ?: "root", authType = b.authType ?: 0,
                     password = b.password ?: "", privateKey = b.privateKey ?: "",
-                    publicKey = b.publicKey ?: "")
+                    privateKeyPassphrase = b.privateKeyPassphrase ?: "",
+                    publicKey = b.publicKey ?: "", keepaliveInterval = b.keepaliveInterval?.toString() ?: "0",
+                    dnsttEnabled = b.dnsttEnabled ?: false, dnsttDomain = b.dnsttDomain ?: "",
+                    dnsttPublicKey = b.dnsttPublicKey ?: "")
             }
             ProxyEntity.TYPE_WG -> {
                 val b = entity.wgBean ?: return s
@@ -814,13 +821,18 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
             ProxyEntity.TYPE_SSH -> {
                 val b = entity.sshBean ?: SSHBean().applyDefaultValues()
                 b.name = state.name
-                b.serverAddress = state.serverAddress
-                b.serverPort = state.serverPort.toIntOrNull() ?: 22
+                b.serverAddress = if (state.dnsttEnabled) state.dnsttDomain else state.serverAddress
+                b.serverPort = if (state.dnsttEnabled) 22 else state.serverPort.toIntOrNull() ?: 22
                 b.username = state.username
                 b.authType = state.authType
                 b.password = state.password
                 b.privateKey = state.privateKey
+                b.privateKeyPassphrase = state.privateKeyPassphrase
                 b.publicKey = state.publicKey
+                b.keepaliveInterval = if (state.dnsttEnabled) 0 else state.keepaliveInterval.toIntOrNull() ?: 0
+                b.dnsttEnabled = state.dnsttEnabled
+                b.dnsttDomain = state.dnsttDomain
+                b.dnsttPublicKey = state.dnsttPublicKey
                 entity.sshBean = b
             }
             ProxyEntity.TYPE_WG -> {

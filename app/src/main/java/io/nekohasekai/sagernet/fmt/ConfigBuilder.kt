@@ -162,9 +162,16 @@ class V2rayBuildResult(
     val dumpUID: Boolean,
     val alerts: List<Pair<Int, String>>,
     val useFakeDNS: Boolean,
+    val dnsttClients: List<DnsttClientConfig>,
 ) {
     data class IndexEntity(var isBalancer: Boolean, var chain: LinkedHashMap<Triple<Int, String, String>, ProxyEntity>)
 }
+
+data class DnsttClientConfig(
+    val localPort: Int,
+    val domain: String,
+    val publicKey: String,
+)
 
 @OptIn(ExperimentalUuidApi::class)
 fun buildV2RayConfig(
@@ -178,6 +185,7 @@ fun buildV2RayConfig(
     val outboundTagsCurrent = ArrayList<String>()
     val outboundTagsAll = HashMap<String, ProxyEntity>()
     val globalOutbounds = ArrayList<String>()
+    val dnsttClients = linkedMapOf<Pair<String, String>, DnsttClientConfig>()
 
     fun ProxyEntity.resolveChainRecursively(): MutableList<ProxyEntity> {
         when (type) {
@@ -1317,11 +1325,25 @@ fun buildV2RayConfig(
                                     currentDomainStrategy = "UseIP"
                                 }
                             } else if (bean is SSHBean) {
+                                val dnsttClient = if (bean.dnsttEnabled == true) {
+                                    val domain = bean.dnsttDomain.trimEnd('.')
+                                    require(domain.isNotEmpty()) { "DNS Tunnel domain is required" }
+                                    require(bean.dnsttPublicKey.matches(Regex("[0-9a-fA-F]{64}"))) {
+                                        "invalid dnstt public key"
+                                    }
+                                    require(bean.authType == SSHBean.AUTH_TYPE_PUBLIC_KEY && bean.privateKey.isNotEmpty()) {
+                                        "DNS Tunnel SSH private key is required"
+                                    }
+                                    require(bean.publicKey.isNotEmpty()) { "DNS Tunnel SSH host key is required" }
+                                    dnsttClients.getOrPut(domain to bean.dnsttPublicKey) {
+                                        DnsttClientConfig(mkPort(), domain, bean.dnsttPublicKey.lowercase())
+                                    }
+                                } else null
                                 protocol = "ssh"
                                 settings = LazyOutboundConfigurationObject(this,
                                     SSHOutboundConfigurationObject().apply {
-                                        address = bean.serverAddress
-                                        port = bean.serverPort
+                                        address = if (dnsttClient == null) bean.serverAddress else LOCALHOST
+                                        port = dnsttClient?.localPort ?: bean.serverPort
                                         user = bean.username
                                         when (bean.authType) {
                                             SSHBean.AUTH_TYPE_PUBLIC_KEY -> {
@@ -2849,6 +2871,7 @@ fun buildV2RayConfig(
             shouldDumpUID,
             alerts,
             DataStore.enableFakeDns,
+            dnsttClients.values.toList(),
         )
     }
 
@@ -3038,5 +3061,6 @@ fun buildCustomConfig(proxy: ProxyEntity, forTest: Boolean = false, forExport: B
         dumpUID =  shouldDumpUID,
         alerts =  emptyList(),
         useFakeDNS = useFakeDns,
+        dnsttClients = emptyList(),
     )
 }

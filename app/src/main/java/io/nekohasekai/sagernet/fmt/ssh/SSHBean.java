@@ -42,6 +42,9 @@ public class SSHBean extends AbstractBean {
     public String privateKeyPassphrase;
     public String publicKey;
     public Integer keepaliveInterval;
+    public Boolean dnsttEnabled;
+    public String dnsttDomain;
+    public String dnsttPublicKey;
 
     @Override
     public void initializeDefaultValues() {
@@ -56,11 +59,14 @@ public class SSHBean extends AbstractBean {
         if (privateKeyPassphrase == null) privateKeyPassphrase = "";
         if (publicKey == null) publicKey = "";
         if (keepaliveInterval == null) keepaliveInterval = 0;
+        if (dnsttEnabled == null) dnsttEnabled = false;
+        if (dnsttDomain == null) dnsttDomain = "";
+        if (dnsttPublicKey == null) dnsttPublicKey = "";
     }
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(1);
+        output.writeInt(2);
         super.serialize(output);
         output.writeString(username);
         output.writeInt(authType);
@@ -77,6 +83,9 @@ public class SSHBean extends AbstractBean {
         }
         output.writeString(publicKey);
         output.writeInt(keepaliveInterval);
+        output.writeBoolean(dnsttEnabled);
+        output.writeString(dnsttDomain);
+        output.writeString(dnsttPublicKey);
     }
 
     @Override
@@ -100,6 +109,11 @@ public class SSHBean extends AbstractBean {
         if (version >= 1) {
             keepaliveInterval = input.readInt();
         }
+        if (version >= 2) {
+            dnsttEnabled = input.readBoolean();
+            dnsttDomain = input.readString();
+            dnsttPublicKey = input.readString();
+        }
     }
 
 
@@ -110,6 +124,9 @@ public class SSHBean extends AbstractBean {
             bean.publicKey = publicKey;
         }
         bean.keepaliveInterval = keepaliveInterval;
+        bean.dnsttEnabled = dnsttEnabled;
+        bean.dnsttDomain = dnsttDomain;
+        bean.dnsttPublicKey = dnsttPublicKey;
     }
 
 

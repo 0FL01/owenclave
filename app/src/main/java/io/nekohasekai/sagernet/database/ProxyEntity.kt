@@ -57,6 +57,7 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.toUri
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.socks.toUri
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
+import io.nekohasekai.sagernet.fmt.ssh.toDnsttUri
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trojan.toUri
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
@@ -251,7 +252,7 @@ data class ProxyEntity(
         TYPE_TROJAN -> "Trojan"
         TYPE_NAIVE -> "NaïveProxy"
         TYPE_HYSTERIA2 -> "Hysteria 2"
-        TYPE_SSH -> "SSH"
+        TYPE_SSH -> if (sshBean!!.dnsttEnabled == true) "DNS Tunnel" else "SSH"
         TYPE_WG -> "WireGuard"
         TYPE_MIERU -> "mieru"
         TYPE_TUIC5 -> "TUIC"
@@ -312,7 +313,8 @@ data class ProxyEntity(
 
     fun hasShareLink(): Boolean {
         return when (type) {
-            TYPE_SSH, TYPE_WG, TYPE_SNELL -> false
+            TYPE_SSH -> sshBean?.dnsttEnabled == true
+            TYPE_WG, TYPE_SNELL -> false
             TYPE_CONFIG, TYPE_CHAIN, TYPE_BALANCER -> false
             else -> true
         }
@@ -337,6 +339,7 @@ data class ProxyEntity(
             is TrustTunnelBean -> toUri()
             is ShadowQUICBean -> toUri()
             is OLCRTCBean -> toUri()
+            is SSHBean -> if (dnsttEnabled == true) toDnsttUri() else null
             else -> null
         }
     }

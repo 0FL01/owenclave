@@ -98,6 +98,7 @@ import io.nekohasekai.sagernet.ui.compose.screens.RouteScreen
 import io.nekohasekai.sagernet.ui.compose.screens.SettingsScreen
 import io.nekohasekai.sagernet.ui.compose.screens.ToolsScreen
 import io.nekohasekai.sagernet.ui.compose.screens.TrafficScreen
+import io.nekohasekai.sagernet.ui.compose.screens.readSupportLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -152,6 +153,7 @@ class ComposeMainActivity : ComponentActivity(), SagerConnection.Callback {
                         MainScreen(
                             serviceState = serviceState.value,
                             onServiceToggle = { toggleService() },
+                            onCopyLogs = { copyLogs() },
                             uplinkSpeed = uplinkSpeed.value,
                             downlinkSpeed = downlinkSpeed.value,
                             appStats = appStats.value,
@@ -241,6 +243,18 @@ class ComposeMainActivity : ComponentActivity(), SagerConnection.Callback {
                 SagerNet.startService()
             state == BaseService.State.Connected ->
                 SagerNet.stopService()
+        }
+    }
+
+    private fun copyLogs() = runOnDefaultDispatcher {
+        val logs = runCatching { readSupportLog() }.getOrNull()
+        runOnMainDispatcher {
+            val copied = !logs.isNullOrBlank() && SagerNet.trySetPrimaryClip(logs)
+            android.widget.Toast.makeText(
+                this@ComposeMainActivity,
+                if (copied) R.string.copy_success else R.string.copy_failed,
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
@@ -356,6 +370,7 @@ class ComposeMainActivity : ComponentActivity(), SagerConnection.Callback {
 fun MainScreen(
     serviceState: BaseService.State,
     onServiceToggle: () -> Unit,
+    onCopyLogs: () -> Unit,
     uplinkSpeed: String,
     downlinkSpeed: String,
     appStats: List<io.nekohasekai.sagernet.aidl.AppStats> = emptyList(),
@@ -446,6 +461,7 @@ fun MainScreen(
                 connecting = serviceState == BaseService.State.Connecting || serviceState == BaseService.State.Stopping,
                 testProgress = batchTestProgress,
                 onPowerClick = onServiceToggle,
+                onCopyLogs = onCopyLogs,
                 navBarSize = navBarSize,
                 modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
             )
@@ -465,6 +481,7 @@ private fun UnifiedBottomBar(
     connecting: Boolean,
     testProgress: Pair<Int, Int>?,
     onPowerClick: () -> Unit,
+    onCopyLogs: () -> Unit,
     navBarSize: Int = 1,
     modifier: Modifier = Modifier,
 ) {
@@ -577,11 +594,31 @@ private fun UnifiedBottomBar(
             )
 
             // ── Right: Power button ──
+            CopyLogsButton(onClick = onCopyLogs)
             PowerButton(
                 connected = connected,
                 connecting = connecting,
                 onClick = onPowerClick,
                 modifier = Modifier.padding(start = 4.dp, end = 6.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CopyLogsButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.padding(start = 4.dp).size(40.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.BugReport,
+                contentDescription = "Copy logs",
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -748,4 +785,3 @@ private fun StatusPulse(connected: Boolean, connecting: Boolean) {
         )
     }
 }
-

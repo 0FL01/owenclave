@@ -46,7 +46,7 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
     override suspend fun init() {
         super.init()
 
-        if (DataStore.logLevel == LogLevel.DEBUG) {
+        if (DataStore.logLevel == LogLevel.DEBUG && config.dnsttClients.isEmpty()) {
             Logs.d(config.config)
             pluginConfigs.forEach { (_, plugin) ->
                 val (_, content) = plugin

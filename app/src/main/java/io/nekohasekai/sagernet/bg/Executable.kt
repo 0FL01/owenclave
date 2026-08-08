@@ -34,6 +34,7 @@ object Executable {
         "libnaive.so",
         "libshadowquic.so",
         "libolcrtc.so",
+        "libdnstt.so",
     )
 
     fun killAll() {

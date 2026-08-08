@@ -20,6 +20,7 @@
 package io.nekohasekai.sagernet.bg.proto
 
 import android.annotation.SuppressLint
+import android.net.NetworkCapabilities
 import android.os.Looper
 import android.os.SystemClock
 import android.webkit.WebResourceError
@@ -28,6 +29,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import io.nekohasekai.sagernet.RootCAProvider
 import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.Key
+import io.nekohasekai.sagernet.TunImplementation
 import io.nekohasekai.sagernet.bg.AbstractInstance
 import io.nekohasekai.sagernet.bg.GuardedProcessPool
 import io.nekohasekai.sagernet.database.DataStore
@@ -45,6 +48,7 @@ import io.nekohasekai.sagernet.plugin.PluginManager
 import kotlinx.coroutines.*
 import libexclavecore.V2RayInstance
 import java.io.File
+import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.Socket
 
@@ -60,10 +64,24 @@ import java.net.Socket
             private const val READINESS_CONNECT_TIMEOUT_MS = 500
         }
 
+        private fun underlayDnsServer(): String? {
+            val connectivity = SagerNet.connectivity
+            val network = SagerNet.currentNetwork ?: connectivity.allNetworks.firstOrNull {
+                val capabilities = connectivity.getNetworkCapabilities(it) ?: return@firstOrNull false
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+            } ?: return null
+            val dnsServers = connectivity.getLinkProperties(network)?.dnsServers ?: return null
+            val address = (dnsServers.firstOrNull { it is Inet4Address } ?: dnsServers.firstOrNull())
+                ?.hostAddress ?: return null
+            return if (address.contains(':')) "[$address]:53" else "$address:53"
+        }
+
         protected fun buildOlcrtcYaml(bean: OLCRTCBean, port: Int, username: String, password: String): String {
             // olcrtc resolves a relative `data` dir against the executable dir
             // (read-only nativeLibraryDir on Android), so use an absolute writable path.
             val dataDir = File(SagerNet.application.noBackupFilesDir, "olcrtc_data").apply { mkdirs() }
+            val dnsServer = underlayDnsServer() ?: bean.dnsServer
             return buildString {
                 appendLine("mode: cnc")
                 appendLine("auth:")
@@ -74,7 +92,7 @@ import java.net.Socket
                 appendLine("  key: \"${bean.encryptionKey}\"")
                 appendLine("net:")
                 appendLine("  transport: ${bean.transport}")
-                appendLine("  dns: \"${bean.dnsServer}\"")
+                appendLine("  dns: \"$dnsServer\"")
                 appendLine("socks:")
                 appendLine("  host: \"127.0.0.1\"")
                 appendLine("  port: $port")
@@ -95,6 +113,7 @@ import java.net.Socket
     val pluginPath = hashMapOf<String, PluginManager.InitResult>()
     val pluginConfigs = hashMapOf<Int, Pair<Int, String>>()
     val externalInstances = hashMapOf<Int, AbstractInstance>()
+    private val dnsttInstances = mutableListOf<DnsttInstance>()
 
     // Local SOCKS ports of external engines that need to finish bringing up
     // their transport before they can pass traffic (e.g. olcrtc WebRTC).
@@ -121,6 +140,12 @@ import java.net.Socket
     open suspend fun init() {
         v2rayPoint = V2RayInstance()
         buildConfig()
+        if (config.dnsttClients.isNotEmpty()) {
+            if (DataStore.serviceMode == Key.MODE_VPN && DataStore.tunImplementation == TunImplementation.SYSTEM) {
+                error("DNS Tunnel requires gVisor TUN")
+            }
+            dnsttInstances.addAll(config.dnsttClients.map { DnsttInstance(it, ::underlayDnsServer) })
+        }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
                 val port = triple.first
@@ -156,6 +181,7 @@ import java.net.Socket
     @SuppressLint("SetJavaScriptEnabled")
     override fun launch() {
         val context = SagerNet.application
+        dnsttInstances.forEach { it.launch() }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
                 val port = triple.first
@@ -317,6 +343,7 @@ import java.net.Socket
      * hanging the connect flow forever.
      */
     override suspend fun awaitReady() {
+        dnsttInstances.forEach { it.awaitReady() }
         if (readinessPorts.isEmpty()) return
         withContext(Dispatchers.IO) {
             for (port in readinessPorts) {
@@ -354,6 +381,9 @@ import java.net.Socket
             runCatching {
                 instance.close()
             }
+        }
+        for (instance in dnsttInstances) {
+            runCatching { instance.close() }
         }
 
         cacheFiles.removeAll { it.delete(); true }

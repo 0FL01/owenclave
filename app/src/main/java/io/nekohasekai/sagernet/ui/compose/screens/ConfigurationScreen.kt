@@ -253,11 +253,12 @@ fun ConfigurationScreen(
 
     if (showProtocolPicker) {
         ProtocolPickerDialog(
-            onSelect = { type ->
+            onSelect = { type, dnstt ->
                 showProtocolPicker = false
                 context.startActivity(
                     Intent(context, ComposeProfileSettingsActivity::class.java).apply {
                         putExtra(ComposeProfileSettingsActivity.EXTRA_PROFILE_TYPE, type)
+                        putExtra(ComposeProfileSettingsActivity.EXTRA_DNSTT, dnstt)
                     }
                 )
             },
@@ -450,33 +451,34 @@ fun ConfigurationScreen(
 
 @Composable
 private fun ProtocolPickerDialog(
-    onSelect: (Int) -> Unit,
+    onSelect: (Int, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val protocols = listOf(
-        "SOCKS" to ProxyEntity.TYPE_SOCKS,
-        "HTTP" to ProxyEntity.TYPE_HTTP,
-        "Shadowsocks" to ProxyEntity.TYPE_SS,
-        "ShadowsocksR" to ProxyEntity.TYPE_SSR,
-        "VMess" to ProxyEntity.TYPE_VMESS,
-        "VLESS" to ProxyEntity.TYPE_VLESS,
-        "Trojan" to ProxyEntity.TYPE_TROJAN,
-        "Naive" to ProxyEntity.TYPE_NAIVE,
-        "Hysteria 2" to ProxyEntity.TYPE_HYSTERIA2,
-        "SSH" to ProxyEntity.TYPE_SSH,
-        "WireGuard" to ProxyEntity.TYPE_WG,
-        "Mieru" to ProxyEntity.TYPE_MIERU,
-        "TUIC" to ProxyEntity.TYPE_TUIC5,
-        "Juicity" to ProxyEntity.TYPE_JUICITY,
-        "HTTP/3" to ProxyEntity.TYPE_HTTP3,
-        "AnyTLS" to ProxyEntity.TYPE_ANYTLS,
-        "ShadowQUIC" to ProxyEntity.TYPE_SHADOWQUIC,
-        "TrustTunnel" to ProxyEntity.TYPE_TRUSTTUNNEL,
-        "Snell" to ProxyEntity.TYPE_SNELL,
-        "OLCRTC" to ProxyEntity.TYPE_OLCRTC,
-        "Chain" to ProxyEntity.TYPE_CHAIN,
-        "Balancer" to ProxyEntity.TYPE_BALANCER,
-        "Custom Config" to ProxyEntity.TYPE_CONFIG,
+        Triple("SOCKS", ProxyEntity.TYPE_SOCKS, false),
+        Triple("HTTP", ProxyEntity.TYPE_HTTP, false),
+        Triple("Shadowsocks", ProxyEntity.TYPE_SS, false),
+        Triple("ShadowsocksR", ProxyEntity.TYPE_SSR, false),
+        Triple("VMess", ProxyEntity.TYPE_VMESS, false),
+        Triple("VLESS", ProxyEntity.TYPE_VLESS, false),
+        Triple("Trojan", ProxyEntity.TYPE_TROJAN, false),
+        Triple("Naive", ProxyEntity.TYPE_NAIVE, false),
+        Triple("Hysteria 2", ProxyEntity.TYPE_HYSTERIA2, false),
+        Triple("SSH", ProxyEntity.TYPE_SSH, false),
+        Triple("DNS Tunnel", ProxyEntity.TYPE_SSH, true),
+        Triple("WireGuard", ProxyEntity.TYPE_WG, false),
+        Triple("Mieru", ProxyEntity.TYPE_MIERU, false),
+        Triple("TUIC", ProxyEntity.TYPE_TUIC5, false),
+        Triple("Juicity", ProxyEntity.TYPE_JUICITY, false),
+        Triple("HTTP/3", ProxyEntity.TYPE_HTTP3, false),
+        Triple("AnyTLS", ProxyEntity.TYPE_ANYTLS, false),
+        Triple("ShadowQUIC", ProxyEntity.TYPE_SHADOWQUIC, false),
+        Triple("TrustTunnel", ProxyEntity.TYPE_TRUSTTUNNEL, false),
+        Triple("Snell", ProxyEntity.TYPE_SNELL, false),
+        Triple("OLCRTC", ProxyEntity.TYPE_OLCRTC, false),
+        Triple("Chain", ProxyEntity.TYPE_CHAIN, false),
+        Triple("Balancer", ProxyEntity.TYPE_BALANCER, false),
+        Triple("Custom Config", ProxyEntity.TYPE_CONFIG, false),
     )
 
     io.nekohasekai.sagernet.ui.compose.components.ExpressiveDialog(onDismissRequest = onDismiss) {
@@ -499,12 +501,12 @@ private fun ProtocolPickerDialog(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             items(protocols.size) { index ->
-                val (name, type) = protocols[index]
+                val (name, type, dnstt) = protocols[index]
                 // Uniform small radius: the outer LazyColumn clip (24dp) defines the
                 // overall rounded group, so the first/last items no longer get their
                 // corners harshly squared off by the scroll clip.
                 androidx.compose.material3.Surface(
-                    onClick = { onSelect(type) },
+                    onClick = { onSelect(type, dnstt) },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.fillMaxWidth(),
