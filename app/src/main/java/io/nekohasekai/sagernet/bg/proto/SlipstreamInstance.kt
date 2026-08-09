@@ -1,0 +1,286 @@
+package io.nekohasekai.sagernet.bg.proto
+
+import android.os.Build
+import android.os.SystemClock
+import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.bg.AbstractInstance
+import io.nekohasekai.sagernet.fmt.DnsttClientConfig
+import io.nekohasekai.sagernet.ktx.Logs
+import io.nekohasekai.sagernet.ktx.joinHostPort
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.SocketException
+import java.util.Collections
+
+internal class SlipstreamInstance(
+    private val config: DnsttClientConfig,
+) : AbstractInstance {
+    private companion object {
+        const val WORKERS = 32
+        const val QUERY_MAX_AGE_MS = 10_000L
+        const val SOCKET_TIMEOUT_MS = 8_000
+        const val MONITOR_INTERVAL_MS = 2_000L
+        const val READY_TIMEOUT_MS = 180_000L
+    }
+
+    private class DnsTcpAdapter(
+        private val resolverHost: String,
+        private val resolverPort: Int,
+    ) : AutoCloseable {
+        private data class Query(
+            val data: ByteArray,
+            val source: InetSocketAddress,
+            val createdAt: Long,
+        )
+
+        private data class Connection(
+            val socket: Socket,
+            val input: DataInputStream,
+            val output: DataOutputStream,
+        ) : AutoCloseable {
+            override fun close() = socket.close()
+        }
+
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        private val queue = Channel<Query>(WORKERS * 2)
+        private val udp = DatagramSocket(null).apply {
+            bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0))
+        }
+        private val connections = Collections.synchronizedSet(mutableSetOf<Socket>())
+
+        val port: Int get() = udp.localPort
+
+        init {
+            scope.launch {
+                while (isActive) {
+                    val buffer = ByteArray(4096)
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    try {
+                        udp.receive(packet)
+                    } catch (_: SocketException) {
+                        break
+                    }
+                    queue.trySend(
+                        Query(
+                            packet.data.copyOfRange(packet.offset, packet.offset + packet.length),
+                            packet.socketAddress as InetSocketAddress,
+                            SystemClock.elapsedRealtime(),
+                        ),
+                    )
+                }
+            }
+            repeat(WORKERS) { scope.launch { worker() } }
+        }
+
+        private fun connect(): Connection {
+            val socket = Socket().apply {
+                tcpNoDelay = true
+                connect(InetSocketAddress(resolverHost, resolverPort), SOCKET_TIMEOUT_MS)
+                soTimeout = SOCKET_TIMEOUT_MS
+            }
+            connections.add(socket)
+            return Connection(
+                socket,
+                DataInputStream(BufferedInputStream(socket.getInputStream())),
+                DataOutputStream(BufferedOutputStream(socket.getOutputStream())),
+            )
+        }
+
+        private suspend fun worker() {
+            var connection: Connection? = null
+            for (query in queue) {
+                if (SystemClock.elapsedRealtime() - query.createdAt > QUERY_MAX_AGE_MS) continue
+                for (attempt in 0..1) {
+                    try {
+                        val current = connection ?: connect().also { connection = it }
+                        current.output.writeShort(query.data.size)
+                        current.output.write(query.data)
+                        current.output.flush()
+                        val responseLength = current.input.readUnsignedShort()
+                        if (responseLength !in 12..4096) throw IOException("Invalid DNS response")
+                        val response = ByteArray(responseLength)
+                        current.input.readFully(response)
+                        udp.send(DatagramPacket(response, response.size, query.source))
+                        break
+                    } catch (_: IOException) {
+                        connection?.let {
+                            connections.remove(it.socket)
+                            runCatching { it.close() }
+                        }
+                        connection = null
+                        if (attempt == 1) break
+                    }
+                }
+            }
+            connection?.let {
+                connections.remove(it.socket)
+                runCatching { it.close() }
+            }
+        }
+
+        override fun close() {
+            queue.close()
+            udp.close()
+            synchronized(connections) {
+                connections.forEach { runCatching { it.close() } }
+                connections.clear()
+            }
+            scope.cancel()
+        }
+    }
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val lock = Any()
+    private var adapter: DnsTcpAdapter? = null
+    private lateinit var authority: String
+    @Volatile
+    private var ready = CompletableDeferred<Unit>()
+    private var process: Process? = null
+    private var monitor: Job? = null
+    private lateinit var certificate: File
+    @Volatile
+    private var closed = false
+
+    private fun drain(stream: InputStream, readySignal: CompletableDeferred<Unit>) {
+        scope.launch {
+            runCatching {
+                stream.bufferedReader().useLines { lines ->
+                    lines.forEach { if (it.contains("Connection ready")) readySignal.complete(Unit) }
+                }
+            }
+        }
+    }
+
+    private fun isAlive(child: Process?): Boolean {
+        if (child == null) return false
+        return try {
+            child.exitValue()
+            false
+        } catch (_: IllegalThreadStateException) {
+            true
+        }
+    }
+
+    private fun stopLocked() {
+        val child = process ?: return
+        child.destroy()
+        var attempts = 0
+        while (isAlive(child) && attempts < 10) {
+            Thread.sleep(50)
+            attempts++
+        }
+        if (isAlive(child) && Build.VERSION.SDK_INT >= 26) child.destroyForcibly()
+        process = null
+    }
+
+    private fun startLocked() {
+        val binary = File(SagerNet.application.applicationInfo.nativeLibraryDir, "libslipstream.so")
+        if (!binary.canExecute()) throw IOException("Slipstream binary is unavailable")
+        val readySignal = CompletableDeferred<Unit>()
+        ready = readySignal
+        val command = listOf(
+            binary.absolutePath,
+            "--tcp-listen-host", "127.0.0.1",
+            "--tcp-listen-port", config.localPort.toString(),
+            "--domain", config.domain,
+            "--cert", certificate.absolutePath,
+            "--authoritative", authority,
+        )
+        val child = ProcessBuilder(command)
+            .directory(SagerNet.application.noBackupFilesDir)
+            .start()
+        process = child
+        drain(child.inputStream, readySignal)
+        drain(child.errorStream, readySignal)
+        Logs.i("slipstream: starting single DNS resolver")
+    }
+
+    override fun launch() {
+        synchronized(lock) {
+            check(!closed)
+            certificate = File(SagerNet.application.noBackupFilesDir, "slipstream-server.crt")
+            SagerNet.application.resources.openRawResource(R.raw.slipstream_server).use { input ->
+                certificate.outputStream().use { input.copyTo(it) }
+            }
+            try {
+                authority = when (config.resolverTransport) {
+                    "udp" -> joinHostPort(config.resolverHost, config.resolverPort)
+                    "tcp" -> DnsTcpAdapter(config.resolverHost, config.resolverPort).let {
+                        adapter = it
+                        "127.0.0.1:${it.port}"
+                    }
+                    else -> throw IOException("Unsupported DNS resolver transport")
+                }
+                startLocked()
+                startMonitor()
+            } catch (error: Throwable) {
+                runCatching { adapter?.close() }
+                adapter = null
+                certificate.delete()
+                throw error
+            }
+        }
+    }
+
+    override suspend fun awaitReady() = withContext(Dispatchers.IO) {
+        val readySignal = ready
+        if (withTimeoutOrNull(READY_TIMEOUT_MS) { readySignal.await() } == null) {
+            throw IOException("Slipstream could not reach the server")
+        }
+        Logs.i("slipstream: carrier ready")
+    }
+
+    private fun startMonitor() {
+        if (monitor != null) return
+        monitor = scope.launch {
+            while (isActive) {
+                delay(MONITOR_INTERVAL_MS)
+                synchronized(lock) {
+                    if (closed) return@launch
+                    if (!isAlive(process)) {
+                        Logs.w("slipstream: process stopped, restarting")
+                        stopLocked()
+                        runCatching { startLocked() }
+                            .onFailure { Logs.w("slipstream: process restart failed") }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun close() {
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            monitor?.cancel()
+            stopLocked()
+            runCatching { adapter?.close() }
+            adapter = null
+            if (::certificate.isInitialized) certificate.delete()
+        }
+        scope.cancel()
+    }
+}

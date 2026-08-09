@@ -57,6 +57,7 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.toUri
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.socks.toUri
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
+import io.nekohasekai.sagernet.fmt.ssh.isValidDnsttResolver
 import io.nekohasekai.sagernet.fmt.ssh.toDnsttUri
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trojan.toUri
@@ -313,7 +314,7 @@ data class ProxyEntity(
 
     fun hasShareLink(): Boolean {
         return when (type) {
-            TYPE_SSH -> sshBean?.dnsttEnabled == true
+            TYPE_SSH -> sshBean?.let { it.dnsttEnabled == true && isValidDnsttResolver(it.dnsttResolver) } == true
             TYPE_WG, TYPE_SNELL -> false
             TYPE_CONFIG, TYPE_CHAIN, TYPE_BALANCER -> false
             else -> true

@@ -113,7 +113,7 @@ import java.net.Socket
     val pluginPath = hashMapOf<String, PluginManager.InitResult>()
     val pluginConfigs = hashMapOf<Int, Pair<Int, String>>()
     val externalInstances = hashMapOf<Int, AbstractInstance>()
-    private val dnsttInstances = mutableListOf<DnsttInstance>()
+    private val dnsTunnelInstances = mutableListOf<SlipstreamInstance>()
 
     // Local SOCKS ports of external engines that need to finish bringing up
     // their transport before they can pass traffic (e.g. olcrtc WebRTC).
@@ -144,7 +144,7 @@ import java.net.Socket
             if (DataStore.serviceMode == Key.MODE_VPN && DataStore.tunImplementation == TunImplementation.SYSTEM) {
                 error("DNS Tunnel requires gVisor TUN")
             }
-            dnsttInstances.addAll(config.dnsttClients.map { DnsttInstance(it, ::underlayDnsServer) })
+            dnsTunnelInstances.addAll(config.dnsttClients.map(::SlipstreamInstance))
         }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
@@ -181,7 +181,7 @@ import java.net.Socket
     @SuppressLint("SetJavaScriptEnabled")
     override fun launch() {
         val context = SagerNet.application
-        dnsttInstances.forEach { it.launch() }
+        dnsTunnelInstances.forEach { it.launch() }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
                 val port = triple.first
@@ -343,7 +343,7 @@ import java.net.Socket
      * hanging the connect flow forever.
      */
     override suspend fun awaitReady() {
-        dnsttInstances.forEach { it.awaitReady() }
+        dnsTunnelInstances.forEach { it.awaitReady() }
         if (readinessPorts.isEmpty()) return
         withContext(Dispatchers.IO) {
             for (port in readinessPorts) {
@@ -382,7 +382,7 @@ import java.net.Socket
                 instance.close()
             }
         }
-        for (instance in dnsttInstances) {
+        for (instance in dnsTunnelInstances) {
             runCatching { instance.close() }
         }
 

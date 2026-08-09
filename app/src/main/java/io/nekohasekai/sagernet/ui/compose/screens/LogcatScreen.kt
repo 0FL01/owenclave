@@ -31,13 +31,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.nekohasekai.sagernet.ui.compose.components.OwenclaveTopAppBar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-internal fun readSupportLog(): String {
-    val process = ProcessBuilder("logcat", "-d", "-t", "2000", "-v", "threadtime").start()
-    return process.inputStream.bufferedReader().use { it.readText() }.also { process.waitFor() }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +43,8 @@ fun LogcatScreen(
 
     LaunchedEffect(refreshKey) {
         try {
-            logText = withContext(Dispatchers.IO) { readSupportLog() }
+            val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", "500"))
+            logText = process.inputStream.bufferedReader().readText()
         } catch (_: Exception) {
             logText = "Failed to read logs"
         }

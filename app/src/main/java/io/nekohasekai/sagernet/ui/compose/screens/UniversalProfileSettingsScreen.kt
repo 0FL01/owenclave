@@ -96,6 +96,7 @@ data class ProfileFieldState(
     val dnsttEnabled: Boolean = false,
     val dnsttDomain: String = "",
     val dnsttPublicKey: String = "",
+    val dnsttResolver: String = "",
     // WireGuard
     val localAddress: String = "",
     val privateKeyWg: String = "",
@@ -491,6 +492,10 @@ private fun SshFields(s: ProfileFieldState, update: (ProfileFieldState) -> Unit)
             ProfileTextField("Tunnel Domain", s.dnsttDomain) { update(s.copy(dnsttDomain = it)) }
             DividerItem()
             ProfileTextField("dnstt Server Public Key", s.dnsttPublicKey) { update(s.copy(dnsttPublicKey = it)) }
+            DividerItem()
+            ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
+                update(s.copy(dnsttResolver = it))
+            }
         }
     }
     PreferenceHeader("SSH Settings")

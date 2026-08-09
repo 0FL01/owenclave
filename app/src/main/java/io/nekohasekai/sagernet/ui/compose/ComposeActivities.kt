@@ -587,7 +587,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                     privateKeyPassphrase = b.privateKeyPassphrase ?: "",
                     publicKey = b.publicKey ?: "", keepaliveInterval = b.keepaliveInterval?.toString() ?: "0",
                     dnsttEnabled = b.dnsttEnabled ?: false, dnsttDomain = b.dnsttDomain ?: "",
-                    dnsttPublicKey = b.dnsttPublicKey ?: "")
+                    dnsttPublicKey = b.dnsttPublicKey ?: "", dnsttResolver = b.dnsttResolver ?: "")
             }
             ProxyEntity.TYPE_WG -> {
                 val b = entity.wgBean ?: return s
@@ -833,6 +833,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 b.dnsttEnabled = state.dnsttEnabled
                 b.dnsttDomain = state.dnsttDomain
                 b.dnsttPublicKey = state.dnsttPublicKey
+                b.dnsttResolver = state.dnsttResolver
                 entity.sshBean = b
             }
             ProxyEntity.TYPE_WG -> {

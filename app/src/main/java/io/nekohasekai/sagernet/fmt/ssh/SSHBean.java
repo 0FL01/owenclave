@@ -45,6 +45,7 @@ public class SSHBean extends AbstractBean {
     public Boolean dnsttEnabled;
     public String dnsttDomain;
     public String dnsttPublicKey;
+    public String dnsttResolver;
 
     @Override
     public void initializeDefaultValues() {
@@ -62,11 +63,12 @@ public class SSHBean extends AbstractBean {
         if (dnsttEnabled == null) dnsttEnabled = false;
         if (dnsttDomain == null) dnsttDomain = "";
         if (dnsttPublicKey == null) dnsttPublicKey = "";
+        if (dnsttResolver == null) dnsttResolver = "";
     }
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(2);
+        output.writeInt(3);
         super.serialize(output);
         output.writeString(username);
         output.writeInt(authType);
@@ -86,6 +88,7 @@ public class SSHBean extends AbstractBean {
         output.writeBoolean(dnsttEnabled);
         output.writeString(dnsttDomain);
         output.writeString(dnsttPublicKey);
+        output.writeString(dnsttResolver);
     }
 
     @Override
@@ -114,6 +117,9 @@ public class SSHBean extends AbstractBean {
             dnsttDomain = input.readString();
             dnsttPublicKey = input.readString();
         }
+        if (version >= 3) {
+            dnsttResolver = input.readString();
+        }
     }
 
 
@@ -127,6 +133,7 @@ public class SSHBean extends AbstractBean {
         bean.dnsttEnabled = dnsttEnabled;
         bean.dnsttDomain = dnsttDomain;
         bean.dnsttPublicKey = dnsttPublicKey;
+        bean.dnsttResolver = dnsttResolver;
     }
 
 

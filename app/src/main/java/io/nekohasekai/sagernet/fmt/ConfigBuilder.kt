@@ -53,6 +53,7 @@ import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.ssh.SSHBean
+import io.nekohasekai.sagernet.fmt.ssh.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
@@ -170,7 +171,9 @@ class V2rayBuildResult(
 data class DnsttClientConfig(
     val localPort: Int,
     val domain: String,
-    val publicKey: String,
+    val resolverTransport: String,
+    val resolverHost: String,
+    val resolverPort: Int,
 )
 
 @OptIn(ExperimentalUuidApi::class)
@@ -1335,8 +1338,11 @@ fun buildV2RayConfig(
                                         "DNS Tunnel SSH private key is required"
                                     }
                                     require(bean.publicKey.isNotEmpty()) { "DNS Tunnel SSH host key is required" }
-                                    dnsttClients.getOrPut(domain to bean.dnsttPublicKey) {
-                                        DnsttClientConfig(mkPort(), domain, bean.dnsttPublicKey.lowercase())
+                                    val resolver = parseDnsttResolver(bean.dnsttResolver)
+                                    dnsttClients.getOrPut(domain to resolver.toString()) {
+                                        DnsttClientConfig(
+                                            mkPort(), domain, resolver.transport, resolver.host, resolver.port,
+                                        )
                                     }
                                 } else null
                                 protocol = "ssh"
