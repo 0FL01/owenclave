@@ -491,7 +491,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
         var entity: ProxyEntity? = null
         var initialState = ProfileFieldState()
         if (profileId == 0L && profileType == ProxyEntity.TYPE_SSH && intent.getBooleanExtra(EXTRA_DNSTT, false)) {
-            initialState = initialState.copy(dnsttEnabled = true, authType = SSHBean.AUTH_TYPE_PUBLIC_KEY)
+            initialState = initialState.copy(dnsttEnabled = true, authType = SSHBean.AUTH_TYPE_PASSWORD)
         }
 
         if (profileId > 0L) {
@@ -823,16 +823,16 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 b.name = state.name
                 b.serverAddress = if (state.dnsttEnabled) state.dnsttDomain else state.serverAddress
                 b.serverPort = if (state.dnsttEnabled) 22 else state.serverPort.toIntOrNull() ?: 22
-                b.username = state.username
-                b.authType = state.authType
+                b.username = if (state.dnsttEnabled) "" else state.username
+                b.authType = if (state.dnsttEnabled) SSHBean.AUTH_TYPE_PASSWORD else state.authType
                 b.password = state.password
-                b.privateKey = state.privateKey
-                b.privateKeyPassphrase = state.privateKeyPassphrase
-                b.publicKey = state.publicKey
+                b.privateKey = if (state.dnsttEnabled) "" else state.privateKey
+                b.privateKeyPassphrase = if (state.dnsttEnabled) "" else state.privateKeyPassphrase
+                b.publicKey = if (state.dnsttEnabled) "" else state.publicKey
                 b.keepaliveInterval = if (state.dnsttEnabled) 0 else state.keepaliveInterval.toIntOrNull() ?: 0
                 b.dnsttEnabled = state.dnsttEnabled
                 b.dnsttDomain = state.dnsttDomain
-                b.dnsttPublicKey = state.dnsttPublicKey
+                b.dnsttPublicKey = if (state.dnsttEnabled) "" else state.dnsttPublicKey
                 b.dnsttResolver = state.dnsttResolver
                 entity.sshBean = b
             }

@@ -1,18 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="v2.2.0"
-APK_SHA256="dd123e71c24cbe4968e910bbe70bf42fb9f0ea8459e198bff93a1e685ddfdc46"
-CLIENT_SHA256="a68762441b79abda89ef1c68437e93f1eb706c52960a9bb12cedec8a1cb067ac"
+COMMIT="bc772dd07d9a136dbd7553b0da575526de207847"
+RUST_VERSION="1.97.1"
+CARGO_NDK_VERSION="4.1.2"
+NDK_VERSION="29.0.14206865"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PATCHES=(
+  "$ROOT/bin/lib/slipstream/adaptive-idle.patch"
+  "$ROOT/bin/lib/slipstream/flow-relay.patch"
+)
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/owenclave-slipstream"
-APK="$CACHE/DNSTT-Client-$VERSION-Android-arm64-v8a.apk"
-OUT="$(cd "$(dirname "$0")/../../.." && pwd)/app/src/main/jniLibs/arm64-v8a/libslipstream.so"
+SRC="${SLIPSTREAM_SRC:-$CACHE/src}"
+BUILD="${SLIPSTREAM_BUILD:-$CACHE/build}"
+OUT="$ROOT/app/src/main/jniLibs/arm64-v8a/libslipstream.so"
+TC="${ANDROID_NDK_HOME:?ANDROID_NDK_HOME is required}/toolchains/llvm/prebuilt/linux-x86_64/bin"
 
-mkdir -p "$CACHE" "$(dirname "$OUT")"
-if [ ! -f "$APK" ]; then
-  curl -fL "https://github.com/dnstt-xyz/dnstt_xyz_app/releases/download/$VERSION/DNSTT-Client-$VERSION-Android-arm64-v8a.apk" -o "$APK"
+command -v git >/dev/null
+command -v cargo >/dev/null
+command -v cmake >/dev/null
+command -v perl >/dev/null
+rustc --version | grep -q "^rustc $RUST_VERSION "
+cargo ndk --version | grep -q "cargo-ndk $CARGO_NDK_VERSION"
+grep -q "Pkg.Revision = $NDK_VERSION" "$ANDROID_NDK_HOME/source.properties"
+perl -MFindBin -MFile::Compare -e 1
+
+mkdir -p "$CACHE" "$BUILD" "$(dirname "$OUT")"
+if [ ! -d "$SRC/.git" ]; then
+  rm -rf "$SRC"
+  git clone --filter=blob:none --no-checkout https://github.com/Mygod/slipstream-rust.git "$SRC"
 fi
-echo "$APK_SHA256  $APK" | sha256sum --check --status
-unzip -p "$APK" lib/arm64-v8a/libslipstream_client.so > "$OUT"
-echo "$CLIENT_SHA256  $OUT" | sha256sum --check --status
-chmod 0755 "$OUT"
+if ! git -C "$SRC" cat-file -e "$COMMIT^{commit}"; then
+  git -C "$SRC" fetch --depth 1 origin "$COMMIT"
+fi
+git -C "$SRC" checkout --detach --force "$COMMIT"
+git -C "$SRC" reset --hard "$COMMIT"
+rm -f "$SRC/crates/slipstream-client/src/flow_relay.rs"
+git -C "$SRC" submodule update --init --recursive --depth 1 vendor/picoquic
+for patch in "${PATCHES[@]}"; do
+  git -C "$SRC" apply --check "$patch"
+  git -C "$SRC" apply "$patch"
+done
+
+export ANDROID_ABI=arm64-v8a
+export ANDROID_PLATFORM=android-21
+export CARGO_TARGET_DIR="$BUILD/target"
+export PICOQUIC_BUILD_DIR="$BUILD/picoquic"
+export PKG_CONFIG_LIBDIR="$BUILD/pkgconfig"
+export RUST_ANDROID_GRADLE_CC="$TC/aarch64-linux-android21-clang"
+export RUST_ANDROID_GRADLE_AR="$TC/llvm-ar"
+rm -rf "$PICOQUIC_BUILD_DIR"
+mkdir -p "$PKG_CONFIG_LIBDIR"
+
+(cd "$SRC" && cargo ndk -t arm64-v8a --platform 21 build \
+  --release --locked -p slipstream-client \
+  --features openssl-vendored,picoquic-minimal-build)
+install -m 0755 "$CARGO_TARGET_DIR/aarch64-linux-android/release/slipstream-client" "$OUT"
+sha256sum "$OUT"

@@ -491,37 +491,36 @@ private fun SshFields(s: ProfileFieldState, update: (ProfileFieldState) -> Unit)
         SectionCard {
             ProfileTextField("Tunnel Domain", s.dnsttDomain) { update(s.copy(dnsttDomain = it)) }
             DividerItem()
-            ProfileTextField("dnstt Server Public Key", s.dnsttPublicKey) { update(s.copy(dnsttPublicKey = it)) }
-            DividerItem()
             ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
                 update(s.copy(dnsttResolver = it))
             }
+            DividerItem()
+            ProfileTextField("Flow Token (32 lowercase hex)", s.password, password = true) {
+                update(s.copy(password = it))
+            }
         }
-    }
-    PreferenceHeader("SSH Settings")
-    SectionCard {
-        ProfileTextField("Username", s.username) { update(s.copy(username = it)) }
-        if (!s.dnsttEnabled) {
+    } else {
+        PreferenceHeader("SSH Settings")
+        SectionCard {
+            ProfileTextField("Username", s.username) { update(s.copy(username = it)) }
             DividerItem()
             ProfileTextField("Auth Type (0=none,1=password,2=publicKey)", s.authType.toString()) {
                 update(s.copy(authType = it.toIntOrNull() ?: 0))
             }
-        }
-        if (s.authType == 1) {
-            DividerItem()
-            ProfileTextField("Password", s.password, password = true) { update(s.copy(password = it)) }
-        }
-        if (s.authType == 2 || s.dnsttEnabled) {
-            DividerItem()
-            ProfileTextField("Private Key", s.privateKey, password = true) { update(s.copy(privateKey = it)) }
-            DividerItem()
-            ProfileTextField("Private Key Passphrase", s.privateKeyPassphrase, password = true) {
-                update(s.copy(privateKeyPassphrase = it))
+            if (s.authType == 1) {
+                DividerItem()
+                ProfileTextField("Password", s.password, password = true) { update(s.copy(password = it)) }
             }
-        }
-        DividerItem()
-        ProfileTextField("Public Key (host key pinning)", s.publicKey) { update(s.copy(publicKey = it)) }
-        if (!s.dnsttEnabled) {
+            if (s.authType == 2) {
+                DividerItem()
+                ProfileTextField("Private Key", s.privateKey, password = true) { update(s.copy(privateKey = it)) }
+                DividerItem()
+                ProfileTextField("Private Key Passphrase", s.privateKeyPassphrase, password = true) {
+                    update(s.copy(privateKeyPassphrase = it))
+                }
+            }
+            DividerItem()
+            ProfileTextField("Public Key (host key pinning)", s.publicKey) { update(s.copy(publicKey = it)) }
             DividerItem()
             ProfileTextField("Keepalive Interval", s.keepaliveInterval, keyboardType = KeyboardType.Number) {
                 update(s.copy(keepaliveInterval = it.filter(Char::isDigit)))

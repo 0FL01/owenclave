@@ -6,6 +6,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.AbstractInstance
 import io.nekohasekai.sagernet.fmt.DnsttClientConfig
+import io.nekohasekai.sagernet.fmt.ssh.decodeDnsttToken
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.joinHostPort
 import kotlinx.coroutines.CompletableDeferred
@@ -208,10 +209,21 @@ internal class SlipstreamInstance(
             "--domain", config.domain,
             "--cert", certificate.absolutePath,
             "--authoritative", authority,
+            "--flow-relay-stdin",
         )
         val child = ProcessBuilder(command)
             .directory(SagerNet.application.noBackupFilesDir)
             .start()
+        try {
+            child.outputStream.use { output ->
+                output.write(decodeDnsttToken(config.token))
+                output.write(config.socksUsername.toByteArray(Charsets.US_ASCII))
+                output.write(config.socksPassword.toByteArray(Charsets.US_ASCII))
+            }
+        } catch (error: Throwable) {
+            child.destroy()
+            throw IOException("Could not bootstrap FlowRelay", error)
+        }
         process = child
         drain(child.inputStream, readySignal)
         drain(child.errorStream, readySignal)

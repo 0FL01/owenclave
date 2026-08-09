@@ -10,15 +10,16 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ConfigBuilder.kt` - existing SSH outbound and local carrier boundary.
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/SlipstreamInstance.kt` - single-resolver Rust Slipstream lifecycle and optional TCP DNS adapter.
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/V2RayInstance.kt` - sidecar ownership and gVisor restriction.
-- `bin/lib/slipstream/build.sh` - pinned arm64 Android client artifact and digest checks.
+- `bin/lib/slipstream/build.sh` - pinned arm64 Android client artifact and patches.
+- `bin/lib/slipstream/flowd/` - private FlowRelay backend and focused tests.
 
 ## DNS Tunnel rules
 
 - DNS Tunnel remains an `SSHBean`; do not add a Room entity or a second VPN implementation.
 - Each profile must provide exactly one `resolver=udp://host:port` or `resolver=tcp://host:port`. Never hardcode, discover, rank, rotate or combine resolvers.
-- Rust Slipstream exposes raw loopback TCP to the existing authenticated SSH outbound. Do not add dnstt, multipath or direct-carrier fallback.
+- Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
-- Exclave multiplexes application SSH channels into one ordered SSH-over-Slipstream stream. Abruptly cancelled downloads may block later replies; extra health-probe streams change Slipstream behavior and are not a neutral fix.
+- Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.
 - The bundled Slipstream client is currently arm64-only and generated under ignored `jniLibs/`; a clean build must run the pinned build script.
 - Never commit or print private keys, complete connection links, keystores or credential databases.
 
