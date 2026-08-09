@@ -860,16 +860,18 @@ class ConfigurationFragment @JvmOverloads constructor(
                             } else {
                                 V2RayTestInstance(profile, link, timeout)
                             }
-                            val result = instance.use {
-                                it.doTest()
-                            }
+                            val result = instance.doTest()
                             profile.status = 1
                             profile.ping = result
+                            profile.error = null
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: PluginManager.PluginNotFoundException) {
                             profile.status = -1
                             profile.error = e.readableMessage
                         } catch (e: Exception) {
                             profile.status = 3
+                            profile.ping = -1
                             profile.error = e.readableMessage
                         }
                         onMainDispatcher {

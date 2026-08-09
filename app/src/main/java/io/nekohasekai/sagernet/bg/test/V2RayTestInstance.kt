@@ -27,33 +27,68 @@ import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.fmt.buildV2RayConfig
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
-import io.nekohasekai.sagernet.ktx.tryResume
-import io.nekohasekai.sagernet.ktx.tryResumeWithException
 import io.nekohasekai.sagernet.utils.DefaultNetworkListener
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.selects.select
 import libexclavecore.Libexclavecore
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.suspendCoroutine
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int, val protectPath: String = "") : V2RayInstance(
     profile,
 ), LocalResolver {
-    lateinit var continuation: Continuation<Int>
-    suspend fun doTest(): Int {
-        return suspendCoroutine { c ->
-            continuation = c
-            processes = GuardedProcessPool {
-                Logs.w(it)
-                c.tryResumeWithException(it)
-            }
-            runOnDefaultDispatcher {
-                try {
-                    init()
-                    launch()
-                    awaitReady()
-                    c.tryResume(Libexclavecore.urlTest(v2rayPoint, "", link, timeout))
-                } catch (e: Exception) {
-                    c.tryResumeWithException(e)
+    private companion object {
+        const val DNS_TEST_READY_TIMEOUT_MS = 5_000L
+        val dnsTestMutex = Mutex()
+    }
+
+    override val dnsTunnelReadyTimeoutMs = DNS_TEST_READY_TIMEOUT_MS
+    private val closed = AtomicBoolean()
+
+    suspend fun doTest(): Int = coroutineScope {
+        val fatal = CompletableDeferred<IOException>()
+        processes = GuardedProcessPool {
+            Logs.w(it)
+            fatal.complete(it)
+        }
+        val test = async(Dispatchers.Default) {
+            try {
+                init()
+                val run = suspend {
+                    try {
+                        launch()
+                        awaitReady()
+                        Libexclavecore.urlTest(v2rayPoint, "", link, timeout)
+                    } finally {
+                        close()
+                    }
                 }
+                if (config.dnsttClients.isNotEmpty()) {
+                    dnsTestMutex.withLock { run() }
+                } else {
+                    run()
+                }
+            } finally {
+                close()
+            }
+        }
+        try {
+            select {
+                test.onAwait { it }
+                fatal.onAwait { throw it }
+            }
+        } finally {
+            close()
+            withContext(NonCancellable) {
+                test.cancelAndJoin()
             }
         }
     }
@@ -71,9 +106,8 @@ class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int
     }
 
     override fun close() {
-        runOnDefaultDispatcher {
-            DefaultNetworkListener.stop(this)
-        }
+        if (!closed.compareAndSet(false, true)) return
+        runOnDefaultDispatcher { DefaultNetworkListener.stop(this@V2RayTestInstance) }
         super.close()
     }
 

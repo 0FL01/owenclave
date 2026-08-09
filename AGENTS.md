@@ -20,6 +20,8 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
 - Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.
+- Bound aggregate DNS carrier readiness to 15 seconds for VPN startup and 5 seconds for latency tests; failures stay fail-closed without resolver fallback.
+- Serialize DNS Tunnel latency tests process-wide and keep launch, cancellation and cleanup under one test owner so benchmark children never overlap.
 - The bundled Slipstream client is currently arm64-only and generated under ignored `jniLibs/`; a clean build must run the pinned build script.
 - Never commit or print private keys, complete connection links, keystores or credential databases.
 

@@ -66,11 +66,11 @@ import io.nekohasekai.sagernet.ui.compose.components.EmptyState
 import io.nekohasekai.sagernet.ui.compose.components.OwenclaveTopAppBar
 import io.nekohasekai.sagernet.ui.compose.components.ProfileCard
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -167,11 +167,13 @@ fun ConfigurationScreen(
                 withContext(Dispatchers.Main) { pingingIds = pingingIds + entity.id }
                 try {
                     val instance = io.nekohasekai.sagernet.bg.test.V2RayTestInstance(entity, link, timeout)
-                    val result = withTimeout(30_000L) { instance.use { it.doTest() } }
+                    val result = instance.doTest()
                     entity.ping = result
                     entity.status = 1
                     entity.error = null
                     if (result > 0) anyWorking = true
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     entity.ping = -1
                     entity.status = 3
@@ -417,11 +419,13 @@ fun ConfigurationScreen(
                                             val instance = io.nekohasekai.sagernet.bg.test.V2RayTestInstance(
                                                 entity, link, timeout
                                             )
-                                            val result = instance.use { it.doTest() }
+                                            val result = instance.doTest()
                                             entity.ping = result
                                             entity.status = 1
                                             entity.error = null
                                             ProfileManager.updateProfile(entity)
+                                        } catch (e: CancellationException) {
+                                            throw e
                                         } catch (e: Exception) {
                                             entity.ping = -1
                                             entity.status = 3

@@ -17,10 +17,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -35,6 +35,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketException
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class SlipstreamInstance(
     private val config: DnsttClientConfig,
@@ -44,7 +45,6 @@ internal class SlipstreamInstance(
         const val QUERY_MAX_AGE_MS = 10_000L
         const val SOCKET_TIMEOUT_MS = 8_000
         const val MONITOR_INTERVAL_MS = 2_000L
-        const val READY_TIMEOUT_MS = 180_000L
     }
 
     private class DnsTcpAdapter(
@@ -71,6 +71,7 @@ internal class SlipstreamInstance(
             bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0))
         }
         private val connections = Collections.synchronizedSet(mutableSetOf<Socket>())
+        private val closed = AtomicBoolean()
 
         val port: Int get() = udp.localPort
 
@@ -96,60 +97,85 @@ internal class SlipstreamInstance(
             repeat(WORKERS) { scope.launch { worker() } }
         }
 
-        private fun connect(): Connection {
-            val socket = Socket().apply {
-                tcpNoDelay = true
-                connect(InetSocketAddress(resolverHost, resolverPort), SOCKET_TIMEOUT_MS)
-                soTimeout = SOCKET_TIMEOUT_MS
+        private fun connect(timeoutMs: Int): Connection {
+            val socket = Socket()
+            synchronized(connections) {
+                if (closed.get()) {
+                    socket.close()
+                    throw IOException("DNS TCP adapter is closed")
+                }
+                connections.add(socket)
             }
-            connections.add(socket)
-            return Connection(
-                socket,
-                DataInputStream(BufferedInputStream(socket.getInputStream())),
-                DataOutputStream(BufferedOutputStream(socket.getOutputStream())),
-            )
+            try {
+                socket.tcpNoDelay = true
+                socket.connect(InetSocketAddress(resolverHost, resolverPort), timeoutMs)
+                socket.soTimeout = timeoutMs
+                return Connection(
+                    socket,
+                    DataInputStream(BufferedInputStream(socket.getInputStream())),
+                    DataOutputStream(BufferedOutputStream(socket.getOutputStream())),
+                )
+            } catch (error: Throwable) {
+                connections.remove(socket)
+                runCatching { socket.close() }
+                throw error
+            }
         }
+
+        private fun closeConnection(connection: Connection?) {
+            connection ?: return
+            connections.remove(connection.socket)
+            runCatching { connection.close() }
+        }
+
+        private fun remainingMs(query: Query) =
+            (QUERY_MAX_AGE_MS - (SystemClock.elapsedRealtime() - query.createdAt))
+                .coerceAtMost(SOCKET_TIMEOUT_MS.toLong()).toInt()
 
         private suspend fun worker() {
             var connection: Connection? = null
-            for (query in queue) {
-                if (SystemClock.elapsedRealtime() - query.createdAt > QUERY_MAX_AGE_MS) continue
-                for (attempt in 0..1) {
-                    try {
-                        val current = connection ?: connect().also { connection = it }
-                        current.output.writeShort(query.data.size)
-                        current.output.write(query.data)
-                        current.output.flush()
-                        val responseLength = current.input.readUnsignedShort()
-                        if (responseLength !in 12..4096) throw IOException("Invalid DNS response")
-                        val response = ByteArray(responseLength)
-                        current.input.readFully(response)
-                        udp.send(DatagramPacket(response, response.size, query.source))
-                        break
-                    } catch (_: IOException) {
-                        connection?.let {
-                            connections.remove(it.socket)
-                            runCatching { it.close() }
+            try {
+                for (query in queue) {
+                    if (closed.get() || !currentCoroutineContext().isActive || remainingMs(query) <= 0) continue
+                    for (attempt in 0..1) {
+                        try {
+                            val remaining = remainingMs(query)
+                            if (remaining <= 0) break
+                            val current = connection ?: connect(remaining).also { connection = it }
+                            current.socket.soTimeout = remaining
+                            current.output.writeShort(query.data.size)
+                            current.output.write(query.data)
+                            current.output.flush()
+                            val responseLength = current.input.readUnsignedShort()
+                            if (responseLength !in 12..4096) throw IOException("Invalid DNS response")
+                            val response = ByteArray(responseLength)
+                            current.input.readFully(response)
+                            udp.send(DatagramPacket(response, response.size, query.source))
+                            break
+                        } catch (_: IOException) {
+                            closeConnection(connection)
+                            connection = null
+                            if (
+                                attempt == 1 || closed.get() ||
+                                !currentCoroutineContext().isActive || remainingMs(query) <= 0
+                            ) break
                         }
-                        connection = null
-                        if (attempt == 1) break
                     }
                 }
-            }
-            connection?.let {
-                connections.remove(it.socket)
-                runCatching { it.close() }
+            } finally {
+                closeConnection(connection)
             }
         }
 
         override fun close() {
+            if (!closed.compareAndSet(false, true)) return
+            scope.cancel()
             queue.close()
             udp.close()
-            synchronized(connections) {
-                connections.forEach { runCatching { it.close() } }
-                connections.clear()
+            val sockets = synchronized(connections) {
+                connections.toList().also { connections.clear() }
             }
-            scope.cancel()
+            sockets.forEach { runCatching { it.close() } }
         }
     }
 
@@ -157,19 +183,18 @@ internal class SlipstreamInstance(
     private val lock = Any()
     private var adapter: DnsTcpAdapter? = null
     private lateinit var authority: String
-    @Volatile
-    private var ready = CompletableDeferred<Unit>()
+    private val ready = CompletableDeferred<Unit>()
     private var process: Process? = null
     private var monitor: Job? = null
     private lateinit var certificate: File
     @Volatile
     private var closed = false
 
-    private fun drain(stream: InputStream, readySignal: CompletableDeferred<Unit>) {
+    private fun drain(stream: InputStream) {
         scope.launch {
             runCatching {
                 stream.bufferedReader().useLines { lines ->
-                    lines.forEach { if (it.contains("Connection ready")) readySignal.complete(Unit) }
+                    lines.forEach { if (it.contains("Connection ready")) ready.complete(Unit) }
                 }
             }
         }
@@ -200,8 +225,6 @@ internal class SlipstreamInstance(
     private fun startLocked() {
         val binary = File(SagerNet.application.applicationInfo.nativeLibraryDir, "libslipstream.so")
         if (!binary.canExecute()) throw IOException("Slipstream binary is unavailable")
-        val readySignal = CompletableDeferred<Unit>()
-        ready = readySignal
         val command = listOf(
             binary.absolutePath,
             "--tcp-listen-host", "127.0.0.1",
@@ -225,8 +248,8 @@ internal class SlipstreamInstance(
             throw IOException("Could not bootstrap FlowRelay", error)
         }
         process = child
-        drain(child.inputStream, readySignal)
-        drain(child.errorStream, readySignal)
+        drain(child.inputStream)
+        drain(child.errorStream)
         Logs.i("slipstream: starting single DNS resolver")
     }
 
@@ -247,7 +270,6 @@ internal class SlipstreamInstance(
                     else -> throw IOException("Unsupported DNS resolver transport")
                 }
                 startLocked()
-                startMonitor()
             } catch (error: Throwable) {
                 runCatching { adapter?.close() }
                 adapter = null
@@ -257,15 +279,16 @@ internal class SlipstreamInstance(
         }
     }
 
-    override suspend fun awaitReady() = withContext(Dispatchers.IO) {
-        val readySignal = ready
-        if (withTimeoutOrNull(READY_TIMEOUT_MS) { readySignal.await() } == null) {
-            throw IOException("Slipstream could not reach the server")
+    override suspend fun awaitReady() {
+        withContext(Dispatchers.IO) { ready.await() }
+        synchronized(lock) {
+            if (closed) throw IOException("Slipstream closed before becoming ready")
+            startMonitorLocked()
         }
         Logs.i("slipstream: carrier ready")
     }
 
-    private fun startMonitor() {
+    private fun startMonitorLocked() {
         if (monitor != null) return
         monitor = scope.launch {
             while (isActive) {
@@ -287,6 +310,7 @@ internal class SlipstreamInstance(
         synchronized(lock) {
             if (closed) return
             closed = true
+            ready.cancel()
             monitor?.cancel()
             stopLocked()
             runCatching { adapter?.close() }

@@ -48,6 +48,7 @@ import io.nekohasekai.sagernet.plugin.PluginManager
 import kotlinx.coroutines.*
 import libexclavecore.V2RayInstance
 import java.io.File
+import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -62,7 +63,10 @@ import java.net.Socket
             private const val READINESS_TIMEOUT_MS = 15_000L
             private const val READINESS_POLL_INTERVAL_MS = 250L
             private const val READINESS_CONNECT_TIMEOUT_MS = 500
+            private const val DNS_TUNNEL_READY_TIMEOUT_MS = 15_000L
         }
+
+        protected open val dnsTunnelReadyTimeoutMs = DNS_TUNNEL_READY_TIMEOUT_MS
 
         private fun underlayDnsServer(): String? {
             val connectivity = SagerNet.connectivity
@@ -343,7 +347,17 @@ import java.net.Socket
      * hanging the connect flow forever.
      */
     override suspend fun awaitReady() {
-        dnsTunnelInstances.forEach { it.awaitReady() }
+        if (dnsTunnelInstances.isNotEmpty()) {
+            val ready = withTimeoutOrNull(dnsTunnelReadyTimeoutMs) {
+                dnsTunnelInstances.forEach { it.awaitReady() }
+                true
+            } ?: false
+            if (!ready) {
+                throw IOException(
+                    "DNS Tunnel resolver did not become ready within ${dnsTunnelReadyTimeoutMs / 1000} seconds"
+                )
+            }
+        }
         if (readinessPorts.isEmpty()) return
         withContext(Dispatchers.IO) {
             for (port in readinessPorts) {
