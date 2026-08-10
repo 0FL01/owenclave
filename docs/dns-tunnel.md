@@ -17,9 +17,10 @@ application TCP or UDP
 ```
 
 DNS Tunnel is a dedicated `DnsttBean`/`TYPE_DNSTT` profile. Quick setup accepts only
-a raw 32-lowercase-hex Flow token; `t.x.ass-peak.de` and its bundled certificate are
-fixed by the app. Generic SSH profiles and `ssh://` or resolver-bearing `dnstt://`
-imports and exports are intentionally absent.
+a raw 32-lowercase-hex Flow token through the profile editor, scanner or Configuration
+clipboard action; `t.x.ass-peak.de` and its bundled certificate are fixed by the app.
+Generic SSH profiles and `ssh://` or resolver-bearing `dnstt://` imports and exports
+are intentionally absent.
 
 Automatic mode stores no resolver. At startup Owenclave snapshots the active
 non-VPN underlay and tries the first two unique DNS addresses, then UDP

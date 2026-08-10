@@ -60,6 +60,8 @@ import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
 import io.nekohasekai.sagernet.ktx.parseShareLinks
 import io.nekohasekai.sagernet.ui.compose.ComposeProfileSettingsActivity
 import io.nekohasekai.sagernet.ui.compose.components.EmptyState
@@ -227,7 +229,12 @@ fun ConfigurationScreen(
                         }
                     }
                 } else {
-                    val beans = parseShareLinks(text)
+                    val token = text.trim()
+                    val beans = if (isValidDnsttToken(token)) {
+                        listOf(DnsttBean().apply { this.token = token })
+                    } else {
+                        parseShareLinks(text)
+                    }
                     if (beans.isNotEmpty()) {
                         val groupId = DataStore.selectedGroupForImport()
                         var lastId = 0L
@@ -303,7 +310,7 @@ fun ConfigurationScreen(
                     IconButton(
                         onClick = { importFromClipboard() },
                     ) {
-                        Icon(Icons.Filled.ContentPaste, contentDescription = "Import subscription from clipboard")
+                        Icon(Icons.Filled.ContentPaste, contentDescription = "Import profile from clipboard")
                     }
                     Spacer(Modifier.width(6.dp))
                     Surface(
