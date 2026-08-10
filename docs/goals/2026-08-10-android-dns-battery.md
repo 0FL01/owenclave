@@ -1,6 +1,6 @@
 # Goal: Reduce Android DNS Tunnel battery drain
 
-Status: active
+Status: complete
 Source: user-approved battery plan after the 2026-08-10 multi-agent code and plan audits
 Last updated: 2026-08-10
 
@@ -71,7 +71,7 @@ required outcome is resolved and affected constraints remain satisfied.
     ACK, PTO, retransmission, close, and path deadlines always take precedence.
   - Primary evidence: focused Rust transition/deadline tests, clean pinned patch
     replay, arm64 source build digest, and aggregate carrier/loop-wake observations.
-  - Status: in_progress
+  - Status: verified
   - Evidence: all 24 pinned Rust client tests pass, including Busy/Warm/
     QuiescentOpen/Empty derivation, poll budgets, sparse retry/deadline behavior,
     QUIC-deadline precedence, FlowRelay vectors, and half-close regression tests.
@@ -80,7 +80,7 @@ required outcome is resolved and affected constraints remain satisfied.
     `3932b8272e635baeeecbdb26e387e10fdd6bdf6a559171bfaa701ff312fe08d2`.
     The signed release APK builds with SHA-256
     `545413b54b44901eec9d17fb8961f1fe6cff9a4f849adf0ad12a56f892a5abd3`.
-    Android mechanism and runtime gates remain pending.
+    Android mechanism and runtime gates passed as recorded under R4.
 
 - R4: Prove measured efficacy and preserve the accepted runtime contract.
   - Source: approved CP3 efficacy and regression gate, superseded by the user-approved
@@ -94,8 +94,31 @@ required outcome is resolved and affected constraints remain satisfied.
     only; do not claim battery percentage or mAh improvement.
   - Primary evidence: current and scheduler aggregate traces plus exact Android runtime
     probes and server restart inventory.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: the current-build screen-off baseline recorded 156,623 Slipstream
+    scheduler slices and 52.375 CPU seconds in 599.934 seconds; the scheduler build
+    recorded 10,521 slices and 4.214 CPU seconds in 599.966 seconds, reductions of
+    93.3% and 92.0%. Per-second median child slices fell from 331.5 to 4 (98.8%), and
+    total Owenclave main/background/child slices fell from 199,296 to 21,464 (89.2%).
+    QuiescentOpen is source-bounded to one explicit poll per 2 seconds plus one
+    ACK-eliciting keepalive per 5 seconds, at most 0.7 carrier queries/second before
+    loss recovery; source inspection and deadline tests prove that in-flight DNS IDs
+    alone do not select the 50 ms Busy slice. Ten controlled connection-close HTTP
+    samples after a 10-second remote delay had zero failures; after subtracting the
+    no-delay control median,
+    inferred delivery/FIN latency had 944.5 ms median and a 1,489.5 ms empirical p99
+    upper bound. Exact 4 KiB median was 337 ms and application UDP median 153 ms,
+    respectively 2 ms and 53 ms above the accepted operator-UDP baselines. Exact
+    8 MiB passed in 28.118 seconds with a literal destination and in 62.344 seconds
+    including application DNS, within the accepted 75-second absolute gate and 6.1%
+    above the accepted 58.784-second full Android baseline. Three eight-flow
+    cancellation cycles were followed by exact TCP in
+    402/387/408 ms and UDP in 113/121/125 ms. WARP reported on; ten minutes screen-off
+    preserved app, service, and child PIDs and the following exact probe passed.
+    Server Slipstream/flowd stayed at PIDs `1155657`/`1115762` and restart baselines
+    4/0. Temporary traces and probes were deleted. These results prove scheduler,
+    CPU, packet-policy, and runtime effects only; no battery percentage or mAh saving
+    is claimed without the deferred physically unplugged measurement.
 
 ### Constraints
 
@@ -143,27 +166,19 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: replay and test the focused client-only activity scheduler patch,
-  then build the pinned arm64 artifact.
-- Expected evidence: focused Rust phase/deadline tests, clean three-patch replay, and
-  an Android 21 AArch64 artifact digest.
-- Stop or replan if: sparse phases retain the permanent 50 ms clamp, Busy pacing changes,
-  patch replay fails, or any existing FlowRelay/stream test regresses.
+- Closes: none; all required outcomes are verified.
+- Smallest next action: none.
+- Expected evidence: closure evidence is recorded below.
+- Stop or replan if: not applicable.
 
 ## Current State
 
-- Resolved: the device exposes charge/current/voltage and Perfetto power counters; the
-  live settings are gVisor, profile statistics on, app statistics/PCAP/WakeLock off,
-  no battery exemption, Error logging, and an actual `Speed Interval` of `3ms`. A
-  credential-free direct gVisor control profile was added and passed a TCP connect.
-- Last relevant evidence: separate ten-minute screen-off diagnostics found the DNS
-  Rust child using 52.375 CPU seconds and 156,623 scheduler slices; in its 380 runnable
-  seconds the median was 331.5 slices/second. Twenty loopback application flows remained
-  open. The direct control had no Rust child. Raw traces were deleted after aggregation;
-  server Slipstream/flowd stayed at restart baselines 4/0.
-- Blocker: none; the user superseded the physical charge gate with the bounded fast path.
-- Next: finish R3 unit/replay/build validation, then run the fast-path Android A/B.
+- Resolved: R1-R4; the installed arm64 release uses the normalized 3-second statistics
+  interval and activity-aware Slipstream scheduler through one UDP resolver and gVisor.
+- Last relevant evidence: the ten-minute scheduler trace, exact TCP/UDP/WARP,
+  connection-close delay, cancellation, screen-off, PID, and restart gates passed.
+- Blocker: none.
+- Next: none; the approved fast-path objective is complete.
 
 ## Material Decisions
 
@@ -190,10 +205,21 @@ required outcome is resolved and affected constraints remain satisfied.
   bounded mechanism evidence; R2 is now the current checkpoint.
 - 2026-08-10: R2 was committed as `d2d88dc`, the release APK built and installed, and
   the live persisted interval migrated from `3ms` to `3s`. R3 is current.
+- 2026-08-10: R3 was committed as `8484b69`; the pinned source build, release APK,
+  ten-minute mechanism comparison, delayed downlink/FIN, exact payload, cancellation,
+  WARP, screen-off, and restart gates passed. R1-R4 are verified.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1-R4.
+- Commands and artifacts: release Kotlin/APK builds, 24 Rust tests, clean three-patch
+  replay, Android 21 AArch64 NDK r29 binary SHA-256
+  `3932b8272e635baeeecbdb26e387e10fdd6bdf6a559171bfaa701ff312fe08d2`,
+  signed APK SHA-256
+  `545413b54b44901eec9d17fb8961f1fe6cff9a4f849adf0ad12a56f892a5abd3`,
+  bounded aggregate traces, exact Android probes, and remote service inventory.
+- Constraint and diff-scope check: only `DataStore.kt`, one pinned client scheduler
+  patch/build-list entry, `AGENTS.md`, and this goal changed. FlowRelay wire, server,
+  resolver ownership, credentials, gVisor, readiness, logging, and routing are unchanged.
+- Final status: complete under the user-approved mechanism fast path; physical energy
+  quantification remains intentionally unclaimed and out of this completed objective.
