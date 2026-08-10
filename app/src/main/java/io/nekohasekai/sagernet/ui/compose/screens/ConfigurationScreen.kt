@@ -55,6 +55,8 @@ import io.nekohasekai.sagernet.aidl.TrafficStats
 import io.nekohasekai.sagernet.GroupOrder
 import io.nekohasekai.sagernet.GroupType
 import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.bg.test.DnsttBenchmark
+import io.nekohasekai.sagernet.bg.test.DnsttBenchmarkResult
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -64,6 +66,7 @@ import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
 import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
 import io.nekohasekai.sagernet.ktx.parseShareLinks
 import io.nekohasekai.sagernet.ui.compose.ComposeProfileSettingsActivity
+import io.nekohasekai.sagernet.ui.compose.components.DnsttBenchmarkDialog
 import io.nekohasekai.sagernet.ui.compose.components.EmptyState
 import io.nekohasekai.sagernet.ui.compose.components.OwenclaveTopAppBar
 import io.nekohasekai.sagernet.ui.compose.components.ProfileCard
@@ -93,6 +96,11 @@ fun ConfigurationScreen(
     var showDinoGame by remember { mutableStateOf(false) }
     val reloadAccess = remember { kotlinx.coroutines.sync.Mutex() }
     var batchTestJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var benchmarkProfile by remember { mutableStateOf<ProxyEntity?>(null) }
+    val benchmarkResults = remember { mutableStateListOf<DnsttBenchmarkResult>() }
+    var benchmarkRunning by remember { mutableStateOf(false) }
+    var benchmarkError by remember { mutableStateOf<String?>(null) }
+    var benchmarkJob by remember { mutableStateOf<Job?>(null) }
 
     fun loadProfiles() {
         val groupId = DataStore.currentGroupId()
@@ -203,6 +211,65 @@ fun ConfigurationScreen(
         onBatchTestProgress(null)
     }
 
+    fun closeDnsttBenchmark() {
+        benchmarkJob?.cancel()
+        benchmarkJob = null
+        benchmarkProfile = null
+        benchmarkResults.clear()
+        benchmarkRunning = false
+        benchmarkError = null
+    }
+
+    fun saveDnsttResolver(value: String) {
+        val profileId = benchmarkProfile?.id ?: return
+        closeDnsttBenchmark()
+        scope.launch(Dispatchers.IO) {
+            val profile = ProfileManager.getProfile(profileId) ?: return@launch
+            val bean = profile.dnsttBean ?: return@launch
+            bean.resolver = value
+            ProfileManager.updateProfile(profile)
+        }
+    }
+
+    fun startDnsttBenchmark(profile: ProxyEntity) {
+        if (serviceRunning || batchTestProgress != null) {
+            android.widget.Toast.makeText(
+                context,
+                "Stop the connection and other tests before benchmarking DNS",
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+        benchmarkJob?.cancel()
+        benchmarkProfile = profile
+        benchmarkResults.clear()
+        benchmarkRunning = true
+        benchmarkError = null
+        benchmarkJob = scope.launch(Dispatchers.IO) {
+            try {
+                DnsttBenchmark(profile).run { update ->
+                    withContext(Dispatchers.Main) {
+                        val index = benchmarkResults.indexOfFirst { it.resolver == update.resolver }
+                        if (index < 0) benchmarkResults.add(update) else benchmarkResults[index] = update
+                    }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                withContext(Dispatchers.Main) {
+                    benchmarkError = error.message ?: "DNS benchmark failed"
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    if (benchmarkProfile?.id == profile.id) {
+                        benchmarkRunning = false
+                        benchmarkJob = null
+                    }
+                }
+            }
+        }
+    }
+
     fun importFromClipboard() {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: return
@@ -277,6 +344,18 @@ fun ConfigurationScreen(
     if (showDinoGame) {
         io.nekohasekai.sagernet.ui.compose.components.DinoGameDialog(
             onDismiss = { showDinoGame = false }
+        )
+    }
+
+    benchmarkProfile?.let { profile ->
+        DnsttBenchmarkDialog(
+            results = benchmarkResults,
+            running = benchmarkRunning,
+            error = benchmarkError,
+            currentResolver = profile.dnsttBean?.resolver.orEmpty(),
+            onSelect = { saveDnsttResolver(it.resolver.toString()) },
+            onAutomatic = { saveDnsttResolver("") },
+            onDismiss = { closeDnsttBenchmark() },
         )
     }
 
@@ -416,32 +495,37 @@ fun ConfigurationScreen(
                                         ProfileManager.deleteProfile(groupId, entity.id)
                                     }
                                 },
-                                onPing = {
-                                    scope.launch(Dispatchers.IO) {
-                                        pingingIds = pingingIds + entity.id
-                                        try {
-                                            val link = DataStore.connectionTestURL
-                                            val timeout = DataStore.connectionTestTimeout
-                                            val instance = io.nekohasekai.sagernet.bg.test.V2RayTestInstance(
-                                                entity, link, timeout
-                                            )
-                                            val result = instance.doTest()
-                                            entity.ping = result
-                                            entity.status = 1
-                                            entity.error = null
-                                            ProfileManager.updateProfile(entity)
-                                        } catch (e: CancellationException) {
-                                            throw e
-                                        } catch (e: Exception) {
-                                            entity.ping = -1
-                                            entity.status = 3
-                                            entity.error = e.message
-                                            ProfileManager.updateProfile(entity)
-                                        } finally {
-                                            pingingIds = pingingIds - entity.id
+                                onPing = if (entity.type == ProxyEntity.TYPE_DNSTT) null else {
+                                    {
+                                        scope.launch(Dispatchers.IO) {
+                                            pingingIds = pingingIds + entity.id
+                                            try {
+                                                val link = DataStore.connectionTestURL
+                                                val timeout = DataStore.connectionTestTimeout
+                                                val instance = io.nekohasekai.sagernet.bg.test.V2RayTestInstance(
+                                                    entity, link, timeout
+                                                )
+                                                val result = instance.doTest()
+                                                entity.ping = result
+                                                entity.status = 1
+                                                entity.error = null
+                                                ProfileManager.updateProfile(entity)
+                                            } catch (e: CancellationException) {
+                                                throw e
+                                            } catch (e: Exception) {
+                                                entity.ping = -1
+                                                entity.status = 3
+                                                entity.error = e.message
+                                                ProfileManager.updateProfile(entity)
+                                            } finally {
+                                                pingingIds = pingingIds - entity.id
+                                            }
                                         }
                                     }
                                 },
+                                onBenchmark = if (entity.type == ProxyEntity.TYPE_DNSTT) {
+                                    { startDnsttBenchmark(entity) }
+                                } else null,
                             )
                         }
                         item(key = "__sponsored__") {

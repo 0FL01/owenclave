@@ -67,20 +67,25 @@ import java.net.Socket
             private const val READINESS_POLL_INTERVAL_MS = 250L
             private const val READINESS_CONNECT_TIMEOUT_MS = 500
             private const val DNS_TUNNEL_READY_TIMEOUT_MS = 15_000L
+
+            internal fun underlayNetwork() = SagerNet.connectivity.let { connectivity ->
+                val networks = listOfNotNull(connectivity.activeNetwork, SagerNet.currentNetwork) +
+                    connectivity.allNetworks
+                networks.distinct().firstOrNull {
+                    val capabilities = connectivity.getNetworkCapabilities(it) ?: return@firstOrNull false
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                }
+            }
+
+            internal fun underlayDnsServers(): List<InetAddress> {
+                val connectivity = SagerNet.connectivity
+                val network = underlayNetwork() ?: return emptyList()
+                return connectivity.getLinkProperties(network)?.dnsServers.orEmpty()
+            }
         }
 
         protected open val dnsTunnelReadyTimeoutMs = DNS_TUNNEL_READY_TIMEOUT_MS
-
-        private fun underlayDnsServers(): List<InetAddress> {
-            val connectivity = SagerNet.connectivity
-            val networks = listOfNotNull(SagerNet.currentNetwork) + connectivity.allNetworks
-            val network = networks.distinct().firstOrNull {
-                val capabilities = connectivity.getNetworkCapabilities(it) ?: return@firstOrNull false
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                    !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-            } ?: return emptyList()
-            return connectivity.getLinkProperties(network)?.dnsServers.orEmpty()
-        }
 
         private fun underlayDnsServer(): String? {
             val dnsServers = underlayDnsServers()
@@ -137,6 +142,8 @@ import java.net.Socket
     fun isInitialized(): Boolean {
         return ::config.isInitialized
     }
+
+    fun hasDnsTunnel() = isInitialized() && config.dnsttClients.isNotEmpty()
 
     protected fun initPlugin(name: String): PluginManager.InitResult {
         return pluginPath.getOrPut(name) { PluginManager.init(name)!! }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -62,6 +63,7 @@ fun ProfileCard(
     onShare: (() -> Unit)? = null,
     onDelete: () -> Unit,
     onPing: (() -> Unit)? = null,
+    onBenchmark: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     pinging: Boolean = false,
     connected: Boolean = false,
@@ -297,6 +299,13 @@ fun ProfileCard(
                             text = { Text("Test Latency") },
                             onClick = { showMenu = false; onPing() },
                             leadingIcon = { Icon(Icons.Default.NetworkCheck, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                        )
+                    }
+                    if (onBenchmark != null) {
+                        DropdownMenuItem(
+                            text = { Text("Benchmark DNS") },
+                            onClick = { showMenu = false; onBenchmark() },
+                            leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(20.dp)) },
                         )
                     }
                     DropdownMenuItem(

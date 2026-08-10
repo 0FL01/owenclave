@@ -29,6 +29,14 @@ sequentially until real Slipstream `Connection ready`; a failed child is stopped
 before the next starts. Manual mode instead uses exactly one validated
 `udp://host:port` or `tcp://host:port` with no fallback.
 
+The explicit DNS benchmark runs the same automatic candidates sequentially while
+the VPN is stopped. Each resolver gets three bounded download runs through one
+temporary child. Results rank conservative sustained speed before median latency;
+the first run remains visible as burst evidence but does not select a burst-then-
+shaped resolver over a stable one. Selecting a result stores it as the existing
+strict manual override; choosing Automatic clears it. Benchmark results otherwise
+remain in the dialog and are not cached.
+
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent
 local connection and Slipstream QUIC stream. Mux, health-probe streams and a
@@ -43,9 +51,11 @@ second carrier path are not part of this contract.
 - VPN startup allows 15 seconds for aggregate carrier readiness; latency tests
   allow 5 seconds and are serialized process-wide.
 - Automatic candidate exhaustion, carrier failure and FlowRelay failure are
-  fail-closed. Discovery ends after readiness; there is no periodic health check,
-  ranking, persistent cache, automatic handover, direct carrier, legacy SSH path or
-  direct destination fallback.
+  fail-closed. When Android changes the physical underlay, Owenclave closes the old
+  child and restarts DNS Tunnel; automatic mode discovers the new network's DNS,
+  while a manually selected resolver stays pinned. There is no periodic health
+  check, background ranking, persistent benchmark cache, direct carrier, legacy SSH
+  path or direct destination fallback.
 - Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet

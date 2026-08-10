@@ -42,7 +42,13 @@ import libexclavecore.Libexclavecore
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 
-class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int, val protectPath: String = "") : V2RayInstance(
+class V2RayTestInstance(
+    profile: ProxyEntity,
+    val link: String = "",
+    val timeout: Int = 5000,
+    val protectPath: String = "",
+    private val testHttpPort: Int? = null,
+) : V2RayInstance(
     profile,
 ), LocalResolver {
     private companion object {
@@ -53,7 +59,11 @@ class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int
     override val dnsTunnelReadyTimeoutMs = DNS_TEST_READY_TIMEOUT_MS
     private val closed = AtomicBoolean()
 
-    suspend fun doTest(): Int = coroutineScope {
+    suspend fun doTest() = runTest {
+        Libexclavecore.urlTest(v2rayPoint, "", link, timeout)
+    }
+
+    suspend fun <T> runTest(block: suspend V2RayTestInstance.() -> T): T = coroutineScope {
         val fatal = CompletableDeferred<IOException>()
         processes = GuardedProcessPool {
             Logs.w(it)
@@ -66,7 +76,7 @@ class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int
                     try {
                         launch()
                         awaitReady()
-                        Libexclavecore.urlTest(v2rayPoint, "", link, timeout)
+                        block()
                     } finally {
                         close()
                     }
@@ -81,7 +91,7 @@ class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int
             }
         }
         try {
-            select {
+            select<T> {
                 test.onAwait { it }
                 fatal.onAwait { throw it }
             }
@@ -112,6 +122,6 @@ class V2RayTestInstance(profile: ProxyEntity, val link: String, val timeout: Int
     }
 
     override fun buildConfig() {
-        config = buildV2RayConfig(profile, forTest = true)
+        config = buildV2RayConfig(profile, forTest = true, testHttpPort = testHttpPort)
     }
 }

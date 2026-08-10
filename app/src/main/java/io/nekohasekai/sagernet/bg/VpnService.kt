@@ -106,6 +106,7 @@ class VpnService : BaseVpnService(),
                 arrayOf(it)
             }
     private var networkListenerIsRunning = false
+    private var lastUnderlyingNetwork: Network? = null
 
     override suspend fun startProcesses() {
         startVpn()
@@ -165,8 +166,16 @@ class VpnService : BaseVpnService(),
         networkListenerIsRunning = true
         DefaultNetworkListener.start(this) {
             if (networkListenerIsRunning) {
+                val previous = lastUnderlyingNetwork
+                if (it != null) lastUnderlyingNetwork = it
                 underlyingNetwork = it
                 SagerNet.reloadNetwork(it)
+                if (
+                    it != null && previous != null && previous != it && data.state.canStop &&
+                    data.proxy?.hasDnsTunnel() == true
+                ) {
+                    stopRunner(restart = true)
+                }
             }
         }
     }

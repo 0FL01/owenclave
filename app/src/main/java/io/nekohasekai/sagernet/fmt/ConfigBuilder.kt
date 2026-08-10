@@ -180,7 +180,10 @@ data class DnsttClientConfig(
 
 @OptIn(ExperimentalUuidApi::class)
 fun buildV2RayConfig(
-    proxy: ProxyEntity, forTest: Boolean = false, forExport: Boolean = false
+    proxy: ProxyEntity,
+    forTest: Boolean = false,
+    forExport: Boolean = false,
+    testHttpPort: Int? = null,
 ): V2rayBuildResult {
     if (proxy.type == ProxyEntity.TYPE_CONFIG && proxy.configBean!!.type == "v2ray") {
         return buildCustomConfig(proxy, forTest, forExport)
@@ -375,6 +378,19 @@ fun buildV2RayConfig(
             }
         }
         inbounds = mutableListOf()
+
+        if (forTest && testHttpPort != null) {
+            inbounds.add(InboundObject().apply {
+                tag = "benchmark"
+                listen = LOCALHOST
+                port = testHttpPort
+                protocol = "http"
+                settings = LazyInboundConfigurationObject(
+                    this,
+                    HTTPInboundConfigurationObject().apply { allowTransparent = true },
+                )
+            })
+        }
 
         if (!forTest) {
             if (!forExport) {
