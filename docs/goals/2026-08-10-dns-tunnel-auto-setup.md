@@ -59,8 +59,13 @@ evidence and smallest unlock.
     are intentionally not migrated.
   - Primary evidence: focused token/resolver/model tests, release compilation and
     installed-device UI observation without printing the token.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: the dedicated screen now accepts one token, supports paste through the
+    text field and returns an exact token from camera scan mode. Save remains disabled
+    unless the token is lowercase 32-hex and an enabled manual resolver is one strict
+    UDP/TCP URI. Automatic mode stores no resolver; the model/runtime hardcode the
+    domain and bundled certificate. Release compilation and focused host checks pass;
+    installed-device UI observation remains.
 
 - R3: Select exactly one automatic resolver within the existing fail-closed startup
   budget.
@@ -76,8 +81,13 @@ evidence and smallest unlock.
     ranking, persistent cache, Rostelecom hardcode or direct carrier fallback.
   - Primary evidence: focused candidate-order/deadline/cancellation tests and bounded
     Android process/readiness observations.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: focused host checks prove first-two-unique DNS ordering, Yandex append/
+    deduplication, strict manual parsing and token decoding. The compiled lifecycle
+    snapshots the non-VPN network DNS once, divides one absolute readiness budget over
+    sequential real child readiness attempts, closes and verifies each failed child
+    before starting the next, and retains only the successful child. Android process
+    and readiness observation remains.
 
 - R4: Preserve the accepted quiet-runtime battery and transport behavior.
   - Source: explicit requirement not to consume excessive Android battery or CPU and
@@ -166,21 +176,23 @@ evidence and smallest unlock.
 
 ## Current Checkpoint
 
-- Closes: R2 and R3.
-- Smallest next action: make the dedicated profile token-first, then pass an ordered
-  startup-only resolver candidate list through the existing config and child lifecycle.
-- Expected evidence: focused token/resolver/candidate/deadline checks and release
-  compilation prove automatic and strict manual setup with one sequential child.
-- Stop or replan if: underlay DNS cannot be obtained from the tracked physical network,
-  candidate cleanup can overlap children, or the shared readiness deadline changes.
+- Closes: R2, R3 and the build/install portion of R5.
+- Smallest next action: build the pinned arm64 client and signed release APK, install it,
+  then create and connect fresh automatic and manual profiles on the phone.
+- Expected evidence: artifact digests, installed-device UI state, one-child readiness,
+  exact TCP/UDP probes and stable server restart counters.
+- Stop or replan if: the signed APK cannot migrate schema 40->41 while preserving
+  unrelated rows, the physical DNS snapshot is unavailable, or candidate children
+  overlap.
 
 ## Current State
 
 - Resolved: R1. DNS Tunnel now owns `DnsttBean`/`TYPE_DNSTT`; generic SSH source,
   provisioning and reachable UI/import/runtime paths are removed. Room schema 41 drops
-  legacy rows/blob while preserving unrelated profiles.
-- Last relevant evidence: `:app:compileOssReleaseKotlin` passed and generated the
-  expected 40->41 auto-migration and schema.
+  legacy rows/blob while preserving unrelated profiles. R2/R3 implementation and host
+  checks are complete, with device evidence pending.
+- Last relevant evidence: `:app:compileOssReleaseKotlin` and focused JShell token,
+  resolver and candidate-order checks passed.
 - Blocker: none.
 - Next: implement R2 and R3 together at the config/lifecycle boundary.
 
@@ -202,6 +214,9 @@ evidence and smallest unlock.
 - 2026-08-10: R1 replaced the shared SSH model with dedicated DNS Tunnel persistence,
   removed all owned generic SSH consumers, and passed release compilation; R2/R3 are
   current.
+- 2026-08-10: token-only automatic/manual UI and startup-only sequential resolver
+  selection compile and pass focused host checks; device build/install and runtime
+  evidence are current.
 
 ## Completion
 

@@ -48,6 +48,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.databinding.LayoutScannerBinding
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
 import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import java.util.concurrent.ExecutorService
@@ -59,6 +60,11 @@ import libexclavecore.Libexclavecore
 import java.net.URI
 
 class ScannerActivity : ThemedActivity() {
+
+    companion object {
+        const val EXTRA_TOKEN_ONLY = "tokenOnly"
+        const val EXTRA_TOKEN = "token"
+    }
 
     private lateinit var analysisExecutor: ExecutorService
     private lateinit var binding: LayoutScannerBinding
@@ -108,8 +114,18 @@ class ScannerActivity : ThemedActivity() {
     private lateinit var imageAnalysis: ImageAnalysis
     private lateinit var imageAnalyzer: ImageAnalysis.Analyzer
     private val onSuccess: (String) -> Unit = { rawValue: String ->
-        imageAnalysis.clearAnalyzer()
-        onSuccess(rawValue)
+        if (intent.getBooleanExtra(EXTRA_TOKEN_ONLY, false)) {
+            if (isValidDnsttToken(rawValue)) {
+                imageAnalysis.clearAnalyzer()
+                setResult(RESULT_OK, Intent().putExtra(EXTRA_TOKEN, rawValue))
+                finish()
+            } else {
+                fatalError(null)
+            }
+        } else {
+            imageAnalysis.clearAnalyzer()
+            onSuccess(rawValue)
+        }
 
     }
 

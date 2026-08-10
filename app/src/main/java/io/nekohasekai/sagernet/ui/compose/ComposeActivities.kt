@@ -21,6 +21,7 @@ import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.internal.ChainBean
 import io.nekohasekai.sagernet.fmt.internal.BalancerBean
 import io.nekohasekai.sagernet.fmt.internal.ConfigBean
@@ -578,7 +579,11 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
             }
             ProxyEntity.TYPE_DNSTT -> {
                 val b = entity.dnsttBean ?: return s
-                s.copy(password = b.token ?: "", dnsttResolver = b.resolver ?: "")
+                s.copy(
+                    password = b.token ?: "",
+                    dnsttManual = b.resolver?.isNotEmpty() == true,
+                    dnsttResolver = b.resolver ?: "",
+                )
             }
             ProxyEntity.TYPE_WG -> {
                 val b = entity.wgBean ?: return s
@@ -813,7 +818,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 val b = entity.dnsttBean ?: DnsttBean().applyDefaultValues()
                 b.name = state.name
                 b.token = state.password
-                b.resolver = state.dnsttResolver
+                b.resolver = if (state.dnsttManual) parseDnsttResolver(state.dnsttResolver).toString() else ""
                 entity.dnsttBean = b
             }
             ProxyEntity.TYPE_WG -> {

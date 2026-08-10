@@ -36,8 +36,10 @@ import io.nekohasekai.sagernet.bg.GuardedProcessPool
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.fmt.LOCALHOST
+import io.nekohasekai.sagernet.fmt.DnsttClientConfig
 import io.nekohasekai.sagernet.fmt.V2rayBuildResult
 import io.nekohasekai.sagernet.fmt.buildV2RayConfig
+import io.nekohasekai.sagernet.fmt.dnstt.automaticDnsttResolvers
 import io.nekohasekai.sagernet.fmt.naive.NaiveBean
 import io.nekohasekai.sagernet.fmt.naive.buildNaiveConfig
 import io.nekohasekai.sagernet.fmt.shadowquic.ShadowQUICBean
@@ -50,6 +52,7 @@ import libexclavecore.V2RayInstance
 import java.io.File
 import java.io.IOException
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 
@@ -68,14 +71,19 @@ import java.net.Socket
 
         protected open val dnsTunnelReadyTimeoutMs = DNS_TUNNEL_READY_TIMEOUT_MS
 
-        private fun underlayDnsServer(): String? {
+        private fun underlayDnsServers(): List<InetAddress> {
             val connectivity = SagerNet.connectivity
-            val network = SagerNet.currentNetwork ?: connectivity.allNetworks.firstOrNull {
+            val networks = listOfNotNull(SagerNet.currentNetwork) + connectivity.allNetworks
+            val network = networks.distinct().firstOrNull {
                 val capabilities = connectivity.getNetworkCapabilities(it) ?: return@firstOrNull false
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                     !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-            } ?: return null
-            val dnsServers = connectivity.getLinkProperties(network)?.dnsServers ?: return null
+            } ?: return emptyList()
+            return connectivity.getLinkProperties(network)?.dnsServers.orEmpty()
+        }
+
+        private fun underlayDnsServer(): String? {
+            val dnsServers = underlayDnsServers()
             val address = (dnsServers.firstOrNull { it is Inet4Address } ?: dnsServers.firstOrNull())
                 ?.hostAddress ?: return null
             return if (address.contains(':')) "[$address]:53" else "$address:53"
@@ -117,7 +125,8 @@ import java.net.Socket
     val pluginPath = hashMapOf<String, PluginManager.InitResult>()
     val pluginConfigs = hashMapOf<Int, Pair<Int, String>>()
     val externalInstances = hashMapOf<Int, AbstractInstance>()
-    private val dnsTunnelInstances = mutableListOf<SlipstreamInstance>()
+    private var dnsTunnelConfig: DnsttClientConfig? = null
+    private var dnsTunnelInstance: SlipstreamInstance? = null
 
     // Local SOCKS ports of external engines that need to finish bringing up
     // their transport before they can pass traffic (e.g. olcrtc WebRTC).
@@ -148,7 +157,8 @@ import java.net.Socket
             if (DataStore.serviceMode == Key.MODE_VPN && DataStore.tunImplementation == TunImplementation.SYSTEM) {
                 error("DNS Tunnel requires gVisor TUN")
             }
-            dnsTunnelInstances.addAll(config.dnsttClients.map(::SlipstreamInstance))
+            require(config.dnsttClients.size == 1) { "Only one DNS Tunnel is supported per connection" }
+            dnsTunnelConfig = config.dnsttClients.single()
         }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
@@ -185,7 +195,6 @@ import java.net.Socket
     @SuppressLint("SetJavaScriptEnabled")
     override fun launch() {
         val context = SagerNet.application
-        dnsTunnelInstances.forEach { it.launch() }
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
                 val port = triple.first
@@ -347,14 +356,43 @@ import java.net.Socket
      * hanging the connect flow forever.
      */
     override suspend fun awaitReady() {
-        if (dnsTunnelInstances.isNotEmpty()) {
-            val ready = withTimeoutOrNull(dnsTunnelReadyTimeoutMs) {
-                dnsTunnelInstances.forEach { it.awaitReady() }
-                true
-            } ?: false
-            if (!ready) {
+        dnsTunnelConfig?.let { client ->
+            val resolvers = client.resolvers.ifEmpty { automaticDnsttResolvers(underlayDnsServers()) }
+            val deadline = SystemClock.elapsedRealtime() + dnsTunnelReadyTimeoutMs
+            var lastError: Throwable? = null
+            for ((index, resolver) in resolvers.withIndex()) {
+                val remaining = deadline - SystemClock.elapsedRealtime()
+                if (remaining <= 0) break
+                val instance = SlipstreamInstance(client, resolver)
+                dnsTunnelInstance = instance
+                try {
+                    withTimeout((remaining / (resolvers.size - index).coerceAtLeast(1)).coerceAtLeast(1L)) {
+                        instance.launch()
+                        instance.awaitReady()
+                    }
+                    lastError = null
+                    break
+                } catch (error: TimeoutCancellationException) {
+                    lastError = error
+                } catch (error: CancellationException) {
+                    instance.close()
+                    dnsTunnelInstance = null
+                    throw error
+                } catch (error: Throwable) {
+                    lastError = error
+                }
+                instance.close()
+                if (instance.isRunning()) {
+                    throw IOException("DNS Tunnel resolver process did not stop")
+                }
+                if (dnsTunnelInstance === instance) dnsTunnelInstance = null
+            }
+            if (lastError != null || dnsTunnelInstance == null) {
+                dnsTunnelInstance?.close()
+                dnsTunnelInstance = null
                 throw IOException(
-                    "DNS Tunnel resolver did not become ready within ${dnsTunnelReadyTimeoutMs / 1000} seconds"
+                    "DNS Tunnel resolver did not become ready within ${dnsTunnelReadyTimeoutMs / 1000} seconds",
+                    lastError,
                 )
             }
         }
@@ -396,9 +434,8 @@ import java.net.Socket
                 instance.close()
             }
         }
-        for (instance in dnsTunnelInstances) {
-            runCatching { instance.close() }
-        }
+        runCatching { dnsTunnelInstance?.close() }
+        dnsTunnelInstance = null
 
         cacheFiles.removeAll { it.delete(); true }
 

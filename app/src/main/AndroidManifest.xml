@@ -198,6 +198,10 @@
             android:exported="false"
             android:launchMode="singleTask" />
         <activity
+            android:name="io.nekohasekai.sagernet.ui.ScannerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+        <activity
             android:name="io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity"
             android:exported="false"
             android:launchMode="singleTask" />

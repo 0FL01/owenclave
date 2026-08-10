@@ -41,6 +41,7 @@ import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.V2rayBuildResult.IndexEntity
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttResolver
 import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
 import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.gson.gson
@@ -171,9 +172,7 @@ class V2rayBuildResult(
 data class DnsttClientConfig(
     val localPort: Int,
     val domain: String,
-    val resolverTransport: String,
-    val resolverHost: String,
-    val resolverPort: Int,
+    val resolvers: List<DnsttResolver>,
     val token: String,
     val socksUsername: String,
     val socksPassword: String,
@@ -1332,13 +1331,14 @@ fun buildV2RayConfig(
                                 }
                             } else if (bean is DnsttBean) {
                                 require(isValidDnsttToken(bean.token)) { "DNS Tunnel Flow token is required" }
-                                val resolver = parseDnsttResolver(bean.resolver)
+                                val resolvers = bean.resolver.takeIf { it.isNotEmpty() }
+                                    ?.let { listOf(parseDnsttResolver(it)) }.orEmpty()
                                 val dnsttClient = dnsttClients.getOrPut(
-                                    Triple(DnsttBean.DOMAIN, resolver.toString(), bean.token),
+                                    Triple(DnsttBean.DOMAIN, bean.resolver, bean.token),
                                 ) {
                                     DnsttClientConfig(
-                                        mkPort(), DnsttBean.DOMAIN, resolver.transport, resolver.host, resolver.port,
-                                        bean.token, Uuid.generateV4().toHexString(), Uuid.generateV4().toHexString(),
+                                        mkPort(), DnsttBean.DOMAIN, resolvers, bean.token,
+                                        Uuid.generateV4().toHexString(), Uuid.generateV4().toHexString(),
                                     )
                                 }
                                 protocol = "socks"
@@ -2847,6 +2847,7 @@ fun buildV2RayConfig(
         if (trafficStatistics) stats = emptyMap()
 
         @Suppress("UNCHECKED_CAST")
+        require(dnsttClients.size <= 1) { "Only one DNS Tunnel is supported per connection" }
         result = V2rayBuildResult(
             gson.toJson(this),
             indexMap,

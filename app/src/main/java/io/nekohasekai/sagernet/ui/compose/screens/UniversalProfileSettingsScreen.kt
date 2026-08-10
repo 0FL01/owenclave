@@ -1,5 +1,9 @@
 package io.nekohasekai.sagernet.ui.compose.screens
 
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,10 +44,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sagernet.database.ProxyEntity
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttResolver
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
+import io.nekohasekai.sagernet.ui.ScannerActivity
 import io.nekohasekai.sagernet.ui.compose.components.DividerItem
 import io.nekohasekai.sagernet.ui.compose.components.OwenclaveTopAppBar
 import io.nekohasekai.sagernet.ui.compose.components.PreferenceHeader
@@ -88,6 +96,7 @@ data class ProfileFieldState(
     val socksHost: String = "127.0.0.1",
     val socksPort: String = "8808",
     // DNS Tunnel
+    val dnsttManual: Boolean = false,
     val dnsttResolver: String = "",
     // WireGuard
     val localAddress: String = "",
@@ -125,6 +134,8 @@ fun UniversalProfileSettingsScreen(
     onSave: (ProfileFieldState) -> Unit,
 ) {
     var s by remember { mutableStateOf(initialState) }
+    val canSave = profileType != ProxyEntity.TYPE_DNSTT ||
+        isValidDnsttToken(s.password) && (!s.dnsttManual || isValidDnsttResolver(s.dnsttResolver))
 
     val protocolName = when (profileType) {
         ProxyEntity.TYPE_SOCKS -> "SOCKS"
@@ -170,7 +181,7 @@ fun UniversalProfileSettingsScreen(
                 onNavigationClick = onBack,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    Button(onClick = { onSave(s) }) { Text("Save") }
+                    Button(onClick = { onSave(s) }, enabled = canSave) { Text("Save") }
                 },
             )
         },
@@ -478,14 +489,35 @@ private fun Hysteria2Fields(s: ProfileFieldState, update: (ProfileFieldState) ->
 
 @Composable
 private fun DnsttFields(s: ProfileFieldState, update: (ProfileFieldState) -> Unit) {
+    val context = LocalContext.current
+    val scanner = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val token = result.data?.getStringExtra(ScannerActivity.EXTRA_TOKEN)
+        if (result.resultCode == Activity.RESULT_OK && token != null) {
+            update(s.copy(password = token))
+        }
+    }
     PreferenceHeader("DNS Tunnel")
     SectionCard {
         ProfileTextField("Flow Token (32 lowercase hex)", s.password, password = true) {
             update(s.copy(password = it))
         }
         DividerItem()
-        ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
-            update(s.copy(dnsttResolver = it))
+        Button(onClick = {
+            scanner.launch(Intent(context, ScannerActivity::class.java).apply {
+                putExtra(ScannerActivity.EXTRA_TOKEN_ONLY, true)
+            })
+        }) {
+            Text("Scan token")
+        }
+        DividerItem()
+        ProfileSwitchItem("Manual DNS resolver", s.dnsttManual) {
+            update(s.copy(dnsttManual = it, dnsttResolver = if (it) s.dnsttResolver else ""))
+        }
+        if (s.dnsttManual) {
+            DividerItem()
+            ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
+                update(s.copy(dnsttResolver = it))
+            }
         }
     }
 }

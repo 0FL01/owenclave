@@ -6,6 +6,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.AbstractInstance
 import io.nekohasekai.sagernet.fmt.DnsttClientConfig
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttResolver
 import io.nekohasekai.sagernet.fmt.dnstt.decodeDnsttToken
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.joinHostPort
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class SlipstreamInstance(
     private val config: DnsttClientConfig,
+    private val resolver: DnsttResolver,
 ) : AbstractInstance {
     private companion object {
         const val WORKERS = 32
@@ -218,9 +220,18 @@ internal class SlipstreamInstance(
             Thread.sleep(50)
             attempts++
         }
-        if (isAlive(child) && Build.VERSION.SDK_INT >= 26) child.destroyForcibly()
-        process = null
+        if (isAlive(child) && Build.VERSION.SDK_INT >= 26) {
+            child.destroyForcibly()
+            attempts = 0
+            while (isAlive(child) && attempts < 10) {
+                Thread.sleep(50)
+                attempts++
+            }
+        }
+        process = child.takeIf(::isAlive)
     }
+
+    fun isRunning() = synchronized(lock) { isAlive(process) }
 
     private fun startLocked() {
         val binary = File(SagerNet.application.applicationInfo.nativeLibraryDir, "libslipstream.so")
@@ -250,6 +261,10 @@ internal class SlipstreamInstance(
         process = child
         drain(child.inputStream)
         drain(child.errorStream)
+        scope.launch {
+            child.waitFor()
+            if (!closed) ready.completeExceptionally(IOException("Slipstream stopped before becoming ready"))
+        }
         Logs.i("slipstream: starting single DNS resolver")
     }
 
@@ -261,9 +276,9 @@ internal class SlipstreamInstance(
                 certificate.outputStream().use { input.copyTo(it) }
             }
             try {
-                authority = when (config.resolverTransport) {
-                    "udp" -> joinHostPort(config.resolverHost, config.resolverPort)
-                    "tcp" -> DnsTcpAdapter(config.resolverHost, config.resolverPort).let {
+                authority = when (resolver.transport) {
+                    "udp" -> joinHostPort(resolver.host, resolver.port)
+                    "tcp" -> DnsTcpAdapter(resolver.host, resolver.port).let {
                         adapter = it
                         "127.0.0.1:${it.port}"
                     }
@@ -298,8 +313,10 @@ internal class SlipstreamInstance(
                     if (!isAlive(process)) {
                         Logs.w("slipstream: process stopped, restarting")
                         stopLocked()
-                        runCatching { startLocked() }
-                            .onFailure { Logs.w("slipstream: process restart failed") }
+                        if (process == null) {
+                            runCatching { startLocked() }
+                                .onFailure { Logs.w("slipstream: process restart failed") }
+                        }
                     }
                 }
             }
