@@ -235,8 +235,6 @@
     <string name="route_need_vpn">La regla de enrutamiento `%s` requiere VPN, ignorada.</string>
     <string name="traffic_statistics_summary">Puede aumentar el consumo de energía</string>
     <string name="no_statistics">Aún no hay estadísticas</string>
-    <string name="ssh_auth_type_none">Ninguno</string>
-    <string name="ssh_public_key">Clave pública</string>
     <string name="ssh_private_key">Clave privada</string>
     <string name="ssh_private_key_passphrase">Frase de contraseña de clave privada</string>
     <string name="menu_tools">Herramientas</string>
@@ -577,7 +575,6 @@
     <string name="socks5_udp_authentication_warning">SOCKS5 UDP no está protegido por autenticación con nombre de usuario y contraseña. Si UDP está activado, la autenticación se puede eludir fácilmente.</string>
     <string name="enable_hysteria2_omit_max_datagram_frame_size">Activar OmitMaxDatagramFrameSize de Hysteria 2</string>
     <string name="hysteria2_omit_max_datagram_frame_size_sum">Si el servidor Hysteria 2 no es compatible con este cambio importante, UDP no se podrá utilizar. Esta es una opción temporal y puede eliminarse en el futuro.</string>
-    <string name="ssh_keepalive_interval">Intervalo(s) de Keepalive</string>
     <string name="custom_outbound">Salida personalizada</string>
     <string name="hysteria2_gecko_max_packet_size">Tamaño máximo de paquete</string>
     <string name="hysteria2_gecko_min_packet_size">Tamaño mínimo de paquete</string>

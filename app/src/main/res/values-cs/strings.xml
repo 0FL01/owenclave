@@ -355,8 +355,6 @@
     <string name="profile_traffic_statistics_summary">Po zakázání se přenesená data nebudou započítávat</string>
     <string name="no_statistics">Zatím nejsou k dispozici žádné statistiky</string>
     <string name="app_statistics_disabled">Statistiky přenosů aplikací jsou zakázány</string>
-    <string name="ssh_auth_type_none">Žádné</string>
-    <string name="ssh_public_key">Veřejný klíč</string>
     <string name="ssh_private_key">Soukromý klíč</string>
     <string name="ssh_private_key_passphrase">Heslová fráze soukromého klíče</string>
     <string name="menu_tools">Nástroje</string>
@@ -585,7 +583,6 @@
     <string name="socks5_udp_authentication_warning">Provoz UDP přes SOCKS5 není chráněn ověřením uživatelským jménem a heslem. Pokud je UDP povoleno, lze ověření snadno obejít.</string>
     <string name="enable_hysteria2_omit_max_datagram_frame_size">Povolit Hysteria 2 OmitMaxDatagramFrameSize</string>
     <string name="hysteria2_omit_max_datagram_frame_size_sum">Pokud server Hysteria 2 tuto nekompatibilní změnu nepodporuje, UDP nebude možné používat. Jde o dočasnou možnost, která může být v budoucnu odstraněna.</string>
-    <string name="ssh_keepalive_interval">Interval keepalive (s)</string>
     <string name="custom_outbound">Vlastní odchozí spojení</string>
     <string name="hysteria2_gecko_max_packet_size">Maximální velikost paketu</string>
     <string name="hysteria2_gecko_min_packet_size">Minimální velikost paketu</string>

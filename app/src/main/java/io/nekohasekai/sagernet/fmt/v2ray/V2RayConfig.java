@@ -678,8 +678,6 @@ public class V2RayConfig {
                     return LoopbackOutboundConfigurationObject.class;
                 case "wireguard":
                     return WireGuardOutboundConfigurationObject.class;
-                case "ssh":
-                    return SSHOutboundConfigurationObject.class;
                 case "shadowsocks-2022":
                     return Shadowsocks2022OutboundConfigurationObject.class;
                 case "hysteria2":
@@ -920,22 +918,6 @@ public class V2RayConfig {
             public List<String> allowedIPs;
 
         }
-
-    }
-
-    public static class SSHOutboundConfigurationObject implements OutboundConfigurationObject {
-
-        public String address;
-        public Integer port;
-        public String user;
-        public String password;
-        public String privateKey;
-        public String privateKeyPassphrase;
-        public String publicKey;
-        public Integer userLevel;
-        public String clientVersion;
-        public List<String> hostKeyAlgorithms;
-        public Integer keepaliveInterval;
 
     }
 

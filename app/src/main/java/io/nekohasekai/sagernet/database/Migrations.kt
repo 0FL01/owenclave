@@ -170,3 +170,13 @@ class SagerDatabase_Migration_33_34 : AutoMigrationSpec
     ),
 )
 class SagerDatabase_Migration_35_36 : AutoMigrationSpec
+
+@DeleteColumn(
+    tableName = "proxy_entities",
+    columnName = "sshBean",
+)
+class SagerDatabase_Migration_40_41 : AutoMigrationSpec {
+    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DELETE FROM proxy_entities WHERE type = 17")
+    }
+}

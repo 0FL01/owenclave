@@ -153,7 +153,6 @@
                 <data android:scheme="tt" />
                 <data android:scheme="sq" />
                 <data android:scheme="shadowquic" />
-                <data android:scheme="dnstt" />
                 <data android:scheme="owenkey" />
             </intent-filter>
 

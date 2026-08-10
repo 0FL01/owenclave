@@ -201,9 +201,7 @@
     <string name="copy_package_name">Copier le nom du paquet</string>
     <string name="route_for">Règle pour %s</string>
     <string name="no_statistics">Aucune statistique pour l\'instant</string>
-    <string name="ssh_public_key">Clé publique</string>
     <string name="route_reset">Rétablir</string>
-    <string name="ssh_auth_type_none">Aucun</string>
     <string name="direct_dns">DNS Direct</string>
     <string name="username">Nom d\'utilisateur</string>
     <string name="network">Réseau</string>

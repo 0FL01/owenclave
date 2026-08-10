@@ -85,11 +85,9 @@
     <string name="app_version">Versi</string>
     <string name="github">Kode sumber</string>
     <string name="project">Proyek</string>
-    <string name="ssh_auth_type_none">Tidak ada</string>
     <string name="no_statistics">Belum ada statistik</string>
     <string name="menu_tools">Alat</string>
     <string name="ssh_private_key">Kunci privat</string>
-    <string name="ssh_public_key">Kunci publik</string>
     <string name="profile_empty">Silakan pilih profil</string>
     <string name="auto_connect">Sambung otomatis</string>
     <string name="kcp_seed">Seed mKCP</string>

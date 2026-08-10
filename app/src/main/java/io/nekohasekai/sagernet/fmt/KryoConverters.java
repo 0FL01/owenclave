@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 
 import io.nekohasekai.sagernet.database.SubscriptionBean;
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean;
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean;
 import io.nekohasekai.sagernet.fmt.http.HttpBean;
 import io.nekohasekai.sagernet.fmt.http3.Http3Bean;
 import io.nekohasekai.sagernet.fmt.hysteria2.Hysteria2Bean;
@@ -43,7 +44,6 @@ import io.nekohasekai.sagernet.fmt.shadowquic.ShadowQUICBean;
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean;
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean;
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean;
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean;
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean;
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean;
 import io.nekohasekai.sagernet.fmt.snell.SnellBean;
@@ -138,9 +138,9 @@ public class KryoConverters {
     }
 
     @TypeConverter
-    public static SSHBean sshDeserialize(byte[] bytes) {
+    public static DnsttBean dnsttDeserialize(byte[] bytes) {
         if (bytes == null || bytes.length == 0) return null;
-        return deserialize(new SSHBean(), bytes);
+        return deserialize(new DnsttBean(), bytes);
     }
 
     @TypeConverter

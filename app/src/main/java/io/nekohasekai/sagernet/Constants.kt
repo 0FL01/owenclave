@@ -218,7 +218,6 @@ object Key {
     const val SERVER_HEADERS = "serverHeaders"
     const val SERVER_ALLOW_INSECURE = "serverAllowInsecure"
 
-    const val SERVER_AUTH_TYPE = "serverAuthType"
     const val SERVER_UPLOAD_SPEED = "serverUploadSpeed"
     const val SERVER_DOWNLOAD_SPEED = "serverDownloadSpeed"
 
@@ -253,8 +252,6 @@ object Key {
     const val SERVER_ANYTLS_DISABLE_REUSE = "serverAnyTLSDisableReuse"
     const val SERVER_SERVER_NAME_TO_VERIFY = "serverServerNameToVerify"
     const val SERVER_HYSTERIA2_OMIT_MAX_DATAGRAM_FRAME_SIZE = "serverHysteria2OmitMaxDatagramFrameSize"
-    const val SERVER_SSH_KEEPALIVE_INTERVAL = "serverSSHKeepaliveInterval"
-
     const val SERVER_PORTS = "serverPorts"
     const val SERVER_HOP_INTERVAL = "serverHopInterval"
     const val SERVER_HOP_INTERVAL_MIN = "serverHopIntervalMin"

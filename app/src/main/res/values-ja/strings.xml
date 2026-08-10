@@ -326,8 +326,6 @@
     <string name="profile_traffic_statistics_summary">無効時、ユーザーのトラフィックは計測されない</string>
     <string name="no_statistics">統計はまだない</string>
     <string name="app_statistics_disabled">アプリトラフィックの統計は無効</string>
-    <string name="ssh_auth_type_none">なし</string>
-    <string name="ssh_public_key">公開鍵</string>
     <string name="ssh_private_key">秘密鍵</string>
     <string name="ssh_private_key_passphrase">秘密鍵のパスワード</string>
     <string name="menu_tools">道具</string>

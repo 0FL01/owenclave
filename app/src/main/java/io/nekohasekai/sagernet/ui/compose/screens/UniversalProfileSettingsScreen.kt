@@ -87,15 +87,7 @@ data class ProfileFieldState(
     val dnsServer: String = "8.8.8.8:53",
     val socksHost: String = "127.0.0.1",
     val socksPort: String = "8808",
-    // SSH
-    val authType: Int = 0,
-    val privateKey: String = "",
-    val privateKeyPassphrase: String = "",
-    val publicKey: String = "",
-    val keepaliveInterval: String = "0",
-    val dnsttEnabled: Boolean = false,
-    val dnsttDomain: String = "",
-    val dnsttPublicKey: String = "",
+    // DNS Tunnel
     val dnsttResolver: String = "",
     // WireGuard
     val localAddress: String = "",
@@ -144,7 +136,7 @@ fun UniversalProfileSettingsScreen(
         ProxyEntity.TYPE_TROJAN -> "Trojan"
         ProxyEntity.TYPE_NAIVE -> "NaiveProxy"
         ProxyEntity.TYPE_HYSTERIA2 -> "Hysteria 2"
-        ProxyEntity.TYPE_SSH -> if (s.dnsttEnabled) "DNS Tunnel" else "SSH"
+        ProxyEntity.TYPE_DNSTT -> "DNS Tunnel"
         ProxyEntity.TYPE_WG -> "WireGuard"
         ProxyEntity.TYPE_MIERU -> "Mieru"
         ProxyEntity.TYPE_TUIC5 -> "TUIC"
@@ -161,8 +153,8 @@ fun UniversalProfileSettingsScreen(
         else -> "Unknown"
     }
 
-    val showServerAddress = !s.dnsttEnabled && profileType !in listOf(
-        ProxyEntity.TYPE_OLCRTC, ProxyEntity.TYPE_CONFIG,
+    val showServerAddress = profileType !in listOf(
+        ProxyEntity.TYPE_DNSTT, ProxyEntity.TYPE_OLCRTC, ProxyEntity.TYPE_CONFIG,
         ProxyEntity.TYPE_CHAIN, ProxyEntity.TYPE_BALANCER,
     )
 
@@ -238,7 +230,7 @@ fun UniversalProfileSettingsScreen(
                     ProxyEntity.TYPE_TROJAN -> TrojanFields(s) { s = it }
                     ProxyEntity.TYPE_NAIVE -> NaiveFields(s) { s = it }
                     ProxyEntity.TYPE_HYSTERIA2 -> Hysteria2Fields(s) { s = it }
-                    ProxyEntity.TYPE_SSH -> SshFields(s) { s = it }
+                    ProxyEntity.TYPE_DNSTT -> DnsttFields(s) { s = it }
                     ProxyEntity.TYPE_WG -> WireGuardFields(s) { s = it }
                     ProxyEntity.TYPE_MIERU -> MieruFields(s) { s = it }
                     ProxyEntity.TYPE_TUIC5 -> Tuic5Fields(s) { s = it }
@@ -485,46 +477,15 @@ private fun Hysteria2Fields(s: ProfileFieldState, update: (ProfileFieldState) ->
 }
 
 @Composable
-private fun SshFields(s: ProfileFieldState, update: (ProfileFieldState) -> Unit) {
-    if (s.dnsttEnabled) {
-        PreferenceHeader("DNS Tunnel")
-        SectionCard {
-            ProfileTextField("Tunnel Domain", s.dnsttDomain) { update(s.copy(dnsttDomain = it)) }
-            DividerItem()
-            ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
-                update(s.copy(dnsttResolver = it))
-            }
-            DividerItem()
-            ProfileTextField("Flow Token (32 lowercase hex)", s.password, password = true) {
-                update(s.copy(password = it))
-            }
+private fun DnsttFields(s: ProfileFieldState, update: (ProfileFieldState) -> Unit) {
+    PreferenceHeader("DNS Tunnel")
+    SectionCard {
+        ProfileTextField("Flow Token (32 lowercase hex)", s.password, password = true) {
+            update(s.copy(password = it))
         }
-    } else {
-        PreferenceHeader("SSH Settings")
-        SectionCard {
-            ProfileTextField("Username", s.username) { update(s.copy(username = it)) }
-            DividerItem()
-            ProfileTextField("Auth Type (0=none,1=password,2=publicKey)", s.authType.toString()) {
-                update(s.copy(authType = it.toIntOrNull() ?: 0))
-            }
-            if (s.authType == 1) {
-                DividerItem()
-                ProfileTextField("Password", s.password, password = true) { update(s.copy(password = it)) }
-            }
-            if (s.authType == 2) {
-                DividerItem()
-                ProfileTextField("Private Key", s.privateKey, password = true) { update(s.copy(privateKey = it)) }
-                DividerItem()
-                ProfileTextField("Private Key Passphrase", s.privateKeyPassphrase, password = true) {
-                    update(s.copy(privateKeyPassphrase = it))
-                }
-            }
-            DividerItem()
-            ProfileTextField("Public Key (host key pinning)", s.publicKey) { update(s.copy(publicKey = it)) }
-            DividerItem()
-            ProfileTextField("Keepalive Interval", s.keepaliveInterval, keyboardType = KeyboardType.Number) {
-                update(s.copy(keepaliveInterval = it.filter(Char::isDigit)))
-            }
+        DividerItem()
+        ProfileTextField("DNS Resolver (udp:// or tcp://)", s.dnsttResolver) {
+            update(s.copy(dnsttResolver = it))
         }
     }
 }

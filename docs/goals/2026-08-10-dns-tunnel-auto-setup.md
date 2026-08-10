@@ -38,8 +38,13 @@ evidence and smallest unlock.
     operations nodes and unreachable upstream core internals are unaffected.
   - Primary evidence: targeted source search, Room schema/compile gate and release
     Kotlin/Java compilation.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: release Kotlin/Java compilation generated Room schema 41 with
+    `dnsttBean` and no current `sshBean`. The generated 40->41 migration adds the
+    dedicated blob, preserves every unrelated column and row, drops the legacy blob,
+    then deletes legacy type 17 rows. Targeted owned-source search finds no generic SSH
+    bean/type/runtime/UI/import/subscription/generated-outbound references outside the
+    required historical migration statements.
 
 - R2: Replace legacy provisioning with token-only automatic setup and one manual
   override.
@@ -161,25 +166,23 @@ evidence and smallest unlock.
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: introduce the dedicated DNS Tunnel bean/type and database
-  transition, then remove direct generic SSH consumers in one compile-bounded change.
-- Expected evidence: Room schema generation, targeted source search and release
-  Kotlin/Java compilation prove a dedicated DNS Tunnel profile with no reachable
-  generic SSH feature.
-- Stop or replan if: preserving unrelated profile rows requires destructive database
-  reset, DNS Tunnel still needs generic SSH runtime fields, or upstream core changes
-  become necessary for the owned Android feature removal.
+- Closes: R2 and R3.
+- Smallest next action: make the dedicated profile token-first, then pass an ordered
+  startup-only resolver candidate list through the existing config and child lifecycle.
+- Expected evidence: focused token/resolver/candidate/deadline checks and release
+  compilation prove automatic and strict manual setup with one sequential child.
+- Stop or replan if: underlay DNS cannot be obtained from the tracked physical network,
+  candidate cleanup can overlap children, or the shared readiness deadline changes.
 
 ## Current State
 
-- Resolved: RECON only. Android already exposes underlay DNS; the existing olcRTC
-  helper reads it. The connected phone exposes separate VPN and physical-link DNS.
-- Last relevant evidence: repository `dev` was clean at `148384b`; live `n-de1`
-  Slipstream/flowd were active with restart baselines 4/0, public UDP `:53`, private
-  FlowRelay `:40001`, null output sinks and no private DNS SSH listener.
+- Resolved: R1. DNS Tunnel now owns `DnsttBean`/`TYPE_DNSTT`; generic SSH source,
+  provisioning and reachable UI/import/runtime paths are removed. Room schema 41 drops
+  legacy rows/blob while preserving unrelated profiles.
+- Last relevant evidence: `:app:compileOssReleaseKotlin` passed and generated the
+  expected 40->41 auto-migration and schema.
 - Blocker: none.
-- Next: commit this frozen goal, then execute R1.
+- Next: implement R2 and R3 together at the config/lifecycle boundary.
 
 ## Material Decisions
 
@@ -196,6 +199,9 @@ evidence and smallest unlock.
 
 - 2026-08-10: contract frozen from the approved RECON and UX/full-removal decisions;
   R1 is current.
+- 2026-08-10: R1 replaced the shared SSH model with dedicated DNS Tunnel persistence,
+  removed all owned generic SSH consumers, and passed release compilation; R2/R3 are
+  current.
 
 ## Completion
 

@@ -32,6 +32,7 @@ import io.nekohasekai.sagernet.fmt.Serializable
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
 import io.nekohasekai.sagernet.fmt.anytls.toUri
 import io.nekohasekai.sagernet.fmt.buildV2RayConfig
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
 import io.nekohasekai.sagernet.fmt.http.HttpBean
 import io.nekohasekai.sagernet.fmt.http.toUri
 import io.nekohasekai.sagernet.fmt.http3.Http3Bean
@@ -56,10 +57,6 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.toUri
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
 import io.nekohasekai.sagernet.fmt.socks.toUri
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
-import io.nekohasekai.sagernet.fmt.ssh.isValidDnsttResolver
-import io.nekohasekai.sagernet.fmt.ssh.isValidDnsttToken
-import io.nekohasekai.sagernet.fmt.ssh.toDnsttUri
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trojan.toUri
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
@@ -77,6 +74,7 @@ import io.nekohasekai.sagernet.fmt.wireguard.WireGuardBean
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.applyDefaultValues
 import io.nekohasekai.sagernet.ui.profile.*
+import io.nekohasekai.sagernet.ui.compose.ComposeProfileSettingsActivity
 
 @Entity(
     tableName = "proxy_entities", indices = [Index("groupId", name = "groupId")]
@@ -105,7 +103,7 @@ data class ProxyEntity(
     var hysteria2Bean: Hysteria2Bean? = null,
     var mieruBean: MieruBean? = null,
     var tuic5Bean: Tuic5Bean? = null,
-    var sshBean: SSHBean? = null,
+    var dnsttBean: DnsttBean? = null,
     var wgBean: WireGuardBean? = null,
     var juicityBean: JuicityBean? = null,
     var http3Bean: Http3Bean? = null,
@@ -132,7 +130,7 @@ data class ProxyEntity(
         const val TYPE_TROJAN = 6
         const val TYPE_NAIVE = 9
         const val TYPE_HYSTERIA2 = 21
-        const val TYPE_SSH = 17
+        const val TYPE_DNSTT = 17
         const val TYPE_WG = 18
         const val TYPE_MIERU = 19
         const val TYPE_TUIC5 = 23
@@ -226,7 +224,7 @@ data class ProxyEntity(
             TYPE_TROJAN -> trojanBean = KryoConverters.trojanDeserialize(byteArray)
             TYPE_NAIVE -> naiveBean = KryoConverters.naiveDeserialize(byteArray)
             TYPE_HYSTERIA2 -> hysteria2Bean = KryoConverters.hysteria2Deserialize(byteArray)
-            TYPE_SSH -> sshBean = KryoConverters.sshDeserialize(byteArray)
+            TYPE_DNSTT -> dnsttBean = KryoConverters.dnsttDeserialize(byteArray)
             TYPE_WG -> wgBean = KryoConverters.wireguardDeserialize(byteArray)
             TYPE_MIERU -> mieruBean = KryoConverters.mieruDeserialize(byteArray)
             TYPE_TUIC5 -> tuic5Bean = KryoConverters.tuic5Deserialize(byteArray)
@@ -254,7 +252,7 @@ data class ProxyEntity(
         TYPE_TROJAN -> "Trojan"
         TYPE_NAIVE -> "NaïveProxy"
         TYPE_HYSTERIA2 -> "Hysteria 2"
-        TYPE_SSH -> if (sshBean!!.dnsttEnabled == true) "DNS Tunnel" else "SSH"
+        TYPE_DNSTT -> "DNS Tunnel"
         TYPE_WG -> "WireGuard"
         TYPE_MIERU -> "mieru"
         TYPE_TUIC5 -> "TUIC"
@@ -286,7 +284,7 @@ data class ProxyEntity(
             TYPE_TROJAN -> trojanBean
             TYPE_NAIVE -> naiveBean
             TYPE_HYSTERIA2 -> hysteria2Bean
-            TYPE_SSH -> sshBean
+            TYPE_DNSTT -> dnsttBean
             TYPE_WG -> wgBean
             TYPE_MIERU -> mieruBean
             TYPE_TUIC5 -> tuic5Bean
@@ -315,10 +313,7 @@ data class ProxyEntity(
 
     fun hasShareLink(): Boolean {
         return when (type) {
-            TYPE_SSH -> sshBean?.let {
-                it.dnsttEnabled == true && isValidDnsttResolver(it.dnsttResolver) && isValidDnsttToken(it.password)
-            } == true
-            TYPE_WG, TYPE_SNELL -> false
+            TYPE_DNSTT, TYPE_WG, TYPE_SNELL -> false
             TYPE_CONFIG, TYPE_CHAIN, TYPE_BALANCER -> false
             else -> true
         }
@@ -343,7 +338,6 @@ data class ProxyEntity(
             is TrustTunnelBean -> toUri()
             is ShadowQUICBean -> toUri()
             is OLCRTCBean -> toUri()
-            is SSHBean -> if (dnsttEnabled == true) toDnsttUri() else null
             else -> null
         }
     }
@@ -396,7 +390,7 @@ data class ProxyEntity(
         trojanBean = null
         naiveBean = null
         hysteria2Bean = null
-        sshBean = null
+        dnsttBean = null
         wgBean = null
         mieruBean = null
         tuic5Bean = null
@@ -449,9 +443,9 @@ data class ProxyEntity(
                 type = TYPE_HYSTERIA2
                 hysteria2Bean = bean
             }
-            is SSHBean -> {
-                type = TYPE_SSH
-                sshBean = bean
+            is DnsttBean -> {
+                type = TYPE_DNSTT
+                dnsttBean = bean
             }
             is WireGuardBean -> {
                 type = TYPE_WG
@@ -512,6 +506,12 @@ data class ProxyEntity(
     }
 
     fun settingIntent(ctx: Context, isSubscription: Boolean): Intent? {
+        if (type == TYPE_DNSTT) {
+            return Intent(ctx, ComposeProfileSettingsActivity::class.java).apply {
+                putExtra(ComposeProfileSettingsActivity.EXTRA_PROFILE_ID, id)
+                putExtra(ComposeProfileSettingsActivity.EXTRA_PROFILE_TYPE, type)
+            }
+        }
         val cls = when (type) {
             TYPE_SOCKS -> SocksSettingsActivity::class.java
             TYPE_HTTP -> HttpSettingsActivity::class.java
@@ -522,7 +522,6 @@ data class ProxyEntity(
             TYPE_TROJAN -> TrojanSettingsActivity::class.java
             TYPE_NAIVE -> NaiveSettingsActivity::class.java
             TYPE_HYSTERIA2 -> Hysteria2SettingsActivity::class.java
-            TYPE_SSH -> SSHSettingsActivity::class.java
             TYPE_WG -> WireGuardSettingsActivity::class.java
             TYPE_MIERU -> MieruSettingsActivity::class.java
             TYPE_TUIC5 -> Tuic5SettingsActivity::class.java

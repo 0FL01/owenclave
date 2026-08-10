@@ -40,6 +40,9 @@ import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.V2rayBuildResult.IndexEntity
 import io.nekohasekai.sagernet.fmt.anytls.AnyTLSBean
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.gson.gson
 import io.nekohasekai.sagernet.fmt.http.HttpBean
 import io.nekohasekai.sagernet.fmt.http3.Http3Bean
@@ -52,9 +55,6 @@ import io.nekohasekai.sagernet.fmt.shadowquic.ShadowQUICBean
 import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
-import io.nekohasekai.sagernet.fmt.ssh.isValidDnsttToken
-import io.nekohasekai.sagernet.fmt.ssh.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
@@ -90,7 +90,6 @@ import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.QuicObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RealityObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RoutingObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.RoutingObject.BalancerObject.StrategyObject
-import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SSHOutboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.ShadowsocksOutboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SocksInboundConfigurationObject
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig.SocksOutboundConfigurationObject
@@ -1331,62 +1330,31 @@ fun buildV2RayConfig(
                                 if (currentDomainStrategy == "AsIs") {
                                     currentDomainStrategy = "UseIP"
                                 }
-                            } else if (bean is SSHBean) {
-                                val dnsttClient = if (bean.dnsttEnabled == true) {
-                                    val domain = bean.dnsttDomain.trimEnd('.')
-                                    require(domain.isNotEmpty()) { "DNS Tunnel domain is required" }
-                                    require(isValidDnsttToken(bean.password)) {
-                                        "DNS Tunnel Flow token is required"
-                                    }
-                                    val resolver = parseDnsttResolver(bean.dnsttResolver)
-                                    dnsttClients.getOrPut(Triple(domain, resolver.toString(), bean.password)) {
-                                        DnsttClientConfig(
-                                            mkPort(), domain, resolver.transport, resolver.host, resolver.port,
-                                            bean.password, Uuid.generateV4().toHexString(), Uuid.generateV4().toHexString(),
-                                        )
-                                    }
-                                } else null
-                                if (dnsttClient != null) {
-                                    protocol = "socks"
-                                    settings = LazyOutboundConfigurationObject(this,
-                                        SocksOutboundConfigurationObject().apply {
-                                            servers = listOf(SocksOutboundConfigurationObject.ServerObject().apply {
-                                                address = LOCALHOST
-                                                port = dnsttClient.localPort
-                                                users = listOf(SocksOutboundConfigurationObject.ServerObject.UserObject().apply {
-                                                    user = dnsttClient.socksUsername
-                                                    pass = dnsttClient.socksPassword
-                                                })
-                                            })
-                                            version = "5"
-                                            uot = true
-                                        })
-                                } else {
-                                    protocol = "ssh"
-                                    settings = LazyOutboundConfigurationObject(this,
-                                        SSHOutboundConfigurationObject().apply {
-                                            address = bean.serverAddress
-                                            port = bean.serverPort
-                                            user = bean.username
-                                            when (bean.authType) {
-                                                SSHBean.AUTH_TYPE_PUBLIC_KEY -> {
-                                                    privateKey = bean.privateKey
-                                                    if (bean.privateKeyPassphrase.isNotEmpty()) {
-                                                        privateKeyPassphrase = bean.privateKeyPassphrase
-                                                    }
-                                                }
-                                                SSHBean.AUTH_TYPE_PASSWORD -> {
-                                                    password = bean.password
-                                                }
-                                            }
-                                            if (bean.publicKey.isNotEmpty()) {
-                                                publicKey = bean.publicKey
-                                            }
-                                            if (bean.keepaliveInterval > 0) {
-                                                keepaliveInterval = bean.keepaliveInterval
-                                            }
-                                        })
+                            } else if (bean is DnsttBean) {
+                                require(isValidDnsttToken(bean.token)) { "DNS Tunnel Flow token is required" }
+                                val resolver = parseDnsttResolver(bean.resolver)
+                                val dnsttClient = dnsttClients.getOrPut(
+                                    Triple(DnsttBean.DOMAIN, resolver.toString(), bean.token),
+                                ) {
+                                    DnsttClientConfig(
+                                        mkPort(), DnsttBean.DOMAIN, resolver.transport, resolver.host, resolver.port,
+                                        bean.token, Uuid.generateV4().toHexString(), Uuid.generateV4().toHexString(),
+                                    )
                                 }
+                                protocol = "socks"
+                                settings = LazyOutboundConfigurationObject(this,
+                                    SocksOutboundConfigurationObject().apply {
+                                        servers = listOf(SocksOutboundConfigurationObject.ServerObject().apply {
+                                            address = LOCALHOST
+                                            port = dnsttClient.localPort
+                                            users = listOf(SocksOutboundConfigurationObject.ServerObject.UserObject().apply {
+                                                user = dnsttClient.socksUsername
+                                                pass = dnsttClient.socksPassword
+                                            })
+                                        })
+                                        version = "5"
+                                        uot = true
+                                    })
                             } else if (bean is Hysteria2Bean) {
                                 protocol = "hysteria2"
                                 settings = LazyOutboundConfigurationObject(this,

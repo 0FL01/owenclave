@@ -337,8 +337,6 @@
     <string name="profile_traffic_statistics_summary">முடக்கப்பட்டால், பயன்படுத்தப்பட்ட போக்குவரத்து கணக்கிடப்படாது</string>
     <string name="no_statistics">இன்னும் புள்ளிவிவரங்கள் இல்லை</string>
     <string name="app_statistics_disabled">ஆப் ட்ராஃபிக் புள்ளிவிவரங்கள் முடக்கப்பட்டுள்ளன</string>
-    <string name="ssh_auth_type_none">எதுவுமில்லை</string>
-    <string name="ssh_public_key">பொது விசை</string>
     <string name="ssh_private_key">தனிப்பட்ட விசை</string>
     <string name="ssh_private_key_passphrase">தனிப்பட்ட விசை கடவுச்சொற்றொடர்</string>
     <string name="menu_tools">கருவிகள்</string>
@@ -565,7 +563,6 @@
     <string name="socks5_udp_authentication_warning">SOCKS5 UDP பயனர்பெயர்/கடவுச்சொல் அங்கீகாரத்தால் பாதுகாக்கப்படவில்லை. UDP இயக்கப்பட்டிருந்தால், அங்கீகாரத்தை எளிதாகக் கடந்து செல்ல முடியும்.</string>
     <string name="enable_hysteria2_omit_max_datagram_frame_size">மனயிசிவு 2 OmitMaxDatagramFrameSize ஐ இயக்கவும்</string>
     <string name="hysteria2_omit_max_datagram_frame_size_sum">இச்டீரியா 2 சர்வர் இந்த பிரேக்கிங் மாற்றத்தை ஆதரிக்கவில்லை என்றால், UDP பயன்படுத்த முடியாததாக இருக்கும். இது ஒரு தற்காலிக விருப்பம் மற்றும் எதிர்காலத்தில் அகற்றப்படலாம்.</string>
-    <string name="ssh_keepalive_interval">காப்பீட்டு இடைவெளி (கள்)</string>
     <string name="custom_outbound">தனிப்பயன் வெளிச்செல்லும்</string>
     <string name="hysteria2_gecko_max_packet_size">அதிகபட்ச பாக்கெட் அளவு</string>
     <string name="hysteria2_gecko_min_packet_size">குறைந்தபட்ச பாக்கெட் அளவு</string>

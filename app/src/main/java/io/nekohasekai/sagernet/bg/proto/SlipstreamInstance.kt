@@ -6,7 +6,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.AbstractInstance
 import io.nekohasekai.sagernet.fmt.DnsttClientConfig
-import io.nekohasekai.sagernet.fmt.ssh.decodeDnsttToken
+import io.nekohasekai.sagernet.fmt.dnstt.decodeDnsttToken
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.joinHostPort
 import kotlinx.coroutines.CompletableDeferred

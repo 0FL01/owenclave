@@ -328,8 +328,6 @@
     <string name="menu_tools">ابزارها</string>
     <string name="ssh_private_key_passphrase">عبارت عبور کلید خصوصی</string>
     <string name="ssh_private_key">کلید خصوصی</string>
-    <string name="ssh_public_key">کلید عمومی</string>
-    <string name="ssh_auth_type_none">هیچ‌کدام</string>
     <string name="wireguard_psk">کلید از پیش اشتراکی همتا</string>
     <string name="wireguard_public_key">کلید عمومی همتا</string>
     <string name="wireguard_local_address">آدرس محلی</string>

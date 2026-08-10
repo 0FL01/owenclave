@@ -334,8 +334,6 @@
     <string name="traffic_statistics_summary">可能增加电量使用</string>
     <string name="ssh_private_key_passphrase">私钥密码句</string>
     <string name="ssh_private_key">私钥</string>
-    <string name="ssh_public_key">公钥</string>
-    <string name="ssh_auth_type_none">无</string>
     <string name="clear_logcat">清空日志</string>
     <string name="menu_log">日志</string>
     <string name="menu_tools">工具</string>
@@ -575,7 +573,6 @@
     <string name="socks5_udp_authentication_warning">SOCKS5 UDP 不受用户名/密码认证的保护。如果启用 UDP，认证可以被容易地绕过。</string>
     <string name="enable_hysteria2_omit_max_datagram_frame_size">启用 Hysteria 2 OmitMaxDatagramFrameSize</string>
     <string name="hysteria2_omit_max_datagram_frame_size_sum">如果 Hysteria 2 服务端不支持此破坏性变更，UDP 将无法使用。这是一个临时性选项，将来可能会被移除。</string>
-    <string name="ssh_keepalive_interval">保活间隔（秒）</string>
     <string name="custom_outbound">自定义出站</string>
     <string name="hysteria2_gecko_max_packet_size">最大包大小</string>
     <string name="hysteria2_gecko_min_packet_size">最小包大小</string>

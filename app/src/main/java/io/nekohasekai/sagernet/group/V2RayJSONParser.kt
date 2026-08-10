@@ -39,7 +39,6 @@ import io.nekohasekai.sagernet.fmt.shadowsocks.supportedShadowsocks2022Method
 import io.nekohasekai.sagernet.fmt.shadowsocks.supportedShadowsocksMethod
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
 import io.nekohasekai.sagernet.fmt.tuic5.Tuic5Bean
@@ -1213,46 +1212,6 @@ fun parseV2RayOutbound(outbound: JsonObject): List<AbstractBean> {
                 }
             }
             return listOf(hysteria2Bean)
-        }
-        "ssh" -> {
-            outbound.getObject("streamSettings")?.also { streamSettings ->
-                streamSettings.getString("network")?.lowercase()?.also {
-                    if (it in nonRawTransportName) return listOf()
-                }
-                streamSettings.getString("security")?.lowercase()?.also {
-                    if (it != "none") return listOf()
-                }
-            }
-            val sshBean = SSHBean()
-            outbound.getObject("settings")?.also { settings ->
-                outbound.getString("tag")?.also {
-                    sshBean.name = it
-                }
-                settings.getString("address")?.also {
-                    sshBean.serverAddress = it
-                } ?: return listOf()
-                settings.getPort("port")?.also {
-                    sshBean.serverPort = it
-                } ?: return listOf()
-                settings.getString("user")?.also {
-                    sshBean.username = it
-                }
-                settings.getString("publicKey")?.also {
-                    sshBean.publicKey = it
-                }
-                settings.getString("password")?.also {
-                    sshBean.authType = SSHBean.AUTH_TYPE_PASSWORD
-                    sshBean.password = it
-                }
-                settings.getString("privateKey")?.also {
-                    sshBean.authType = SSHBean.AUTH_TYPE_PUBLIC_KEY
-                    sshBean.privateKey = it
-                    settings.getString("privateKeyPassphrase")?.also { privateKeyPassphrase ->
-                        sshBean.privateKeyPassphrase = privateKeyPassphrase
-                    }
-                }
-            }
-            return listOf(sshBean)
         }
         "tuic" -> {
             val tuic5Bean = Tuic5Bean()

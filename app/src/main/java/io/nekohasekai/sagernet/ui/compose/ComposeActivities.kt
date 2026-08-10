@@ -20,6 +20,7 @@ import io.nekohasekai.sagernet.database.RuleEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.fmt.AbstractBean
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
 import io.nekohasekai.sagernet.fmt.internal.ChainBean
 import io.nekohasekai.sagernet.fmt.internal.BalancerBean
 import io.nekohasekai.sagernet.fmt.internal.ConfigBean
@@ -38,7 +39,6 @@ import io.nekohasekai.sagernet.fmt.shadowsocks.ShadowsocksBean
 import io.nekohasekai.sagernet.fmt.shadowsocksr.ShadowsocksRBean
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.tuic5.Tuic5Bean
@@ -479,7 +479,6 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PROFILE_ID = "profileId"
         const val EXTRA_PROFILE_TYPE = "profileType"
-        const val EXTRA_DNSTT = "dnstt"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -490,9 +489,6 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
 
         var entity: ProxyEntity? = null
         var initialState = ProfileFieldState()
-        if (profileId == 0L && profileType == ProxyEntity.TYPE_SSH && intent.getBooleanExtra(EXTRA_DNSTT, false)) {
-            initialState = initialState.copy(dnsttEnabled = true, authType = SSHBean.AUTH_TYPE_PASSWORD)
-        }
 
         if (profileId > 0L) {
             runBlocking {
@@ -580,14 +576,9 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                     certificates = b.certificates ?: "", allowInsecure = b.allowInsecure ?: false,
                     echEnabled = b.echEnabled ?: false, echConfig = b.echConfig ?: "")
             }
-            ProxyEntity.TYPE_SSH -> {
-                val b = entity.sshBean ?: return s
-                s.copy(username = b.username ?: "root", authType = b.authType ?: 0,
-                    password = b.password ?: "", privateKey = b.privateKey ?: "",
-                    privateKeyPassphrase = b.privateKeyPassphrase ?: "",
-                    publicKey = b.publicKey ?: "", keepaliveInterval = b.keepaliveInterval?.toString() ?: "0",
-                    dnsttEnabled = b.dnsttEnabled ?: false, dnsttDomain = b.dnsttDomain ?: "",
-                    dnsttPublicKey = b.dnsttPublicKey ?: "", dnsttResolver = b.dnsttResolver ?: "")
+            ProxyEntity.TYPE_DNSTT -> {
+                val b = entity.dnsttBean ?: return s
+                s.copy(password = b.token ?: "", dnsttResolver = b.resolver ?: "")
             }
             ProxyEntity.TYPE_WG -> {
                 val b = entity.wgBean ?: return s
@@ -818,23 +809,12 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 b.echConfig = state.echConfig
                 entity.hysteria2Bean = b
             }
-            ProxyEntity.TYPE_SSH -> {
-                val b = entity.sshBean ?: SSHBean().applyDefaultValues()
+            ProxyEntity.TYPE_DNSTT -> {
+                val b = entity.dnsttBean ?: DnsttBean().applyDefaultValues()
                 b.name = state.name
-                b.serverAddress = if (state.dnsttEnabled) state.dnsttDomain else state.serverAddress
-                b.serverPort = if (state.dnsttEnabled) 22 else state.serverPort.toIntOrNull() ?: 22
-                b.username = if (state.dnsttEnabled) "" else state.username
-                b.authType = if (state.dnsttEnabled) SSHBean.AUTH_TYPE_PASSWORD else state.authType
-                b.password = state.password
-                b.privateKey = if (state.dnsttEnabled) "" else state.privateKey
-                b.privateKeyPassphrase = if (state.dnsttEnabled) "" else state.privateKeyPassphrase
-                b.publicKey = if (state.dnsttEnabled) "" else state.publicKey
-                b.keepaliveInterval = if (state.dnsttEnabled) 0 else state.keepaliveInterval.toIntOrNull() ?: 0
-                b.dnsttEnabled = state.dnsttEnabled
-                b.dnsttDomain = state.dnsttDomain
-                b.dnsttPublicKey = if (state.dnsttEnabled) "" else state.dnsttPublicKey
-                b.dnsttResolver = state.dnsttResolver
-                entity.sshBean = b
+                b.token = state.password
+                b.resolver = state.dnsttResolver
+                entity.dnsttBean = b
             }
             ProxyEntity.TYPE_WG -> {
                 val b = entity.wgBean ?: WireGuardBean().applyDefaultValues()

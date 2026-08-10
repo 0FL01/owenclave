@@ -37,7 +37,6 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRObfs
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRProtocol
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.tuic5.Tuic5Bean
 import io.nekohasekai.sagernet.fmt.tuic5.supportedTuic5CongestionControl
@@ -598,51 +597,6 @@ fun parseSingBoxOutbound(outbound: JsonObject): List<AbstractBean> {
                 } ?: return listOf()
             }
             return listOf(tuic5Bean)
-        }
-        "ssh" -> {
-            val sshBean = SSHBean().apply {
-                outbound.getString("tag", ignoreCase = false)?.also {
-                    name = it
-                }
-                outbound.getString("server")?.also {
-                    serverAddress = it
-                } ?: return listOf()
-                outbound.getInt("server_port")?.takeIf { it > 0 }?.also {
-                    serverPort = it
-                } ?: {
-                    // https://github.com/SagerNet/sing-box/blob/5f739c4e66163ce88dbf75456e698c191d7069a6/protocol/ssh/outbound.go#L68
-                    serverPort = 22
-                }
-                outbound.getString("user")?.takeIf { it.isNotEmpty() }?.also {
-                    username = it
-                } ?: {
-                    // https://github.com/SagerNet/sing-box/blob/5f739c4e66163ce88dbf75456e698c191d7069a6/protocol/ssh/outbound.go#L71
-                    username = "root"
-                }
-                if (outbound.getString("password")?.isNotEmpty() == true) {
-                    authType = SSHBean.AUTH_TYPE_PASSWORD
-                    outbound.getString("password")?.also {
-                        password = it
-                    }
-                }
-                if (outbound.getString("private_key")?.isNotEmpty() == true) {
-                    authType = SSHBean.AUTH_TYPE_PUBLIC_KEY
-                    outbound.getStringArray("private_key")?.also {
-                        privateKey = it.joinToString("\n")
-                    } ?: outbound.getString("private_key")?.also {
-                        privateKey = it
-                    }
-                    outbound.getString("private_key_passphrase")?.also {
-                        privateKeyPassphrase = it
-                    }
-                }
-                outbound.getStringArray("host_key")?.also {
-                    publicKey = it.joinToString("\n")
-                } ?: outbound.getString("host_key")?.also {
-                    publicKey = it
-                }
-            }
-            return listOf(sshBean)
         }
         "ssr" -> {
             // removed in v1.6.0

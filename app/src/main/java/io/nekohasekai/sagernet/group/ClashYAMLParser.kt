@@ -36,7 +36,6 @@ import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRMethod
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRObfs
 import io.nekohasekai.sagernet.fmt.shadowsocksr.supportedShadowsocksRProtocol
 import io.nekohasekai.sagernet.fmt.socks.SOCKSBean
-import io.nekohasekai.sagernet.fmt.ssh.SSHBean
 import io.nekohasekai.sagernet.fmt.trojan.TrojanBean
 import io.nekohasekai.sagernet.fmt.trusttunnel.TrustTunnelBean
 import io.nekohasekai.sagernet.fmt.snell.SnellBean
@@ -578,24 +577,6 @@ fun parseClashProxy(proxy: Map<String, Any?>): List<AbstractBean> {
                     else -> return listOf()
                 }
                 protocolParam = proxy.getString("protocol-param")
-                name = proxy.getString("name")
-            })
-        }
-        "ssh" -> {
-            return listOf(SSHBean().apply {
-                serverAddress = proxy.getString("server") ?: return listOf()
-                serverPort = proxy.getInt("port")?.takeIf { it > 0 } ?: return listOf()
-                username = proxy.getString("username")
-                proxy.getString("password")?.also {
-                    password = it
-                    authType = SSHBean.AUTH_TYPE_PASSWORD
-                }
-                proxy.getString("private-key")?.takeIf { it.contains("PRIVATE KEY") }?.also {
-                    privateKey = it
-                    privateKeyPassphrase = proxy.getString("private-key-passphrase")
-                    authType = SSHBean.AUTH_TYPE_PUBLIC_KEY
-                }
-                publicKey = proxy.getStringArray("host-key")?.joinToString("\n")
                 name = proxy.getString("name")
             })
         }

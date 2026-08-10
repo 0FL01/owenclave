@@ -191,7 +191,6 @@
     <string name="action_trojan" translatable="false">Trojan</string>
     <string name="action_naive" translatable="false">NaïveProxy</string>
     <string name="action_hysteria2" translatable="false">Hysteria 2</string>
-    <string name="action_ssh" translatable="false">SSH</string>
     <string name="action_wireguard" translatable="false">WireGuard</string>
     <string name="action_mieru" translatable="false">mieru</string>
     <string name="action_tuic5" translatable="false">TUIC</string>
@@ -371,8 +370,6 @@
     <string name="profile_traffic_statistics_summary">When disabled, used traffic will not be counted</string>
     <string name="no_statistics">No statistics yet</string>
     <string name="app_statistics_disabled">App traffic statistics disabled</string>
-    <string name="ssh_auth_type_none">None</string>
-    <string name="ssh_public_key">Public key</string>
     <string name="ssh_private_key">Private key</string>
     <string name="ssh_private_key_passphrase">Private key passphrase</string>
     <string name="menu_tools">Tools</string>
@@ -610,7 +607,6 @@
     <string name="enable_hysteria2_omit_max_datagram_frame_size">Enable Hysteria 2 OmitMaxDatagramFrameSize</string>
     <string name="hysteria2_omit_max_datagram_frame_size" translatable="false">OmitMaxDatagramFrameSize</string>
     <string name="hysteria2_omit_max_datagram_frame_size_sum">If the Hysteria 2 server does not support this breaking change, UDP will be unusable. This is a temporary option and may be removed in the future.</string>
-    <string name="ssh_keepalive_interval">Keepalive interval (s)</string>
     <string name="custom_outbound">Custom outbound</string>
     <string name="hysteria2_gecko_max_packet_size">Maximum packet size</string>
     <string name="hysteria2_gecko_min_packet_size">Minimum packet size</string>
