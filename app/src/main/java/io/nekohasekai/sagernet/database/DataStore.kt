@@ -39,6 +39,13 @@ import java.io.StringReader
 import java.util.Locale
 import java.util.Properties
 
+internal fun normalizeSpeedInterval(value: Int?) = when (value) {
+    null, 3 -> 3000
+    0 -> 0
+    in 500..Int.MAX_VALUE -> value
+    else -> 500
+}
+
 object DataStore : OnPreferenceDataStoreChangeListener {
 
     val configurationStore = RoomPreferenceDataStore(PublicDatabase.kvPairDao)
@@ -79,6 +86,11 @@ object DataStore : OnPreferenceDataStoreChangeListener {
         if (outboundDomainStrategy != null && outboundDomainStrategy != "AsIs"
             && configurationStore.getString("outboundDomainStrategyForServer") == null) {
             configurationStore.putString("outboundDomainStrategyForServer", outboundDomainStrategy)
+        }
+        configurationStore.getString(Key.SPEED_INTERVAL)?.toIntOrNull()?.let { value ->
+            normalizeSpeedInterval(value).takeIf { it != value }?.let {
+                configurationStore.putString(Key.SPEED_INTERVAL, it.toString())
+            }
         }
     }
 
@@ -147,7 +159,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var bypassLan by configurationStore.boolean(Key.BYPASS_LAN) { true }
 
     var allowAccess by configurationStore.boolean(Key.ALLOW_ACCESS)
-    var speedInterval by configurationStore.stringToInt(Key.SPEED_INTERVAL) { 3 }
+    var speedInterval by configurationStore.stringToInt(Key.SPEED_INTERVAL) { 3000 }
 
     var remoteDns by configurationStore.stringNotBlack(Key.REMOTE_DNS) { "tcp://1.1.1.1" }
     var directDns by configurationStore.stringNotBlack(Key.DIRECT_DNS) {
