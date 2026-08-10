@@ -510,7 +510,7 @@ private fun DnsttFields(s: ProfileFieldState, update: (ProfileFieldState) -> Uni
             Text("Scan token")
         }
         DividerItem()
-        ProfileSwitchItem("Manual DNS resolver", s.dnsttManual) {
+        ProfileSwitchItem("Manual DNS resolver", s.dnsttManual, "Automatic uses TCP") {
             update(s.copy(dnsttManual = it, dnsttResolver = if (it) s.dnsttResolver else ""))
         }
         if (s.dnsttManual) {

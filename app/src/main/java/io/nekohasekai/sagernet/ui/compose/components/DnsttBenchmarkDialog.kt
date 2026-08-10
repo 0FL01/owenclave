@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +29,7 @@ internal fun DnsttBenchmarkDialog(
     results: List<DnsttBenchmarkResult>,
     running: Boolean,
     error: String?,
+    benchmarkHost: String?,
     currentResolver: String,
     onSelect: (DnsttBenchmarkResult) -> Unit,
     onAutomatic: () -> Unit,
@@ -37,7 +41,14 @@ internal fun DnsttBenchmarkDialog(
         Text("DNS benchmark", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Three short runs per resolver, up to 18 MiB each. Keep the current network unchanged.",
+            buildString {
+                append("TCP transport · Three short runs per resolver, up to 18 MiB each. ")
+                append(when {
+                    benchmarkHost != null -> "Test server: $benchmarkHost."
+                    running -> "Selecting benchmark server…"
+                    else -> "No benchmark server selected."
+                })
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -46,7 +57,10 @@ internal fun DnsttBenchmarkDialog(
         if (running && results.isEmpty()) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             sorted.forEach { result ->
                 val selectable = !running && result.complete
                 Surface(
@@ -84,14 +98,14 @@ internal fun DnsttBenchmarkDialog(
         }
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onAutomatic) { Text("Automatic") }
+            TextButton(onClick = onAutomatic) { Text("Automatic TCP") }
             TextButton(onClick = onDismiss) { Text(if (running) "Cancel" else "Close") }
         }
     }
 }
 
 private fun DnsttBenchmarkResult.summary() = when {
-    failed -> "Unavailable"
+    failure != null -> failure
     speedsMbps.isEmpty() -> "Connecting…"
     !complete -> "${speedsMbps.size}/${DnsttBenchmarkResult.RUNS} runs complete"
     burstMbps > sustainedMbps * 1.5 -> String.format(

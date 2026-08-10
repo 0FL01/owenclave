@@ -23,7 +23,7 @@ Generic SSH profiles and `ssh://` or resolver-bearing `dnstt://` imports and exp
 are intentionally absent.
 
 Automatic mode stores no resolver. At startup Owenclave snapshots the active
-non-VPN underlay and tries the first two unique DNS addresses, then UDP
+non-VPN underlay and tries the first two unique DNS addresses over TCP, then TCP
 `77.88.8.8:53` and `77.88.8.1:53`, with duplicates removed. Candidates run
 sequentially until real Slipstream `Connection ready`; a failed child is stopped
 before the next starts. Manual mode instead uses exactly one validated
@@ -35,7 +35,9 @@ temporary child. Results rank conservative sustained speed before median latency
 the first run remains visible as burst evidence but does not select a burst-then-
 shaped resolver over a stable one. Selecting a result stores it as the existing
 strict manual override; choosing Automatic clears it. Benchmark results otherwise
-remain in the dialog and are not cached.
+remain in the dialog and are not cached. The first reachable Cloudflare, OVH or
+Hetzner download endpoint is fixed for the whole benchmark so endpoint fallback
+does not multiply runs or make resolver scores incomparable.
 
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent

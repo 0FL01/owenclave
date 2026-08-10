@@ -20,7 +20,7 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - DNS Tunnel uses `DnsttBean`/`TYPE_DNSTT`; generic SSH profiles and `ssh://` or
   `dnstt://` provisioning are intentionally absent.
 - Automatic setup accepts only a 32-lowercase-hex token and snapshots the first two
-  unique non-VPN underlay DNS addresses, then UDP `77.88.8.8:53` and
+  unique non-VPN underlay DNS addresses, then TCP `77.88.8.8:53` and
   `77.88.8.1:53`. Manual mode accepts exactly one `udp://host:port` or
   `tcp://host:port` override.
 - Try automatic candidates sequentially under one deadline. Stop after real
@@ -28,9 +28,10 @@ Android proxy client based on Exclave/SagerNet. Application ID is
   restarts DNS Tunnel; automatic mode takes a fresh DNS snapshot and a pinned
   resolver remains strict.
 - Keep DNS benchmarking explicit and foreground-only. Test candidates sequentially
-  with one child, rank sustained speed before latency, persist only a resolver the
-  user selects, and never add multipath, background ranking, persistent benchmark
-  cache or periodic health checks.
+  with one child, select one available Cloudflare/OVH/Hetzner download host for the
+  whole run, rank sustained speed before latency, persist only a resolver the user
+  selects, and never add multipath, background ranking, persistent benchmark cache
+  or periodic health checks.
 - Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
 - Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.

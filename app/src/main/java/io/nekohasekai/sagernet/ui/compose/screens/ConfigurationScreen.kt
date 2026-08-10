@@ -100,6 +100,7 @@ fun ConfigurationScreen(
     val benchmarkResults = remember { mutableStateListOf<DnsttBenchmarkResult>() }
     var benchmarkRunning by remember { mutableStateOf(false) }
     var benchmarkError by remember { mutableStateOf<String?>(null) }
+    var benchmarkHost by remember { mutableStateOf<String?>(null) }
     var benchmarkJob by remember { mutableStateOf<Job?>(null) }
 
     fun loadProfiles() {
@@ -218,6 +219,7 @@ fun ConfigurationScreen(
         benchmarkResults.clear()
         benchmarkRunning = false
         benchmarkError = null
+        benchmarkHost = null
     }
 
     fun saveDnsttResolver(value: String) {
@@ -245,14 +247,20 @@ fun ConfigurationScreen(
         benchmarkResults.clear()
         benchmarkRunning = true
         benchmarkError = null
+        benchmarkHost = null
         benchmarkJob = scope.launch(Dispatchers.IO) {
             try {
-                DnsttBenchmark(profile).run { update ->
-                    withContext(Dispatchers.Main) {
-                        val index = benchmarkResults.indexOfFirst { it.resolver == update.resolver }
-                        if (index < 0) benchmarkResults.add(update) else benchmarkResults[index] = update
-                    }
-                }
+                DnsttBenchmark(profile).run(
+                    onUpdate = { update ->
+                        withContext(Dispatchers.Main) {
+                            val index = benchmarkResults.indexOfFirst { it.resolver == update.resolver }
+                            if (index < 0) benchmarkResults.add(update) else benchmarkResults[index] = update
+                        }
+                    },
+                    onHostSelected = { host ->
+                        withContext(Dispatchers.Main) { benchmarkHost = host }
+                    },
+                )
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -352,6 +360,7 @@ fun ConfigurationScreen(
             results = benchmarkResults,
             running = benchmarkRunning,
             error = benchmarkError,
+            benchmarkHost = benchmarkHost,
             currentResolver = profile.dnsttBean?.resolver.orEmpty(),
             onSelect = { saveDnsttResolver(it.resolver.toString()) },
             onAutomatic = { saveDnsttResolver("") },

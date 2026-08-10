@@ -17,7 +17,7 @@ fun automaticDnsttResolvers(dnsServers: List<InetAddress>): List<DnsttResolver> 
     }
     hosts.add("77.88.8.8")
     hosts.add("77.88.8.1")
-    return hosts.map { DnsttResolver("udp", it, 53) }
+    return hosts.map { DnsttResolver("tcp", it, 53) }
 }
 
 fun parseDnsttResolver(value: String): DnsttResolver {
