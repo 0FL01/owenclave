@@ -53,8 +53,13 @@ required outcome is resolved and affected constraints remain satisfied.
     the screen turns off.
   - Primary evidence: focused value matrix, release Kotlin compilation, and bounded
     live callback cadence observation.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `normalizeSpeedInterval` covers missing/exact `3` to `3000`, preserves
+    `0` and values at least `500`, and maps every other value to `500`; `DataStore.init`
+    applies the same idempotent normalization to persisted parseable values. Release
+    Kotlin compilation and `:app:assembleOssRelease` passed. After the signed APK was
+    installed over the baseline build, the live Settings UI showed `Speed Interval`
+    as `3s` rather than `3ms`. Existing screen-off listener removal is unchanged.
 
 - R3: Replace open-stream polling with one activity-aware client scheduler.
   - Source: approved CP2 and audited first-sufficient scheduler.
@@ -66,8 +71,16 @@ required outcome is resolved and affected constraints remain satisfied.
     ACK, PTO, retransmission, close, and path deadlines always take precedence.
   - Primary evidence: focused Rust transition/deadline tests, clean pinned patch
     replay, arm64 source build digest, and aggregate carrier/loop-wake observations.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: all 24 pinned Rust client tests pass, including Busy/Warm/
+    QuiescentOpen/Empty derivation, poll budgets, sparse retry/deadline behavior,
+    QUIC-deadline precedence, FlowRelay vectors, and half-close regression tests.
+    The three patches replay cleanly against `bc772dd`; the Android 21 AArch64 NDK r29
+    executable is stripped and has SHA-256
+    `3932b8272e635baeeecbdb26e387e10fdd6bdf6a559171bfaa701ff312fe08d2`.
+    The signed release APK builds with SHA-256
+    `545413b54b44901eec9d17fb8961f1fe6cff9a4f849adf0ad12a56f892a5abd3`.
+    Android mechanism and runtime gates remain pending.
 
 - R4: Prove measured efficacy and preserve the accepted runtime contract.
   - Source: approved CP3 efficacy and regression gate, superseded by the user-approved
@@ -115,8 +128,8 @@ required outcome is resolved and affected constraints remain satisfied.
   scheduler only.
 - Expected paths:
   - `app/src/main/java/io/nekohasekai/sagernet/database/DataStore.kt`
-  - `bin/lib/slipstream/adaptive-idle.patch`
-  - `bin/lib/slipstream/build.sh` only if patch replay requires it
+  - `bin/lib/slipstream/adaptive-idle.patch` and one subsequent focused scheduler patch
+  - `bin/lib/slipstream/build.sh` patch replay list
   - ignored generated `app/src/main/jniLibs/arm64-v8a/libslipstream.so` and release APK
   - `AGENTS.md` and this goal after verified behavior changes
 - Allowed artifacts: focused local tests, disposable source/build trees, ignored
@@ -130,13 +143,13 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: commit the independent speed-interval correction, build and
-  install it, then verify the migrated live cadence before starting R3.
-- Expected evidence: the normalization matrix, release build, and screen-on callback
-  cadence near three seconds with no screen-off callback.
-- Stop or replan if: migration changes the disabled value, release compilation fails,
-  or the installed cadence remains sub-500 ms.
+- Closes: R3.
+- Smallest next action: replay and test the focused client-only activity scheduler patch,
+  then build the pinned arm64 artifact.
+- Expected evidence: focused Rust phase/deadline tests, clean three-patch replay, and
+  an Android 21 AArch64 artifact digest.
+- Stop or replan if: sparse phases retain the permanent 50 ms clamp, Busy pacing changes,
+  patch replay fails, or any existing FlowRelay/stream test regresses.
 
 ## Current State
 
@@ -150,7 +163,7 @@ required outcome is resolved and affected constraints remain satisfied.
   open. The direct control had no Rust child. Raw traces were deleted after aggregation;
   server Slipstream/flowd stayed at restart baselines 4/0.
 - Blocker: none; the user superseded the physical charge gate with the bounded fast path.
-- Next: finish and commit R2, then implement the client-only R3 scheduler.
+- Next: finish R3 unit/replay/build validation, then run the fast-path Android A/B.
 
 ## Material Decisions
 
@@ -175,6 +188,8 @@ required outcome is resolved and affected constraints remain satisfied.
   baseline is frozen.
 - 2026-08-10: the user superseded the long physical charge gate. R1 is verified from
   bounded mechanism evidence; R2 is now the current checkpoint.
+- 2026-08-10: R2 was committed as `d2d88dc`, the release APK built and installed, and
+  the live persisted interval migrated from `3ms` to `3s`. R3 is current.
 
 ## Completion
 

@@ -9,6 +9,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PATCHES=(
   "$ROOT/bin/lib/slipstream/adaptive-idle.patch"
   "$ROOT/bin/lib/slipstream/flow-relay.patch"
+  "$ROOT/bin/lib/slipstream/battery-scheduler.patch"
 )
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/owenclave-slipstream"
 SRC="${SLIPSTREAM_SRC:-$CACHE/src}"
