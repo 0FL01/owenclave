@@ -16,9 +16,17 @@ application TCP or UDP
   -> deployment-owned egress
 ```
 
-DNS Tunnel remains an `SSHBean` profile and is imported with `dnstt://`. Each
-profile supplies exactly one `udp://host:port` or `tcp://host:port` recursive DNS
-resolver. Owenclave does not discover, rank, rotate or combine resolvers.
+DNS Tunnel is a dedicated `DnsttBean`/`TYPE_DNSTT` profile. Quick setup accepts only
+a raw 32-lowercase-hex Flow token; `t.x.ass-peak.de` and its bundled certificate are
+fixed by the app. Generic SSH profiles and `ssh://` or resolver-bearing `dnstt://`
+imports and exports are intentionally absent.
+
+Automatic mode stores no resolver. At startup Owenclave snapshots the active
+non-VPN underlay and tries the first two unique DNS addresses, then UDP
+`77.88.8.8:53` and `77.88.8.1:53`, with duplicates removed. Candidates run
+sequentially until real Slipstream `Connection ready`; a failed child is stopped
+before the next starts. Manual mode instead uses exactly one validated
+`udp://host:port` or `tcp://host:port` with no fallback.
 
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent
@@ -33,20 +41,26 @@ second carrier path are not part of this contract.
   stdin, not argv, environment variables or temporary files.
 - VPN startup allows 15 seconds for aggregate carrier readiness; latency tests
   allow 5 seconds and are serialized process-wide.
-- Resolver, carrier or FlowRelay failure is fail-closed. There is no resolver
-  fallback, direct carrier, legacy SSH path or direct destination fallback.
+- Automatic candidate exhaustion, carrier failure and FlowRelay failure are
+  fail-closed. Discovery ends after readiness; there is no periodic health check,
+  ranking, persistent cache, automatic handover, direct carrier, legacy SSH path or
+  direct destination fallback.
+- Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
+  pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
+  poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
+  and empty keepalive remains 5 seconds.
 - The generated Android Slipstream artifact is currently arm64-only and ignored
   under `app/src/main/jniLibs/`. A clean build must run
   `./bin/lib/slipstream/build.sh`.
 
 ## Ownership
 
-This repository owns profile persistence and import, generated Exclave config,
+This repository owns profile persistence and setup, generated Exclave config,
 Android sidecar lifecycle, pinned Slipstream patches, the FlowRelay wire contract,
 and the focused `flowd` source/tests. The relevant boundaries are:
 
-- `app/src/main/java/io/nekohasekai/sagernet/fmt/ssh/DNSTTFmt.kt`
-- `app/src/main/java/io/nekohasekai/sagernet/fmt/ssh/SSHBean.java`
+- `app/src/main/java/io/nekohasekai/sagernet/fmt/dnstt/DnsttFmt.kt`
+- `app/src/main/java/io/nekohasekai/sagernet/fmt/dnstt/DnsttBean.java`
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ConfigBuilder.kt`
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/SlipstreamInstance.kt`
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/V2RayInstance.kt`

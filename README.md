@@ -43,7 +43,6 @@ supported protocols:
 - trusttunnel (no icmp echo support)
 - snell v4 and snell v6
 - shadowquic
-- ssh proxy ("dynamic port forwarding")
 - dns tunnel over slipstream/flowrelay (gvisor only)
 - http connect tunnel (http/1.1, http/1.1 with tls, http/2 and http/3)
 - socks4, socks4a and socks5

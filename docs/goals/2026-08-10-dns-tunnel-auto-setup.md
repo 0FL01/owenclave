@@ -1,6 +1,6 @@
 # Goal: Replace SSH proxy with automatic DNS Tunnel setup
 
-Status: active
+Status: complete
 Source: user-approved full replacement after the 2026-08-10 Android DNS resolver RECON
 Last updated: 2026-08-10
 
@@ -59,13 +59,16 @@ evidence and smallest unlock.
     are intentionally not migrated.
   - Primary evidence: focused token/resolver/model tests, release compilation and
     installed-device UI observation without printing the token.
-  - Status: in_progress
+  - Status: verified
   - Evidence: the dedicated screen now accepts one token, supports paste through the
     text field and returns an exact token from camera scan mode. Save remains disabled
     unless the token is lowercase 32-hex and an enabled manual resolver is one strict
     UDP/TCP URI. Automatic mode stores no resolver; the model/runtime hardcode the
-    domain and bundled certificate. Release compilation and focused host checks pass;
-    installed-device UI observation remains.
+    domain and bundled certificate. Release compilation and focused host checks passed.
+    On the installed release, a fresh profile was created with only the token while
+    automatic DNS remained the default; the screen exposed no domain input. The same
+    profile was changed to one manual UDP resolver, connected, passed exact TCP/UDP,
+    then was restored to automatic mode.
 
 - R3: Select exactly one automatic resolver within the existing fail-closed startup
   budget.
@@ -81,13 +84,14 @@ evidence and smallest unlock.
     ranking, persistent cache, Rostelecom hardcode or direct carrier fallback.
   - Primary evidence: focused candidate-order/deadline/cancellation tests and bounded
     Android process/readiness observations.
-  - Status: in_progress
+  - Status: verified
   - Evidence: focused host checks prove first-two-unique DNS ordering, Yandex append/
     deduplication, strict manual parsing and token decoding. The compiled lifecycle
     snapshots the non-VPN network DNS once, divides one absolute readiness budget over
     sequential real child readiness attempts, closes and verifies each failed child
-    before starting the next, and retains only the successful child. Android process
-    and readiness observation remains.
+    before starting the next, and retains only the successful child. The fresh
+    automatic profile reached real readiness with exactly one child; the app, service
+    and child PIDs remained stable through quiet and payload acceptance.
 
 - R4: Preserve the accepted quiet-runtime battery and transport behavior.
   - Source: explicit requirement not to consume excessive Android battery or CPU and
@@ -101,8 +105,16 @@ evidence and smallest unlock.
     statistics normalization remains intact.
   - Primary evidence: source/lifecycle inspection and a matched aggregate Perfetto
     trace on the connected Android device.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: resolver discovery ran only during startup and one resolver/child
+    remained afterward; source inspection found no network callback, recurring probe,
+    ranking, cache or handover path. The unchanged pinned Rust client retained the
+    accepted scheduler digest. After a four-minute connection settle, a 599.971-second
+    screen-off Perfetto trace recorded 3.602300 child CPU seconds and 9,425 scheduler
+    slices, respectively 14.5% and 10.4% below the accepted 4.214/10,521 baseline;
+    median active-second slices were 6. Main, service and child PIDs stayed stable and
+    the following exact TCP, UDP and WARP probes passed. The 3-second statistics
+    normalization remains present.
 
 - R5: Ship and prove the full replacement on the connected Android phone.
   - Source: user instruction to implement end to end and then run ADB phone E2E.
@@ -115,8 +127,20 @@ evidence and smallest unlock.
     `slipstream.service`/`flowd.service` restart counters do not grow.
   - Primary evidence: APK/native digests, bounded ADB probes and aggregate traces,
     plus read-only `n-de1` service/listener/restart observations.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: the unchanged pinned arm64 Slipstream binary has SHA-256
+    `3932b8272e635baeeecbdb26e387e10fdd6bdf6a559171bfaa701ff312fe08d2`.
+    The signed 0.17.50 arm64 release built, passed `apksigner verify`, installed, and
+    has SHA-256
+    `c2ccb5530918835fd066bd4dc1279c6dd9afe9d36ec048bd28b9f5d79d642f71`.
+    The fresh token-only automatic profile passed exact 4 KiB TCP, a 61-byte
+    application UDP response, exact 8 MiB TCP in 19.98 seconds and WARP egress.
+    Cancelling an active 64 MiB transfer was followed by exact TCP and UDP with the
+    same child PID. Manual resolver mode independently passed exact TCP and UDP.
+    Ten-minute screen-off recovery passed with stable Android PIDs. Production
+    Slipstream/flowd stayed at PIDs `1155657`/`1115762`, restart counters 4/0, active
+    public UDP 53 and private FlowRelay 40001, and no private SSH 41924 listener.
+    Disposable device/local probes and raw traces were deleted.
 
 ### Constraints
 
@@ -176,25 +200,21 @@ evidence and smallest unlock.
 
 ## Current Checkpoint
 
-- Closes: R2, R3 and the build/install portion of R5.
-- Smallest next action: build the pinned arm64 client and signed release APK, install it,
-  then create and connect fresh automatic and manual profiles on the phone.
-- Expected evidence: artifact digests, installed-device UI state, one-child readiness,
-  exact TCP/UDP probes and stable server restart counters.
-- Stop or replan if: the signed APK cannot migrate schema 40->41 while preserving
-  unrelated rows, the physical DNS snapshot is unavailable, or candidate children
-  overlap.
+- Closes: none; all required outcomes are verified.
+- Smallest next action: none.
+- Expected evidence: closure evidence is recorded below.
+- Stop or replan if: not applicable.
 
 ## Current State
 
-- Resolved: R1. DNS Tunnel now owns `DnsttBean`/`TYPE_DNSTT`; generic SSH source,
-  provisioning and reachable UI/import/runtime paths are removed. Room schema 41 drops
-  legacy rows/blob while preserving unrelated profiles. R2/R3 implementation and host
-  checks are complete, with device evidence pending.
-- Last relevant evidence: `:app:compileOssReleaseKotlin` and focused JShell token,
-  resolver and candidate-order checks passed.
+- Resolved: R1-R5. DNS Tunnel now owns token-only automatic/manual provisioning and
+  startup-only sequential resolver selection; generic SSH is removed from owned
+  profile, import, UI and runtime paths.
+- Last relevant evidence: automatic/manual exact payload, WARP, cancellation,
+  ten-minute screen-off CPU/slices, PID and production restart gates passed on the
+  installed signed arm64 release.
 - Blocker: none.
-- Next: implement R2 and R3 together at the config/lifecycle boundary.
+- Next: none; the frozen objective is complete.
 
 ## Material Decisions
 
@@ -206,6 +226,8 @@ evidence and smallest unlock.
   readiness deadline; no multipath, health polling, persistent cache or handover.
 - 2026-08-10: the accepted activity-aware Rust scheduler and server runtime are reused
   unchanged; full replacement refers to the Android SSH/profile/provisioning path.
+- 2026-08-10: installed automatic/manual setup, exact transport, cancellation, WARP,
+  screen-off battery-mechanism and server stability gates passed; R1-R5 are verified.
 
 ## Checkpoint History
 
@@ -217,10 +239,21 @@ evidence and smallest unlock.
 - 2026-08-10: token-only automatic/manual UI and startup-only sequential resolver
   selection compile and pass focused host checks; device build/install and runtime
   evidence are current.
+- 2026-08-10: the signed release passed automatic and manual Android acceptance; a
+  settled ten-minute automatic run stayed below both accepted CPU/slices baselines and
+  production restart counters remained unchanged. The objective is complete.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1-R5.
+- Commands and artifacts: focused JShell model checks,
+  `:app:compileOssReleaseKotlin`, `:app:assembleOssRelease`, `apksigner verify`, pinned
+  native/APK digests, bounded ADB UI/process/payload/cancellation/WARP probes, aggregate
+  Perfetto SQL, and read-only production service/listener inventory.
+- Constraint and diff-scope check: the diff is limited to owned profile, migration,
+  import/UI/config/lifecycle and stable docs. FlowRelay wire, token/certificate/stdin
+  boundaries, gVisor, one-flow-per-stream behavior, Rust scheduler, WARP egress and
+  server runtime are unchanged. No dependency, service, cache, handover, traffic log or
+  second carrier was added. Disposable probes/traces were removed; the explicit
+  user-requested APK/token handoff remains outside Git under `.tmp` with mode `0600`.
+- Final status: complete.
