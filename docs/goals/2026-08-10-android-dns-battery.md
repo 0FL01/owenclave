@@ -4,6 +4,10 @@ Status: complete
 Source: user-approved battery plan after the 2026-08-10 multi-agent code and plan audits
 Last updated: 2026-08-10
 
+Stable contracts: [`../dns-tunnel.md`](../dns-tunnel.md) and
+[`../android-network-routing.md`](../android-network-routing.md). This goal remains
+the historical measurement and acceptance record.
+
 ## Objective
 
 Reduce reproducible Android DNS Tunnel idle battery drain by fixing the notification

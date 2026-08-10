@@ -4,6 +4,9 @@ Status: complete
 Source: user-approved FlowRelay plan in the 2026-08-09 DNS reserve session
 Last updated: 2026-08-09
 
+Stable contract: [`../dns-tunnel.md`](../dns-tunnel.md). This goal remains the
+historical implementation and acceptance record.
+
 ## Objective
 
 Replace the shared SSH transport inside the existing Rust Slipstream DNS carrier

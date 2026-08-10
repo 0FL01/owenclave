@@ -44,9 +44,16 @@ supported protocols:
 - snell v4 and snell v6
 - shadowquic
 - ssh proxy ("dynamic port forwarding")
+- dns tunnel over slipstream/flowrelay (gvisor only)
 - http connect tunnel (http/1.1, http/1.1 with tls, http/2 and http/3)
 - socks4, socks4a and socks5
 - olcrtc
+
+olcrtc and Slipstream run as external native sidecars. Owenclave owns their
+Android profile, configuration and lifecycle boundaries; pinned upstream sources
+are built by `bin/lib/olcrtc/build.sh` and `bin/lib/slipstream/build.sh`. See
+[`docs/dns-tunnel.md`](docs/dns-tunnel.md) and
+[`docs/android-network-routing.md`](docs/android-network-routing.md).
 
 quick start:
 ```sh
@@ -54,6 +61,7 @@ git clone https://github.com/owenewans/owenclave --recurse-submodules
 cd owenclave
 # install jdk 21, go 1.26, go mobile, android sdk
 ./run lib core
+./bin/lib/slipstream/build.sh
 ./gradlew :app:assembleOssRelease
 ```
 
@@ -63,6 +71,7 @@ git clone https://github.com/owenewans/owenclave --recurse-submodules
 cd owenclave
 nix develop
 ./run lib core
+./bin/lib/slipstream/build.sh
 ./gradlew :app:assembleOssRelease
 ```
 
@@ -78,6 +87,7 @@ ALIAS_NAME=your_alias_name
 ALIAS_PASS=your_alias_pass
 ```
 - build libowenclavecore: `./run lib core` or `./library/core/build.sh`
+- build the required arm64 Slipstream sidecar: `./bin/lib/slipstream/build.sh`
 - download assets: `./gradlew :app:downloadAssets`
 - build owenclave: `./gradlew :app:assembleOssRelease`
 - apk files are located in `./app/build/outputs/apk/oss/release`

@@ -5,6 +5,8 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 
 ## Map
 
+- `docs/dns-tunnel.md` - stable Android DNS Tunnel, Slipstream and FlowRelay contract and ownership boundary.
+- `docs/android-network-routing.md` - TUN, per-app and network-type routing terminology and ownership.
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ssh/DNSTTFmt.kt` - `dnstt://` import/export and resolver validation.
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ssh/SSHBean.java` - versioned DNS Tunnel and SSH profile persistence.
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ConfigBuilder.kt` - existing SSH outbound and local carrier boundary.
