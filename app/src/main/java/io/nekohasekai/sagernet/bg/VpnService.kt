@@ -156,7 +156,10 @@ class VpnService : BaseVpnService(),
                         this, VpnRequestActivity::class.java
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
-            } else return super<BaseService.Interface>.onStartCommand(intent, flags, startId)
+            } else {
+                val result = super<BaseService.Interface>.onStartCommand(intent, flags, startId)
+                return if (data.state.canStop) Service.START_STICKY else result
+            }
         }
         stopRunner()
         return Service.START_NOT_STICKY

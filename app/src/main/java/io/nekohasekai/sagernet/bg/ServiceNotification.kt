@@ -21,12 +21,14 @@
 
 package io.nekohasekai.sagernet.bg
 
+import android.Manifest
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -221,8 +223,14 @@ class ServiceNotification(
     }
 
     private fun show() = (service as Service).startForeground(notificationId, builder.build())
-    private fun update() =
-        NotificationManagerCompat.from(service as Service).notify(notificationId, builder.build())
+    private fun update() {
+        val context = service as Service
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        ) {
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+        }
+    }
 
     fun destroy() {
         (service as Service).unregisterReceiver(this)
