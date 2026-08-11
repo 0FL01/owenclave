@@ -36,13 +36,12 @@ internal fun DnsttBenchmarkDialog(
     onDismiss: () -> Unit,
 ) {
     val sorted = results.sortedDnsttBenchmarkResults()
-    val recommended = if (running) null else sorted.firstOrNull { it.complete }
     ExpressiveDialog(onDismissRequest = onDismiss) {
         Text("DNS benchmark", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(6.dp))
         Text(
             buildString {
-                append("TCP transport · Three short runs per resolver, up to 18 MiB each. ")
+                append("TCP transport · One run per resolver, up to 512 KiB or 3 seconds. ")
                 append(when {
                     benchmarkHost != null -> "Test server: $benchmarkHost."
                     running -> "Selecting benchmark server…"
@@ -77,8 +76,10 @@ internal fun DnsttBenchmarkDialog(
                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                         Text(
                             buildString {
+                                append(result.label)
+                                if (result.experimental) append(" · Experimental")
+                                append("\n")
                                 append(result.resolver)
-                                if (result === recommended) append(" · Recommended")
                             },
                             style = MaterialTheme.typography.titleSmall,
                         )
@@ -106,14 +107,6 @@ internal fun DnsttBenchmarkDialog(
 
 private fun DnsttBenchmarkResult.summary() = when {
     failure != null -> failure
-    speedsMbps.isEmpty() -> "Connecting…"
-    !complete -> "${speedsMbps.size}/${DnsttBenchmarkResult.RUNS} runs complete"
-    burstMbps > sustainedMbps * 1.5 -> String.format(
-        Locale.US,
-        "%.2f → %.2f Mbit/s sustained · %d ms",
-        burstMbps,
-        sustainedMbps,
-        latencyMs,
-    )
-    else -> String.format(Locale.US, "%.2f Mbit/s sustained · %d ms", sustainedMbps, latencyMs)
+    !complete -> "Connecting…"
+    else -> String.format(Locale.US, "%.2f Mbit/s · %d ms", speedMbps, latencyMs)
 }

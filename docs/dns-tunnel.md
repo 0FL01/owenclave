@@ -29,15 +29,16 @@ sequentially until real Slipstream `Connection ready`; a failed child is stopped
 before the next starts. Manual mode instead uses exactly one validated
 `udp://host:port` or `tcp://host:port` with no fallback.
 
-The explicit DNS benchmark runs the same automatic candidates sequentially while
-the VPN is stopped. Each resolver gets three bounded download runs through one
-temporary child. Results rank conservative sustained speed before median latency;
-the first run remains visible as burst evidence but does not select a burst-then-
-shaped resolver over a stable one. Selecting a result stores it as the existing
-strict manual override; choosing Automatic clears it. Benchmark results otherwise
-remain in the dialog and are not cached. The first reachable Cloudflare, OVH or
-Hetzner download endpoint is fixed for the whole benchmark so endpoint fallback
-does not multiply runs or make resolver scores incomparable.
+The explicit DNS benchmark keeps a separate labeled pool: the automatic candidates,
+all Yandex Basic, Safe and Family IPv4 pairs, and the nine user-supplied Rostelecom
+scan candidates. The latter are marked Experimental and are never part of automatic
+startup. Candidates run sequentially while the VPN is stopped; each gets one bounded
+512 KiB or three-second download through one temporary child. Results rank measured
+throughput before latency without an automatic recommendation. Selecting a result
+stores it as the existing strict manual override; choosing Automatic clears it.
+Results otherwise remain in the dialog and are not cached. The first reachable
+Cloudflare, OVH or Hetzner download endpoint is fixed for the whole benchmark so
+endpoint fallback does not multiply runs or make resolver scores incomparable.
 
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent
