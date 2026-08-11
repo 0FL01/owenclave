@@ -44,6 +44,18 @@ TCP and UDP are supported; each TCP flow or UDP association gets an independent
 local connection and Slipstream QUIC stream. Mux, health-probe streams and a
 second carrier path are not part of this contract.
 
+## Rejected direct UDP upgrade
+
+A restricted-LTE probe used the DNS Tunnel only for authenticated rendezvous and
+retained one cellular UDP socket after successful STUN. DNS control succeeded, but
+`n-de1` received no direct UDP and the client received neither server-first nor
+simultaneous-punch probes. DNS bootstrap therefore did not open a direct `n-de1`
+path under the tested carrier allowlist.
+
+Do not build a direct `n-de1` QUIC or GOST path on this mechanism. Any future fast
+transport must first prove that its endpoint is independently reachable through
+the carrier allowlist; DNS remains the data path rather than a one-time bootstrap.
+
 ## Runtime constraints
 
 - DNS Tunnel supports gVisor TUN only. System TUN cannot protect sockets opened by
