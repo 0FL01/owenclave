@@ -74,6 +74,8 @@ import io.nekohasekai.sagernet.ui.compose.components.ProfileCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -223,12 +225,20 @@ fun ConfigurationScreen(
 
     fun saveDnsttResolver(value: String) {
         val profileId = benchmarkProfile?.id ?: return
-        closeDnsttBenchmark()
+        val runningJob = benchmarkJob
+        benchmarkJob = null
         scope.launch(Dispatchers.IO) {
-            val profile = ProfileManager.getProfile(profileId) ?: return@launch
-            val bean = profile.dnsttBean ?: return@launch
-            bean.resolver = value
-            ProfileManager.updateProfile(profile)
+            try {
+                withContext(NonCancellable) { runningJob?.cancelAndJoin() }
+                val profile = ProfileManager.getProfile(profileId) ?: return@launch
+                val bean = profile.dnsttBean ?: return@launch
+                bean.resolver = value
+                ProfileManager.updateProfile(profile)
+            } finally {
+                withContext(Dispatchers.Main) {
+                    if (benchmarkProfile?.id == profileId) closeDnsttBenchmark()
+                }
+            }
         }
     }
 
