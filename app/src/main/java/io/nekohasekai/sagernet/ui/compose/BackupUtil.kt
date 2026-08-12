@@ -7,8 +7,6 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import io.nekohasekai.sagernet.database.AssetEntity
 import io.nekohasekai.sagernet.database.ParcelizeBridge
-import io.nekohasekai.sagernet.database.ProxyEntity
-import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.RuleEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.preference.KeyValuePair
@@ -39,14 +37,6 @@ object BackupUtil {
     fun doBackup(profile: Boolean, rule: Boolean, setting: Boolean): String {
         val out = JsonObject()
         out.addProperty("version", 1)
-        if (profile) {
-            out.add("profiles", JsonArray().apply {
-                SagerDatabase.proxyDao.getAll().forEach { add(it.toBase64Str()) }
-            })
-            out.add("groups", JsonArray().apply {
-                SagerDatabase.groupDao.allGroups().forEach { add(it.toBase64Str()) }
-            })
-        }
         if (rule) {
             out.add("rules", JsonArray().apply {
                 SagerDatabase.rulesDao.allRules().forEach { add(it.toBase64Str()) }
@@ -78,31 +68,6 @@ object BackupUtil {
     fun finishImport(
         content: JsonObject, profile: Boolean, rule: Boolean, setting: Boolean,
     ) {
-        if (profile && content.contains("profiles")) {
-            val profiles = mutableListOf<ProxyEntity>()
-            content.getStringArray("profiles")?.forEach {
-                val data = Base64.decode(it)
-                val parcel = Parcel.obtain()
-                parcel.unmarshall(data, 0, data.size)
-                parcel.setDataPosition(0)
-                profiles.add(ProxyEntity.CREATOR.createFromParcel(parcel))
-                parcel.recycle()
-            }
-            SagerDatabase.proxyDao.reset()
-            SagerDatabase.proxyDao.insert(profiles)
-
-            val groups = mutableListOf<ProxyGroup>()
-            content.getStringArray("groups")?.forEach {
-                val data = Base64.decode(it)
-                val parcel = Parcel.obtain()
-                parcel.unmarshall(data, 0, data.size)
-                parcel.setDataPosition(0)
-                groups.add(ProxyGroup.CREATOR.createFromParcel(parcel))
-                parcel.recycle()
-            }
-            SagerDatabase.groupDao.reset()
-            SagerDatabase.groupDao.insert(groups)
-        }
         if (rule && content.contains("rules")) {
             val rules = mutableListOf<RuleEntity>()
             content.getStringArray("rules")?.forEach {

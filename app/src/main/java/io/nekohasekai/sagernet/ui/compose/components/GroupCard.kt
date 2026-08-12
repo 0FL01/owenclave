@@ -20,14 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,10 +46,8 @@ fun GroupCard(
     group: ProxyGroup,
     selected: Boolean,
     profileCount: Int,
-    updating: Boolean = false,
     onClick: () -> Unit,
     onEdit: () -> Unit,
-    onUpdate: (() -> Unit)? = null,
     menuItems: @Composable (MenuScope) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -83,13 +79,12 @@ fun GroupCard(
         label = "groupScale",
     )
 
-    val isSubscription = group.type == io.nekohasekai.sagernet.GroupType.SUBSCRIPTION
     val seedShape = remember(group.displayName()) { shapeForSeed(group.displayName()) }
 
     val groupIcon = if (group.iconIndex > 0 && group.iconIndex - 1 in ProfileIconSet.indices) {
         ProfileIconSet[group.iconIndex - 1]
     } else {
-        if (isSubscription) Icons.Filled.Refresh else Icons.Filled.Folder
+        Icons.Filled.Folder
     }
 
     val iconContainer by animateColorAsState(
@@ -118,12 +113,6 @@ fun GroupCard(
         onClick = onClick,
     ) {
         Column {
-            if (updating) {
-                LinearWavyProgressIndicator(
-                    modifier = Modifier.fillMaxWidth().height(3.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -158,16 +147,6 @@ fun GroupCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = onContainerColor.copy(alpha = 0.7f),
                         )
-                        if (isSubscription) {
-                            Text(
-                                text = group.subscription?.link?.takeIf { it.isNotEmpty() } ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = onContainerColor.copy(alpha = 0.5f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.width(120.dp),
-                            )
-                        }
                     }
                 }
 
@@ -175,19 +154,6 @@ fun GroupCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    if (onUpdate != null && isSubscription) {
-                        IconButton(
-                            onClick = onUpdate,
-                            modifier = Modifier.size(44.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Update",
-                                tint = onContainerColor.copy(alpha = 0.7f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
                     IconButton(
                         onClick = onEdit,
                         modifier = Modifier.size(44.dp),

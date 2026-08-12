@@ -88,13 +88,12 @@ fun AboutScreen(
                 Spacer(Modifier.height(16.dp))
                 AboutSection(title = "Components", items = listOf(
                     "Core" to "libowenclavecore",
-                    "Protocols" to "SOCKS, HTTP, SS, SSR, VMess, VLESS, Trojan, Naive, Hysteria2, SSH, WireGuard, Mieru, TUIC, Juicity, HTTP/3, AnyTLS, ShadowQUIC, TrustTunnel, Snell, OLCRTC",
+                    "Carriers" to "DNS Tunnel, OLCRTC",
                 ))
 
                 Spacer(Modifier.height(16.dp))
                 AboutSection(title = "Credits", items = listOf(
                     "SagerNet" to "nekohasekai",
-                    "Shadowsocks" to "Mygod Studio",
                     "V2Ray" to "v2ray project",
                 ))
             }

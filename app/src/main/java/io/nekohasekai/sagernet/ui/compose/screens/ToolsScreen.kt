@@ -123,7 +123,6 @@ private fun BackupTab() {
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    var backupConfig by remember { mutableStateOf(true) }
     var backupRules by remember { mutableStateOf(true) }
     var backupSettings by remember { mutableStateOf(true) }
 
@@ -178,10 +177,8 @@ private fun BackupTab() {
 
     // Import confirmation dialog.
     pendingImport?.let { content ->
-        val hasProfiles = content.has("profiles")
         val hasRules = content.has("rules")
         val hasSettings = content.has("settings")
-        var impProfiles by remember { mutableStateOf(true) }
         var impRules by remember { mutableStateOf(true) }
         var impSettings by remember { mutableStateOf(true) }
         io.nekohasekai.sagernet.ui.compose.components.ExpressiveDialog(onDismissRequest = { pendingImport = null }) {
@@ -197,7 +194,6 @@ private fun BackupTab() {
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
-            if (hasProfiles) BackupItem(label = "Configurations", checked = impProfiles, onCheckedChange = { impProfiles = it })
             if (hasRules) BackupItem(label = "Rules", checked = impRules, onCheckedChange = { impRules = it })
             if (hasSettings) BackupItem(label = "Settings", checked = impSettings, onCheckedChange = { impSettings = it })
             Spacer(Modifier.height(16.dp))
@@ -210,7 +206,7 @@ private fun BackupTab() {
                     scope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         runCatching {
                             io.nekohasekai.sagernet.ui.compose.BackupUtil.finishImport(
-                                content, impProfiles, impRules, impSettings,
+                                content, false, impRules, impSettings,
                             )
                         }
                         withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -237,7 +233,6 @@ private fun BackupTab() {
         )
         Spacer(Modifier.height(16.dp))
 
-        BackupItem(label = "Configurations", checked = backupConfig, onCheckedChange = { backupConfig = it })
         BackupItem(label = "Rules", checked = backupRules, onCheckedChange = { backupRules = it })
         BackupItem(label = "Settings", checked = backupSettings, onCheckedChange = { backupSettings = it })
 
@@ -251,7 +246,7 @@ private fun BackupTab() {
             Button(onClick = {
                 scope.launch(kotlinx.coroutines.Dispatchers.IO) {
                     pendingContent = io.nekohasekai.sagernet.ui.compose.BackupUtil.doBackup(
-                        backupConfig, backupRules, backupSettings,
+                        false, backupRules, backupSettings,
                     )
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
                         exportLauncher.launch("owenclave_backup_${System.currentTimeMillis()}.json")
@@ -262,7 +257,7 @@ private fun BackupTab() {
             OutlinedButton(onClick = {
                 scope.launch(kotlinx.coroutines.Dispatchers.IO) {
                     val content = io.nekohasekai.sagernet.ui.compose.BackupUtil.doBackup(
-                        backupConfig, backupRules, backupSettings,
+                        false, backupRules, backupSettings,
                     )
                     val app = io.nekohasekai.sagernet.SagerNet.application
                     app.cacheDir.mkdirs()

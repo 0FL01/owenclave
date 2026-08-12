@@ -19,14 +19,8 @@
 
 package io.nekohasekai.sagernet.bg.proto
 
-import android.annotation.SuppressLint
 import android.net.NetworkCapabilities
-import android.os.Looper
 import android.os.SystemClock
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import io.nekohasekai.sagernet.RootCAProvider
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.Key
@@ -40,13 +34,8 @@ import io.nekohasekai.sagernet.fmt.DnsttClientConfig
 import io.nekohasekai.sagernet.fmt.V2rayBuildResult
 import io.nekohasekai.sagernet.fmt.buildV2RayConfig
 import io.nekohasekai.sagernet.fmt.dnstt.automaticDnsttResolvers
-import io.nekohasekai.sagernet.fmt.naive.NaiveBean
-import io.nekohasekai.sagernet.fmt.naive.buildNaiveConfig
-import io.nekohasekai.sagernet.fmt.shadowquic.ShadowQUICBean
-import io.nekohasekai.sagernet.fmt.shadowquic.buildShadowQUICConfig
 import io.nekohasekai.sagernet.fmt.olcrtc.OLCRTCBean
 import io.nekohasekai.sagernet.ktx.*
-import io.nekohasekai.sagernet.plugin.PluginManager
 import kotlinx.coroutines.*
 import libexclavecore.V2RayInstance
 import java.io.File
@@ -122,12 +111,11 @@ import java.net.Socket
 
     lateinit var config: V2rayBuildResult
     lateinit var v2rayPoint: V2RayInstance
-    private lateinit var wsForwarder: WebView
-    private lateinit var shForwarder: WebView
 
-    val pluginPath = hashMapOf<String, PluginManager.InitResult>()
-    val pluginConfigs = hashMapOf<Int, Pair<Int, String>>()
-    val externalInstances = hashMapOf<Int, AbstractInstance>()
+    // ProxyInstance probes this legacy view for debug output. Keep it empty so
+    // sidecar configuration is never exposed outside this instance.
+    val pluginConfigs: Map<Int, Pair<Int, String>> get() = emptyMap()
+    private val olcrtcConfigs = hashMapOf<Int, String>()
     private var dnsTunnelConfig: DnsttClientConfig? = null
     private var dnsTunnelInstance: SlipstreamInstance? = null
 
@@ -142,10 +130,6 @@ import java.net.Socket
     }
 
     fun hasDnsTunnel() = isInitialized() && config.dnsttClients.isNotEmpty()
-
-    protected fun initPlugin(name: String): PluginManager.InitResult {
-        return pluginPath.getOrPut(name) { PluginManager.init(name)!! }
-    }
 
     protected open fun buildConfig() {
         config = buildV2RayConfig(profile)
@@ -171,40 +155,24 @@ import java.net.Socket
                 val username = triple.second
                 val password = triple.third
                 when (val bean = profile.requireBean()) {
-                    is NaiveBean -> {
-                        initPlugin("naive-plugin")
-                        pluginConfigs[port] = profile.type to bean.buildNaiveConfig(port, username, password)
-                    }
-                    is ShadowQUICBean -> {
-                        initPlugin("shadowquic-plugin")
-                        pluginConfigs[port] = profile.type to bean.buildShadowQUICConfig(
-                            port, username, password,
-                            {
-                                File(app.noBackupFilesDir, "shadowquic_" + SystemClock.elapsedRealtime() + ".pem").apply {
-                                    parentFile?.mkdirs()
-                                    cacheFiles.add(this)
-                                }
-                            }
-                        )
-                    }
                     is OLCRTCBean -> {
                         val yamlConfig = buildOlcrtcYaml(bean, port, username, password)
-                        pluginConfigs[port] = profile.type to yamlConfig
+                        olcrtcConfigs[port] = yamlConfig
                     }
+                    else -> error("Unsupported external profile type ${profile.type}")
                 }
             }
         }
         loadConfig()
+        config.config = ""
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun launch() {
         val context = SagerNet.application
         for ((_, chain) in config.index) {
             chain.entries.forEachIndexed { _, (triple, profile) ->
                 val port = triple.first
                 val bean = profile.requireBean()
-                val (_, config) = pluginConfigs[port] ?: (0 to "")
                 val env = mutableMapOf<String, String>()
                 if (DataStore.providerRootCA != RootCAProvider.SYSTEM) {
                     env["SSL_CERT_FILE"] = when (DataStore.providerRootCA) {
@@ -220,59 +188,15 @@ import java.net.Socket
                         else -> error("impossible")
                     }
                 }
-                when {
-                    externalInstances.containsKey(port) -> {
-                        externalInstances[port]!!.launch()
-                    }
-                    bean is NaiveBean -> {
-                        val configFile = File(
-                            context.noBackupFilesDir,
-                            "naive_" + SystemClock.elapsedRealtime() + ".json"
-                        )
-                        configFile.parentFile?.mkdirs()
-                        configFile.writeText(config)
-                        cacheFiles.add(configFile)
-                        if (bean.certificate.isNotEmpty()) {
-                            val caFile = File(
-                                context.noBackupFilesDir,
-                                "naive_" + SystemClock.elapsedRealtime() + ".ca"
-                            )
-                            caFile.parentFile?.mkdirs()
-                            caFile.writeText(bean.certificate)
-                            cacheFiles.add(caFile)
-                            env["SSL_CERT_FILE"] = caFile.absolutePath
-                        }
-                        val commands = mutableListOf(
-                            initPlugin("naive-plugin").path, configFile.absolutePath
-                        )
-                        processes.start(commands, env)
-                    }
-                    bean is ShadowQUICBean -> {
-                        val configFile = File(
-                            context.noBackupFilesDir,
-                            "shadowquic_" + SystemClock.elapsedRealtime() + ".yaml"
-                        )
-                        configFile.parentFile?.mkdirs()
-                        configFile.writeText(config)
-                        cacheFiles.add(configFile)
-                        if (DataStore.providerRootCA == RootCAProvider.SYSTEM) {
-                            // https://github.com/rustls/rustls-native-certs/issues/3
-                            env["SSL_CERT_DIR"] = "/system/etc/security/cacerts"
-                        }
-                        val commands = mutableListOf(
-                            initPlugin("shadowquic-plugin").path,
-                            "-c",
-                            configFile.absolutePath,
-                        )
-                        processes.start(commands, env)
-                    }
-                    bean is OLCRTCBean -> {
+                when (bean) {
+                    is OLCRTCBean -> {
+                        val yamlConfig = olcrtcConfigs.getValue(port)
                         val configFile = File(
                             context.noBackupFilesDir,
                             "olcrtc_" + SystemClock.elapsedRealtime() + ".yaml"
                         )
                         configFile.parentFile?.mkdirs()
-                        configFile.writeText(config)
+                        configFile.writeText(yamlConfig)
                         cacheFiles.add(configFile)
                         val olcrtcBin = File(context.applicationInfo.nativeLibraryDir, "libolcrtc.so")
                         Logs.i("olcrtc: nativeLibraryDir=${context.applicationInfo.nativeLibraryDir}")
@@ -292,62 +216,11 @@ import java.net.Socket
                         // SOCKS listener is usable; awaitReady() waits on it.
                         readinessPorts.add(port)
                     }
+                    else -> error("Unsupported external profile type ${profile.type}")
                 }
             }
         }
         v2rayPoint.start()
-        if (config.requireWs) {
-            val url = "http://" + joinHostPort(LOCALHOST, config.wsPort) + "/"
-            runOnMainDispatcher {
-                wsForwarder = WebView(context)
-                wsForwarder.settings.javaScriptEnabled = true
-                wsForwarder.webViewClient = object : WebViewClient() {
-                    override fun onReceivedError(
-                        view: WebView?,
-                        request: WebResourceRequest?,
-                        error: WebResourceError?,
-                    ) {
-                        Logs.d("WebView load r: $error")
-                        runOnMainDispatcher {
-                            wsForwarder.loadUrl("about:blank")
-                            delay(1000L)
-                            wsForwarder.loadUrl(url)
-                        }
-                    }
-                    override fun onPageFinished(view: WebView, url: String) {
-                        super.onPageFinished(view, url)
-                        Logs.d("WebView loaded: ${view.title}")
-                    }
-                }
-                wsForwarder.loadUrl(url)
-            }
-        }
-        if (config.requireSh) {
-            val url = "http://" + joinHostPort(LOCALHOST, config.shPort) + "/"
-            runOnMainDispatcher {
-                shForwarder = WebView(context)
-                shForwarder.settings.javaScriptEnabled = true
-                shForwarder.webViewClient = object : WebViewClient() {
-                    override fun onReceivedError(
-                        view: WebView?,
-                        request: WebResourceRequest?,
-                        error: WebResourceError?,
-                    ) {
-                        Logs.d("WebView load r: $error")
-                        runOnMainDispatcher {
-                            shForwarder.loadUrl("about:blank")
-                            delay(1000L)
-                            shForwarder.loadUrl(url)
-                        }
-                    }
-                    override fun onPageFinished(view: WebView, url: String) {
-                        super.onPageFinished(view, url)
-                        Logs.d("WebView loaded: ${view.title}")
-                    }
-                }
-                shForwarder.loadUrl(url)
-            }
-        }
     }
 
     /**
@@ -433,43 +306,10 @@ import java.net.Socket
     override fun close() {
         if (isClosed) return
 
-        for (instance in externalInstances.values) {
-            runCatching {
-                instance.close()
-            }
-        }
         runCatching { dnsTunnelInstance?.close() }
         dnsTunnelInstance = null
 
         cacheFiles.removeAll { it.delete(); true }
-
-        if (::wsForwarder.isInitialized) {
-            if (Thread.currentThread() === Looper.getMainLooper().thread) {
-                wsForwarder.loadUrl("about:blank")
-                wsForwarder.destroy()
-            } else {
-                runBlocking {
-                    onMainDispatcher {
-                        wsForwarder.loadUrl("about:blank")
-                        wsForwarder.destroy()
-                    }
-                }
-            }
-        }
-
-        if (::shForwarder.isInitialized) {
-            if (Thread.currentThread() === Looper.getMainLooper().thread) {
-                shForwarder.loadUrl("about:blank")
-                shForwarder.destroy()
-            } else {
-                runBlocking {
-                    onMainDispatcher {
-                        shForwarder.loadUrl("about:blank")
-                        shForwarder.destroy()
-                    }
-                }
-            }
-        }
 
         if (::processes.isInitialized) processes.close(GlobalScope + Dispatchers.IO)
 

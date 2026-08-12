@@ -5,7 +5,8 @@ import java.net.URLEncoder
 
 fun parseOLCRTCLink(link: String): OLCRTCBean {
     val bean = OLCRTCBean()
-    val uri = link.removePrefix("olcrtc://")
+    require(link.startsWith("olcrtc://", ignoreCase = true)) { "invalid olcRTC link" }
+    val uri = link.substring("olcrtc://".length)
 
     // Extract MIMO/name after '$'
     val dollarIdx = uri.indexOf('$')

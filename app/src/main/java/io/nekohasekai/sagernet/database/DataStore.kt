@@ -112,7 +112,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
             selectedGroup = groupId
             return groupId
         }
-        val groupId = SagerDatabase.groupDao.createGroup(ProxyGroup(ungrouped = true))
+        val groupId = SagerDatabase.groupDao.createGroup(ProxyGroup())
         selectedGroup = groupId
         return groupId
     }
@@ -126,7 +126,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
         if (group != null) return group
         val groups = SagerDatabase.groupDao.allGroups()
         if (groups.isEmpty()) {
-            group = ProxyGroup(ungrouped = true).apply {
+            group = ProxyGroup().apply {
                 id = SagerDatabase.groupDao.createGroup(this)
             }
         } else {
@@ -137,10 +137,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     }
 
     fun selectedGroupForImport(): Long {
-        val current = currentGroup()
-        if (current.type == GroupType.BASIC) return current.id
-        val groups = SagerDatabase.groupDao.allGroups()
-        return groups.find { it.type == GroupType.BASIC }!!.id
+        return currentGroup().id
     }
 
     var appTheme by configurationStore.int(Key.APP_THEME) { 21 }

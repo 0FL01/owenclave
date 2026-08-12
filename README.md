@@ -16,37 +16,17 @@ stack       kotlin / java / go / android sdk / gradle / nix
 license     gpl-3.0-or-later
 
 features:
-- various proxy protocols
-- group and subscription
-- routing
-- proxy chain
-- socks proxy chaining (proxy -> proxy -> site)
-- olcrtc protocol support
+- DNS Tunnel over Slipstream/FlowRelay
+- olcRTC with Jitsi, Jazz, Telemost/Goolom and WBStream/LiveKit
+- group and routing support
 - twps2 (zapret2) global dpi bypass
 - unlock ai and en services for russia (global)
 - direct proxy mode
 - material 3 expressive ui
 
-supported protocols:
-- shadowsocks (with sip003 plugin support)
-- shadowsocks 2022 (with sip003 plugin support)
-- trojan
-- hysteria 2
-- anytls
-- mieru
-- naïveproxy (as a standalone plugin)
-- tuic
-- juicity
-- vmess (with various optional sub-protocols)
-- vless (with various optional sub-protocols)
-- wireguard (tcp and udp only)
-- trusttunnel (no icmp echo support)
-- snell v4 and snell v6
-- shadowquic
-- dns tunnel over slipstream/flowrelay (gvisor only)
-- http connect tunnel (http/1.1, http/1.1 with tls, http/2 and http/3)
-- socks4, socks4a and socks5
-- olcrtc
+profile families:
+- DNS Tunnel (gVisor only)
+- olcRTC
 
 olcrtc and Slipstream run as external native sidecars. Owenclave owns their
 Android profile, configuration and lifecycle boundaries; pinned upstream sources

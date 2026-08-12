@@ -19,10 +19,6 @@
 
 package io.nekohasekai.sagernet.database
 
-import io.nekohasekai.sagernet.GroupType
-import io.nekohasekai.sagernet.bg.SubscriptionUpdater
-import io.nekohasekai.sagernet.ktx.applyDefaultValues
-
 object GroupManager {
 
     interface Listener {
@@ -100,39 +96,26 @@ object GroupManager {
 
     suspend fun createGroup(group: ProxyGroup): ProxyGroup {
         group.userOrder = SagerDatabase.groupDao.nextOrder() ?: 1
-        group.id = SagerDatabase.groupDao.createGroup(group.applyDefaultValues())
+        group.id = SagerDatabase.groupDao.createGroup(group)
         iterator { groupAdd(group) }
-        if (group.type == GroupType.SUBSCRIPTION && group.subscription?.autoUpdate == true) {
-            SubscriptionUpdater.reconfigureUpdater()
-        }
         return group
     }
 
     suspend fun updateGroup(group: ProxyGroup, reconfigureUpdater: Boolean = true) {
         SagerDatabase.groupDao.updateGroup(group)
         iterator { groupUpdated(group) }
-        if (reconfigureUpdater && group.type == GroupType.SUBSCRIPTION && group.subscription?.autoUpdate == true) {
-            SubscriptionUpdater.reconfigureUpdater()
-        }
     }
 
     suspend fun deleteGroup(groupId: Long) {
-        val group = SagerDatabase.groupDao.getById(groupId)
         SagerDatabase.groupDao.deleteById(groupId)
         SagerDatabase.proxyDao.deleteByGroup(groupId)
         iterator { groupRemoved(groupId) }
-        if (group?.type == GroupType.SUBSCRIPTION && group.subscription?.autoUpdate == true) {
-            SubscriptionUpdater.reconfigureUpdater()
-        }
     }
 
     suspend fun deleteGroup(group: List<ProxyGroup>) {
         SagerDatabase.groupDao.deleteGroup(group)
         SagerDatabase.proxyDao.deleteByGroup(group.map { it.id }.toLongArray())
         for (proxyGroup in group) iterator { groupRemoved(proxyGroup.id) }
-        if (group.any { it.type == GroupType.SUBSCRIPTION && it.subscription?.autoUpdate == true }) {
-            SubscriptionUpdater.reconfigureUpdater()
-        }
     }
 
 }

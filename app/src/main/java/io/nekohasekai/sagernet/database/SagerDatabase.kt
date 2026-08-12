@@ -29,99 +29,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [ProxyGroup::class, ProxyEntity::class, RuleEntity::class, StatsEntity::class, AssetEntity::class],
-    version = 41,
-    autoMigrations = [AutoMigration(
-        from = 12,
-        to = 14,
-    ), AutoMigration(
-        from = 14, to = 15, spec = SagerDatabase_Migration_14_15::class
-    ), AutoMigration(
-        from = 15,
-        to = 16,
-    ), AutoMigration(
-        from = 16,
-        to = 17,
-    ), AutoMigration(
-        from = 15,
-        to = 17,
-    ), AutoMigration(
-        from = 17,
-        to = 18,
-    ), AutoMigration(
-        from = 18,
-        to = 19,
-    ), AutoMigration(
-        from = 19,
-        to = 20,
-    ), AutoMigration(
-        from = 20,
-        to = 21,
-    ), AutoMigration(
-        from = 21,
-        to = 22,
-    ), AutoMigration(
-        from = 22,
-        to = 23,
-        spec = SagerDatabase_Migration_22_23::class
-    ), AutoMigration(
-        from = 23,
-        to = 24,
-    ), AutoMigration(
-        from = 24,
-        to = 25,
-    ), AutoMigration(
-        from = 25,
-        to = 26,
-    ), AutoMigration(
-        from = 26,
-        to = 27,
-    ), AutoMigration(
-        from = 27,
-        to = 28,
-    ), AutoMigration(
-        from = 28,
-        to = 29,
-    ), AutoMigration(
-        from = 29,
-        to = 30,
-    ), AutoMigration(
-        from = 30,
-        to = 31,
-    ), AutoMigration(
-        from = 31,
-        to = 32,
-        spec = SagerDatabase_Migration_31_32::class
-    ), AutoMigration(
-        from = 32,
-        to = 33,
-    ), AutoMigration(
-        from = 33,
-        to = 34,
-        spec = SagerDatabase_Migration_33_34::class
-    ), AutoMigration(
-        from = 34,
-        to = 35,
-    ), AutoMigration(
-        from = 35,
-        to = 36,
-        spec = SagerDatabase_Migration_35_36::class
-    ), AutoMigration(
-        from = 36,
-        to = 37,
-    ), AutoMigration(
-        from = 37,
-        to = 38,
-    ), AutoMigration(
-        from = 38,
-        to = 39,
-    ), AutoMigration(
-        from = 39,
-        to = 40,
-    ), AutoMigration(
-        from = 40,
-        to = 41,
-        spec = SagerDatabase_Migration_40_41::class,
-    )]
+    version = 42,
 )
 @TypeConverters(value = [KryoConverters::class, GsonConverters::class])
 abstract class SagerDatabase : RoomDatabase() {
@@ -131,20 +39,8 @@ abstract class SagerDatabase : RoomDatabase() {
         private val instance by lazy {
             SagerNet.application.getDatabasePath(Key.DB_PROFILE).parentFile?.mkdirs()
             Room.databaseBuilder(SagerNet.application, SagerDatabase::class.java, Key.DB_PROFILE)
-                .addMigrations(
-                    SagerDatabase_Migration_1_2,
-                    SagerDatabase_Migration_2_3,
-                    SagerDatabase_Migration_3_4,
-                    SagerDatabase_Migration_4_5,
-                    SagerDatabase_Migration_5_6,
-                    SagerDatabase_Migration_6_7,
-                    SagerDatabase_Migration_7_8,
-                    SagerDatabase_Migration_8_9,
-                    SagerDatabase_Migration_9_10,
-                    SagerDatabase_Migration_10_11,
-                    SagerDatabase_Migration_11_12
-                )
                 .fallbackToDestructiveMigrationOnDowngrade()
+                .fallbackToDestructiveMigration(true)
                 .allowMainThreadQueries()
                 .enableMultiInstanceInvalidation()
                 .setQueryExecutor { GlobalScope.launch { it.run() } }

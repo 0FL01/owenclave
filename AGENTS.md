@@ -14,6 +14,7 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/V2RayInstance.kt` - sidecar ownership and gVisor restriction.
 - `bin/lib/slipstream/build.sh` - pinned arm64 Android client artifact and patches.
 - `bin/lib/slipstream/flowd/` - private FlowRelay backend and focused tests.
+- `library/core/` - pinned carrier-only Exclave wrapper and strict retained-config parser.
 
 ## DNS Tunnel rules
 

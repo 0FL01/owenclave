@@ -31,8 +31,6 @@ import androidx.core.text.isDigitsOnly
 
 object Executable {
     private val EXECUTABLES = setOf(
-        "libnaive.so",
-        "libshadowquic.so",
         "libolcrtc.so",
         "libslipstream.so",
     )

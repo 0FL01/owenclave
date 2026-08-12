@@ -53,7 +53,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sagernet.aidl.TrafficStats
 import io.nekohasekai.sagernet.GroupOrder
-import io.nekohasekai.sagernet.GroupType
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.test.DnsttBenchmark
 import io.nekohasekai.sagernet.bg.test.DnsttBenchmarkResult
@@ -163,9 +162,7 @@ fun ConfigurationScreen(
         batchTestJob?.cancel()
         batchTestJob = scope.launch(Dispatchers.IO) {
             val groupId = DataStore.currentGroupId()
-            val toTest = profiles.filter {
-                it.type != ProxyEntity.TYPE_CHAIN && it.type != ProxyEntity.TYPE_BALANCER && it.type != ProxyEntity.TYPE_CONFIG
-            }
+            val toTest = profiles.toList()
             if (toTest.isEmpty()) return@launch
             val total = toTest.size
             var done = 0
@@ -283,48 +280,26 @@ fun ConfigurationScreen(
         val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: return
         scope.launch(Dispatchers.IO) {
             try {
-                if (text.startsWith("owenkey://", ignoreCase = true)) {
-                    val import = io.nekohasekai.sagernet.ktx.parseOwenkeyLink(text.trim())
-                    if (import != null) {
-                        io.nekohasekai.sagernet.database.GroupManager.createGroup(import.group)
-                        import.profiles.forEach { profile ->
-                            profile.id = 0
-                            profile.groupId = import.group.id
-                            profile.userOrder = SagerDatabase.proxyDao.nextOrder(import.group.id) ?: 1
-                            profile.id = SagerDatabase.proxyDao.addProxy(profile)
-                        }
-                        if (import.group.type == GroupType.SUBSCRIPTION && import.group.subscription?.link?.isNotEmpty() == true) {
-                            val created = SagerDatabase.groupDao.getById(import.group.id)
-                            if (created != null) {
-                                io.nekohasekai.sagernet.group.GroupUpdater.executeUpdate(created, true)
-                            }
-                        }
-                        withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(context, "Group imported with ${import.profiles.size} profiles", android.widget.Toast.LENGTH_SHORT).show()
-                        }
+                val token = text.trim()
+                val beans = if (isValidDnsttToken(token)) {
+                    listOf(DnsttBean().apply { this.token = token })
+                } else {
+                    parseShareLinks(text)
+                }
+                if (beans.isNotEmpty()) {
+                    val groupId = DataStore.selectedGroupForImport()
+                    var lastId = 0L
+                    beans.forEach { bean ->
+                        val profile = ProfileManager.createProfile(groupId, bean)
+                        lastId = profile.id
+                    }
+                    if (lastId > 0) DataStore.selectedProxy = lastId
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Imported ${beans.size} profile(s)", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    val token = text.trim()
-                    val beans = if (isValidDnsttToken(token)) {
-                        listOf(DnsttBean().apply { this.token = token })
-                    } else {
-                        parseShareLinks(text)
-                    }
-                    if (beans.isNotEmpty()) {
-                        val groupId = DataStore.selectedGroupForImport()
-                        var lastId = 0L
-                        beans.forEach { bean ->
-                            val p = ProfileManager.createProfile(groupId, bean)
-                            lastId = p.id
-                        }
-                        if (lastId > 0) DataStore.selectedProxy = lastId
-                        withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(context, "Imported ${beans.size} profile(s)", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(context, "No valid share links found", android.widget.Toast.LENGTH_SHORT).show()
-                        }
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "No valid carrier profiles found", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {

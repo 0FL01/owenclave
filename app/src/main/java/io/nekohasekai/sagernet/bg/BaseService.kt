@@ -39,7 +39,6 @@ import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.Alerts
 import io.nekohasekai.sagernet.fmt.TAG_SOCKS
 import io.nekohasekai.sagernet.ktx.*
-import io.nekohasekai.sagernet.plugin.PluginManager
 import io.nekohasekai.sagernet.utils.PackageCache
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -48,7 +47,6 @@ import libexclavecore.AppStats
 import libexclavecore.Libexclavecore
 import libexclavecore.TrafficListener
 import java.net.UnknownHostException
-import com.github.shadowsocks.plugin.PluginManager as ShadowsocksPluginPluginManager
 import io.nekohasekai.sagernet.aidl.AppStats as AidlAppStats
 
 class BaseService {
@@ -531,14 +529,6 @@ class BaseService {
                 } catch (_: CancellationException) { // if the job was cancelled, it is canceller's responsibility to call stopRunner
                 } catch (_: UnknownHostException) {
                     stopRunner(false, getString(R.string.invalid_server))
-                } catch (e: PluginManager.PluginNotFoundException) {
-                    Logs.d(e.readableMessage)
-                    data.binder.missingPlugin(e.plugin)
-                    stopRunner(false, null)
-                } catch (e: ShadowsocksPluginPluginManager.PluginNotFoundException) {
-                    Logs.d(e.readableMessage)
-                    data.binder.missingPlugin("shadowsocks-" + e.plugin)
-                    stopRunner(false, null)
                 } catch (e: Alerts.RouteAlertException) {
                     data.binder.broadcast {
                         it.routeAlert(e.alert, e.routeName)

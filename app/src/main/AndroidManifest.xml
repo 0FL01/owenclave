@@ -129,16 +129,6 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
-        <activity
-            android:name="io.nekohasekai.sagernet.ui.MainActivity"
-            android:exported="false"
-            android:launchMode="singleTask" />
-        <activity
-            android:name="io.nekohasekai.sagernet.ui.AppManagerActivity"
-            android:exported="false"
-            android:label="@string/proxied_apps"
-            android:launchMode="singleTask" />
-
         <!-- Compose Activities -->
         <activity
             android:name="io.nekohasekai.sagernet.ui.compose.ComposeProfileSettingsActivity"
@@ -170,18 +160,6 @@
             android:name="io.nekohasekai.sagernet.ui.ScannerActivity"
             android:excludeFromRecents="true"
             android:exported="false" />
-        <activity
-            android:name="io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity"
-            android:exported="false"
-            android:launchMode="singleTask" />
-        <activity
-            android:name="io.nekohasekai.sagernet.ui.profile.BalancerSettingsActivity"
-            android:exported="false"
-            android:launchMode="singleTask" />
-        <activity
-            android:name="io.nekohasekai.sagernet.ui.profile.ConfigSettingsActivity"
-            android:exported="false"
-            android:launchMode="singleTask" />
         <activity
             android:name="io.nekohasekai.sagernet.ui.compose.ComposeConfigEditActivity"
             android:exported="false"
@@ -312,25 +290,6 @@
         <service
             android:name="androidx.room.MultiInstanceInvalidationService"
             android:process=":bg" />
-
-        <receiver
-            android:name="io.nekohasekai.sagernet.tasker.TaskerReceiver"
-            android:exported="true"
-            android:process=":bg"
-            tools:ignore="ExportedReceiver">
-            <intent-filter>
-                <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name="io.nekohasekai.sagernet.tasker.TaskerActivity"
-            android:excludeFromRecents="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
-            </intent-filter>
-        </activity>
 
     </application>
 

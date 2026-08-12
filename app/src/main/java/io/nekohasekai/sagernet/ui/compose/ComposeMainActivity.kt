@@ -212,34 +212,11 @@ class ComposeMainActivity : ComponentActivity(), SagerConnection.Callback {
         val link = uri.toString()
         io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher {
             try {
-                if (link.startsWith("owenkey://", ignoreCase = true)) {
-                    val import = io.nekohasekai.sagernet.ktx.parseOwenkeyLink(link)
-                    if (import != null) {
-                        io.nekohasekai.sagernet.database.GroupManager.createGroup(import.group)
-                        import.profiles.forEach { profile ->
-                            profile.id = 0
-                            profile.groupId = import.group.id
-                            profile.userOrder = io.nekohasekai.sagernet.database.SagerDatabase.proxyDao.nextOrder(import.group.id) ?: 1
-                            profile.id = io.nekohasekai.sagernet.database.SagerDatabase.proxyDao.addProxy(profile)
-                        }
-                        if (import.profiles.isNotEmpty()) {
-                            io.nekohasekai.sagernet.database.DataStore.selectedProxy = import.profiles.first().id
-                        }
-                        io.nekohasekai.sagernet.database.DataStore.selectedGroup = import.group.id
-                        if (import.group.type == io.nekohasekai.sagernet.GroupType.SUBSCRIPTION && import.group.subscription?.link?.isNotEmpty() == true) {
-                            val created = io.nekohasekai.sagernet.database.SagerDatabase.groupDao.getById(import.group.id)
-                            if (created != null) {
-                                io.nekohasekai.sagernet.group.GroupUpdater.executeUpdate(created, true)
-                            }
-                        }
-                    }
-                } else {
-                    val beans = io.nekohasekai.sagernet.ktx.parseShareLinks(link)
-                    if (beans.isNotEmpty()) {
-                        val groupId = io.nekohasekai.sagernet.database.DataStore.selectedGroupForImport()
-                        val profile = io.nekohasekai.sagernet.database.ProfileManager.createProfile(groupId, beans[0])
-                        io.nekohasekai.sagernet.database.DataStore.selectedProxy = profile.id
-                    }
+                val bean = io.nekohasekai.sagernet.ktx.parseShareLinks(link).firstOrNull()
+                if (bean != null) {
+                    val groupId = io.nekohasekai.sagernet.database.DataStore.selectedGroupForImport()
+                    val profile = io.nekohasekai.sagernet.database.ProfileManager.createProfile(groupId, bean)
+                    io.nekohasekai.sagernet.database.DataStore.selectedProxy = profile.id
                 }
             } catch (_: Exception) {
             }

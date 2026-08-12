@@ -32,14 +32,12 @@ import androidx.annotation.AttrRes
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.ui.ThemedActivity
 import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
@@ -167,9 +165,6 @@ fun View.crossFadeFrom(other: View) {
 }
 
 
-fun Fragment.snackbar(textId: Int) = (requireActivity() as MainActivity).snackbar(textId)
-fun Fragment.snackbar(text: CharSequence) = (requireActivity() as MainActivity).snackbar(text)
-
 fun ThemedActivity.startFilesForResult(
     launcher: ActivityResultLauncher<String>, input: String
 ) {
@@ -179,25 +174,6 @@ fun ThemedActivity.startFilesForResult(
     } catch (_: SecurityException) {
     }
     snackbar(getString(R.string.file_manager_missing)).show()
-}
-
-fun Fragment.startFilesForResult(
-    launcher: ActivityResultLauncher<String>, input: String
-) {
-    try {
-        return launcher.launch(input)
-    } catch (_: ActivityNotFoundException) {
-    } catch (_: SecurityException) {
-    }
-    (requireActivity() as ThemedActivity).snackbar(getString(R.string.file_manager_missing)).show()
-}
-
-fun Fragment.needReload() {
-    if (SagerNet.started) {
-        snackbar(getString(R.string.restart)).setAction(R.string.apply) {
-            SagerNet.reloadService()
-        }.show()
-    }
 }
 
 fun Context.getColour(@ColorRes colorRes: Int): Int {

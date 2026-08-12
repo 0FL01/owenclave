@@ -46,7 +46,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import go.Seq
 import io.nekohasekai.sagernet.bg.SagerConnection
-import io.nekohasekai.sagernet.bg.SubscriptionUpdater
 import io.nekohasekai.sagernet.bg.test.DebugInstance
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SagerDatabase
@@ -65,11 +64,9 @@ import libexclavecore.Libexclavecore
 import libexclavecore.UidDumper
 import java.net.Inet6Address
 import java.net.InetSocketAddress
-import androidx.work.Configuration as WorkConfiguration
 
 class SagerNet : Application(),
-    UidDumper,
-    WorkConfiguration.Provider {
+    UidDumper {
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
@@ -110,12 +107,6 @@ class SagerNet : Application(),
             Libexclavecore.setUidDumper(this, Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
             if (DataStore.enableDebug && DataStore.pprofServer.isNotEmpty()) {
                 DebugInstance().launch()
-            }
-        }
-
-        if (!isMainProcess) runOnDefaultDispatcher {
-            runCatching {
-                SubscriptionUpdater.reconfigureUpdater()
             }
         }
 
@@ -176,14 +167,6 @@ class SagerNet : Application(),
         super.onConfigurationChanged(newConfig)
         updateNotificationChannels()
     }
-
-    override val workManagerConfiguration: androidx.work.Configuration
-        get() {
-            return WorkConfiguration.Builder()
-                // .setDefaultProcessName("${BuildConfig.APPLICATION_ID}:bg")
-                .setDefaultProcessName(BuildConfig.APPLICATION_ID)
-                .build()
-        }
 
     @SuppressLint("InlinedApi")
     companion object {
@@ -254,10 +237,6 @@ class SagerNet : Application(),
                             "service-proxy",
                             application.getText(R.string.service_proxy),
                             NotificationManager.IMPORTANCE_LOW
-                        ), NotificationChannel(
-                            "service-subscription",
-                            application.getText(R.string.service_subscription),
-                            NotificationManager.IMPORTANCE_DEFAULT
                         )
                     )
                 )
