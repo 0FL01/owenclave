@@ -53,8 +53,12 @@ fix, validate, commit and push each outcome separately before continuing.
     immediate Connect cannot overlap benchmark teardown.
   - Primary evidence: reproduce the cleanup window before the fix, then prove ordered
     zero-child transition followed by one-child VPN payload after the fix.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: before the fix, Cancel removed the benchmark dialog as its independent
+    cancellation cleanup began, so Connect became immediately reachable without a UI
+    cleanup barrier. The focused fix keeps the dialog running until `cancelAndJoin`
+    completes. Android observed the dialog hidden only with zero child; immediate
+    Connect then reached one child/VPN and TCP/UDP payload passed.
 
 - R4: rapid benchmark resolver choices persist the final user action.
   - Source: user defect 4.
@@ -96,21 +100,21 @@ fix, validate, commit and push each outcome separately before continuing.
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: commit and push verified R2, then reproduce benchmark Cancel
-  followed by immediate Connect before changing its cleanup path.
-- Expected evidence: a measurable interval where the dialog is gone but the benchmark
-  child or cleanup owner remains active.
-- Stop or replan if: Connect is already ordered after benchmark teardown.
+- Closes: R4.
+- Smallest next action: commit and push verified R3, then reproduce rapid completed
+  resolver followed by Automatic while a benchmark remains active.
+- Expected evidence: the persisted mode can differ from the final accepted tap.
+- Stop or replan if: the UI already accepts only one selection or final-tap ordering is
+  deterministic on the current build.
 
 ## Current State
 
-- Resolved: R1-R2. DNS Tunnel ignores the global Direct catch-all, and Test all cannot
-  start while the proxy service is starting or connected.
-- Last relevant evidence: Android kept one child and no batch progress after Test all
-  was pressed; DE WARP, TCP/UDP payload and stop/start recovery passed.
+- Resolved: R1-R3. Direct cannot bypass DNS Tunnel, Test all cannot overlap an active
+  service, and benchmark Cancel joins cleanup before exposing Connect.
+- Last relevant evidence: Android transitioned from active benchmark to hidden dialog
+  only at zero child; immediate VPN connection and TCP/UDP payload passed.
 - Blocker: none.
-- Next: commit/push R2, then reproduce R3 before editing it.
+- Next: commit/push R3, then reproduce R4 before editing it.
 
 ## Material Decisions
 
@@ -124,6 +128,8 @@ fix, validate, commit and push each outcome separately before continuing.
   config fix; Direct-mode DNS Tunnel E2E passed through DE WARP.
 - 2026-08-12: R2 reproduced two concurrent Slipstream children; Test all is now
   disabled and guarded while the proxy service is starting or connected.
+- 2026-08-12: R3 confirmed that Cancel had no UI cleanup barrier; the dialog now stays
+  visible until benchmark cancellation and child teardown join.
 
 ## Completion
 

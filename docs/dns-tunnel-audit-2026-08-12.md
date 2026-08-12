@@ -53,6 +53,10 @@ arguments or traffic logging as evidence.
   overlap production startup and interfere with its child or shared certificate.
 - Reproduce: repeat Cancel -> immediate Connect while recording child count, service
   state, selected resolver and controlled payload outcome.
+- Evidence: the prior action removed the dialog immediately after cancellation even
+  though cleanup completion was not part of that UI transition. The fixed action keeps
+  the dialog in its running state until `cancelAndJoin` completes; only then does it
+  expose Connect, with zero benchmark children.
 
 ### W1.4 Rapid resolver choices are not serialized
 

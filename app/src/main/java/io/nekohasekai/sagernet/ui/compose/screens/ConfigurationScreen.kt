@@ -222,7 +222,21 @@ fun ConfigurationScreen(
     }
 
     fun closeDnsttBenchmark() {
-        benchmarkJob?.cancel()
+        val runningJob = benchmarkJob
+        if (runningJob?.isActive == true) {
+            benchmarkRunning = true
+            scope.launch(Dispatchers.IO) {
+                withContext(NonCancellable) { runningJob.cancelAndJoin() }
+                withContext(Dispatchers.Main) {
+                    benchmarkProfile = null
+                    benchmarkResults.clear()
+                    benchmarkRunning = false
+                    benchmarkError = null
+                    benchmarkHost = null
+                }
+            }
+            return
+        }
         benchmarkJob = null
         benchmarkProfile = null
         benchmarkResults.clear()

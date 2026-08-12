@@ -39,7 +39,9 @@ stores it as the existing strict manual override; choosing Automatic clears it.
 The last fully completed result set and selected benchmark host are stored with that
 profile. Reopening the benchmark shows this snapshot without starting a child; Retest
 runs the same foreground benchmark and replaces the snapshot only after success, so
-cancellation or failure keeps the previous one. Invalid saved snapshots are ignored.
+cancellation or failure keeps the previous one. Cancel keeps the dialog visible until
+the active child has stopped, then makes connection controls available again. Invalid
+saved snapshots are ignored.
 Profile batch testing is unavailable while the proxy service is starting or connected,
 so it cannot create a second DNS Tunnel child beside the active VPN.
 The first reachable Cloudflare, OVH or Hetzner download endpoint is fixed for the
