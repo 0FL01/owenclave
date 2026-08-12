@@ -1,6 +1,6 @@
 # Goal: Ship a carrier-only Owenclave fork
 
-Status: active
+Status: complete
 Source: user-approved 2026-08-12 protocol-pruning plan and fresh-install constraint
 Last updated: 2026-08-12
 
@@ -33,8 +33,12 @@ push each verified implementation checkpoint requested by the user.
     `telemost` and `wbstream` and the transports required by those providers.
   - Primary evidence: source/manifest inventory, clean release compilation and
     fresh-install UI inspection showing no other profile family or ingress.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: commit `c8b23e4` reduced `ProxyEntity`, Room schema 42,
+    Compose creation/editing/import and `ConfigBuilder` to type IDs 17 and 31.
+    A fresh install on the Android 15 arm64 device opened an empty database and the
+    only `New profile` choices were `DNS Tunnel` and `OLCRTC`; DNS token/manual
+    resolver fields and the benchmark remained present.
 
 - R2: Remove obsolete protocol implementations and native payloads outside the
   retained paths.
@@ -46,8 +50,12 @@ push each verified implementation checkpoint requested by the user.
     creates and verifies exactly the retained sidecars.
   - Primary evidence: compile/build checks, APK entry inventory and before/after APK
     size measurement.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: commit `c8b23e4` removed the legacy Bean/format/parser/settings,
+    subscription, plugin, Naive and external runtime families. The final arm64 APK
+    contains the required `libgojni.so`, `libolcrtc.so` and `libslipstream.so`, no
+    `libdnstt.so` or `libnaive.so`, and is `34,870,898` bytes versus the
+    `43,224,565` byte baseline.
 
 - R3: Remove legacy proxy implementations from the linked Exclave core.
   - Source: approved final phase of the pruning plan.
@@ -58,8 +66,13 @@ push each verified implementation checkpoint requested by the user.
     than the current `14,736,531` byte `libgojni.so` entry.
   - Primary evidence: clean arm64 core build, dependency/entry comparison and retained
     Android runtime acceptance.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: the pinned local core in commit `c8b23e4` passed
+    `CGO_ENABLED=0 go test ./...` and `go mod verify`; a clean arm64 gomobile build
+    produced a byte-identical `libexclavecore.aar` with SHA-256 `d78b695e…0da542`.
+    The APK `libgojni.so` entry is 26,887,760 bytes raw and 9,012,034 bytes
+    compressed, 38.8 percent below the 14,736,531 byte compressed baseline. The
+    final Android DNS Tunnel acceptance exercised this core through gVisor.
 
 - R4: Produce and validate the final fresh-install arm64 APK.
   - Source: user request for iterative builds and ADB device tests from start to end.
@@ -70,8 +83,19 @@ push each verified implementation checkpoint requested by the user.
     present in the acceptance environment. Cancellation and stop leave no child.
   - Primary evidence: release build/signature, bounded ADB observations and matching
     end-to-end path evidence without traffic logging.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: signed arm64 APK
+    `app/build/outputs/apk/oss/release/Owenclave-0.17.50-arm64-v8a.apk` was installed
+    after uninstalling the prior package data. Automatic DNS Tunnel reached
+    `Connected` on Tele2 LTE with exactly one Slipstream child; Firefox HTTP/2/TLS
+    through gVisor returned Cloudflare WARP egress `loc=DE`, `warp=on` for both a
+    hostname and literal IPv4. TCP and UDP socket probes succeeded. A complete
+    sequential benchmark reached results and never exceeded one child; cancel and
+    service stop left zero children and no VPN. n-de1 Slipstream/FlowRelay restart
+    counters remained 5/0. No olcRTC client credentials were present after the
+    required fresh install, so no provider-specific payload was available to run;
+    the exact clean full-provider `libolcrtc.so` pin/build and free provider/transport
+    UI were verified instead.
 
 ### Constraints
 
@@ -116,28 +140,22 @@ push each verified implementation checkpoint requested by the user.
 
 ## Current Checkpoint
 
-- Closes: R1 and the reproducibility prerequisite of R2.
-- Smallest next action: reduce the fresh-install Android model/ingress to DNSTT and
-  OLCRTC, remove stale native/plugin packaging, make the clean retained-native build
-  reproducible, then compile before deleting deeper runtime consumers.
-- Expected evidence: source references are reduced to retained/shared infrastructure,
-  clean Kotlin compilation passes, and an APK contains only the three required native
-  artifacts.
-- Stop or replan if: a retained profile requires any removed Bean/profile branch, or a
-  reproducible olcRTC build cannot retain all four approved providers.
+- Closes: R1-R4.
+- Smallest next action: closure check, commit this evidence and stop.
+- Expected evidence: every required outcome is verified and the tracked tree remains
+  inside the frozen envelope.
+- Stop or replan if: the final clean release or source-scope check regresses.
 
 ## Current State
 
-- Resolved: RECON proved DNS Tunnel is type 17; Jazz, Jitsi, Telemost and WBStream all
-  use type 31 and one `libolcrtc.so`. Generic user SOCKS profiles are removable, but
-  internal SOCKS/UoT, routing, DNS, freedom and gVisor are retained infrastructure.
-- Last relevant evidence: clean Owenclave `dev` at `a53dbe7`; current arm64 APK is
-  `43,224,565` bytes. Its compressed native entries include `libgojni.so` 14,736,531,
-  `libolcrtc.so` 10,497,864, stale `libdnstt.so` 3,307,860, `libnaive.so` 3,306,635
-  and retained `libslipstream.so` 2,827,849 bytes.
+- Resolved: R1-R4. The final product/model/runtime accepts only DNSTT and OLCRTC;
+  linked core and packaging contain no removed profile runtime; fresh DNS Tunnel
+  payload and cleanup passed on arm64.
+- Last relevant evidence: final arm64 APK is `34,870,898` bytes with SHA-256
+  `3bab9138…8c39f2`; its required native entries are `libgojni.so` 9,012,034,
+  `libolcrtc.so` 10,497,856 and `libslipstream.so` 2,828,285 compressed bytes.
 - Blocker: none for the current checkpoint.
-- Next: implement R1/R2 in compile-safe vertical slices, commit the verified Android
-  checkpoint, then prototype and measure the narrow core for R3.
+- Next: commit closure evidence and stop.
 
 ## Material Decisions
 
@@ -155,10 +173,21 @@ push each verified implementation checkpoint requested by the user.
 
 - 2026-08-12: contract frozen after parallel source, provisioning, native-size,
   olcRTC and minimal-core RECON. R1 is current.
+- 2026-08-12: `5560d18` narrowed visible ingress and made retained native builds
+  explicit without changing production runtime.
+- 2026-08-12: `c8b23e4` removed legacy Android/runtime families and linked the
+  strict carrier-only core; compile and focused Go checks passed.
+- 2026-08-12: clean core, olcRTC and Slipstream builds plus release packaging passed.
+  Fresh Android DNS acceptance proved WARP payload and one-child lifecycle; no
+  olcRTC credential-bearing profile was available after destructive fresh install.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1-R4 verified.
+- Commands and artifacts: focused Go tests/module verification, clean retained native
+  builds, `:app:compileOssReleaseKotlin`, `:app:assembleOssRelease`, APK ZIP/signature/
+  16 KiB alignment checks, fresh install and bounded Android/n-de1 acceptance.
+- Constraint and diff-scope check: type IDs 17/31 preserved; no migration, server
+  change, secret output/commit, olcRTC trimming or new runtime dependency; generated
+  YAML remains unlogged.
+- Final status: complete.
