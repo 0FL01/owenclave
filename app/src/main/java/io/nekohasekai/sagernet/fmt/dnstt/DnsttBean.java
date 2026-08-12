@@ -16,6 +16,7 @@ public class DnsttBean extends AbstractBean {
 
     public String token;
     public String resolver;
+    public String benchmarkSnapshot;
 
     @Override
     public void initializeDefaultValues() {
@@ -24,20 +25,23 @@ public class DnsttBean extends AbstractBean {
         serverPort = 53;
         if (token == null) token = "";
         if (resolver == null) resolver = "";
+        if (benchmarkSnapshot == null) benchmarkSnapshot = "";
     }
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(0);
+        output.writeInt(1);
         output.writeString(token);
         output.writeString(resolver);
+        output.writeString(benchmarkSnapshot);
     }
 
     @Override
     public void deserialize(ByteBufferInput input) {
-        input.readInt();
+        int version = input.readInt();
         token = input.readString();
         resolver = input.readString();
+        benchmarkSnapshot = version >= 1 ? input.readString() : "";
     }
 
     @Override

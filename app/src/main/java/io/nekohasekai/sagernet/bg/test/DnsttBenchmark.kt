@@ -6,6 +6,8 @@ import io.nekohasekai.sagernet.bg.proto.V2RayInstance
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttResolver
 import io.nekohasekai.sagernet.fmt.dnstt.automaticDnsttResolvers
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
+import io.nekohasekai.sagernet.fmt.gson.gson
 import io.nekohasekai.sagernet.ktx.mkPort
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,29 @@ internal data class DnsttBenchmarkResult(
 ) {
     val complete get() = failure == null && speedMbps != null && latencyMs != null
 }
+
+internal data class DnsttBenchmarkSnapshot(
+    val version: Int = 1,
+    val benchmarkHost: String,
+    val results: List<DnsttBenchmarkResult>,
+)
+
+internal fun DnsttBenchmarkSnapshot.encode() = gson.toJson(this)
+
+internal fun decodeDnsttBenchmarkSnapshot(value: String): DnsttBenchmarkSnapshot? = runCatching {
+    gson.fromJson(value, DnsttBenchmarkSnapshot::class.java).takeIf { snapshot ->
+        snapshot.version == 1 && snapshot.benchmarkHost.isNotBlank() &&
+                snapshot.results.isNotEmpty() && snapshot.results.any { it.complete } &&
+                snapshot.results.map { it.resolver }.distinct().size == snapshot.results.size &&
+                snapshot.results.all { result ->
+                    result.label.isNotBlank() &&
+                            parseDnsttResolver(result.resolver.toString()) == result.resolver &&
+                            (result.failure != null || result.complete) &&
+                            (result.speedMbps?.let { it.isFinite() && it > 0.0 } != false) &&
+                            (result.latencyMs?.let { it >= 0L } != false)
+                }
+    }
+}.getOrNull()
 
 internal fun List<DnsttBenchmarkResult>.sortedDnsttBenchmarkResults() = sortedWith(
     compareByDescending<DnsttBenchmarkResult> { it.complete }
@@ -87,12 +112,13 @@ internal class DnsttBenchmark(private val profile: ProxyEntity) {
     suspend fun run(
         onUpdate: suspend (DnsttBenchmarkResult) -> Unit,
         onHostSelected: suspend (String) -> Unit,
-    ) {
+    ): DnsttBenchmarkSnapshot {
         require(profile.type == ProxyEntity.TYPE_DNSTT)
         val network = V2RayInstance.underlayNetwork() ?: throw IOException("No physical network")
         val dnsServers = SagerNet.connectivity.getLinkProperties(network)?.dnsServers.orEmpty()
         var benchmarkHost: BenchmarkHost? = null
         var anyComplete = false
+        val results = mutableListOf<DnsttBenchmarkResult>()
 
         for (candidateResolver in benchmarkResolvers(dnsServers)) {
             val resolver = candidateResolver.resolver
@@ -138,8 +164,10 @@ internal class DnsttBenchmark(private val profile: ProxyEntity) {
                 onUpdate(result)
             }
             if (result.complete) anyComplete = true
+            results += result
         }
         if (!anyComplete) throw IOException("No TCP DNS resolver established the tunnel")
+        return DnsttBenchmarkSnapshot(benchmarkHost = requireNotNull(benchmarkHost).name, results = results)
     }
 
     private fun benchmarkResolvers(dnsServers: List<InetAddress>): List<BenchmarkResolver> {

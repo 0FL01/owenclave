@@ -56,6 +56,8 @@ import io.nekohasekai.sagernet.GroupOrder
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.test.DnsttBenchmark
 import io.nekohasekai.sagernet.bg.test.DnsttBenchmarkResult
+import io.nekohasekai.sagernet.bg.test.decodeDnsttBenchmarkSnapshot
+import io.nekohasekai.sagernet.bg.test.encode
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -230,7 +232,7 @@ fun ConfigurationScreen(
         }
     }
 
-    fun startDnsttBenchmark(profile: ProxyEntity) {
+    fun runDnsttBenchmark(profile: ProxyEntity) {
         if (serviceRunning || batchTestProgress != null) {
             android.widget.Toast.makeText(
                 context,
@@ -247,7 +249,7 @@ fun ConfigurationScreen(
         benchmarkHost = null
         benchmarkJob = scope.launch(Dispatchers.IO) {
             try {
-                DnsttBenchmark(profile).run(
+                val snapshot = DnsttBenchmark(profile).run(
                     onUpdate = { update ->
                         withContext(Dispatchers.Main) {
                             val index = benchmarkResults.indexOfFirst { it.resolver == update.resolver }
@@ -258,6 +260,10 @@ fun ConfigurationScreen(
                         withContext(Dispatchers.Main) { benchmarkHost = host }
                     },
                 )
+                val storedProfile = ProfileManager.getProfile(profile.id) ?: return@launch
+                val bean = storedProfile.dnsttBean ?: return@launch
+                bean.benchmarkSnapshot = snapshot.encode()
+                ProfileManager.updateProfile(storedProfile)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -273,6 +279,21 @@ fun ConfigurationScreen(
                 }
             }
         }
+    }
+
+    fun openDnsttBenchmark(profile: ProxyEntity) {
+        val snapshot = decodeDnsttBenchmarkSnapshot(profile.dnsttBean?.benchmarkSnapshot.orEmpty())
+        if (snapshot == null) {
+            profile.dnsttBean?.benchmarkSnapshot = ""
+            runDnsttBenchmark(profile)
+            return
+        }
+        benchmarkProfile = profile
+        benchmarkResults.clear()
+        benchmarkResults.addAll(snapshot.results)
+        benchmarkRunning = false
+        benchmarkError = null
+        benchmarkHost = snapshot.benchmarkHost
     }
 
     fun importFromClipboard() {
@@ -339,6 +360,7 @@ fun ConfigurationScreen(
             currentResolver = profile.dnsttBean?.resolver.orEmpty(),
             onSelect = { saveDnsttResolver(it.resolver.toString()) },
             onAutomatic = { saveDnsttResolver("") },
+            onRetest = { runDnsttBenchmark(profile) },
             onDismiss = { closeDnsttBenchmark() },
         )
     }
@@ -508,7 +530,7 @@ fun ConfigurationScreen(
                                     }
                                 },
                                 onBenchmark = if (entity.type == ProxyEntity.TYPE_DNSTT) {
-                                    { startDnsttBenchmark(entity) }
+                                    { openDnsttBenchmark(entity) }
                                 } else null,
                             )
                         }

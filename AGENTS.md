@@ -31,8 +31,9 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - Keep DNS benchmarking explicit and foreground-only. Keep its labeled candidate pool
   separate from automatic startup, test candidates sequentially with one child and
   one bounded 512 KiB/3 second download through one fixed Cloudflare/OVH/Hetzner host,
-  rank throughput before latency, and persist only a resolver the user selects. Never
-  add multipath, background ranking, persistent benchmark cache or periodic health checks.
+  rank throughput before latency, and persist the last completed per-profile snapshot
+  plus a resolver the user selects. Never add multipath, background ranking or periodic
+  health checks; cancellation and failed runs must keep the previous snapshot.
 - Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
 - Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.

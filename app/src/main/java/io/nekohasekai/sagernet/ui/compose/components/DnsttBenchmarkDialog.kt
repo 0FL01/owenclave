@@ -33,6 +33,7 @@ internal fun DnsttBenchmarkDialog(
     currentResolver: String,
     onSelect: (DnsttBenchmarkResult) -> Unit,
     onAutomatic: () -> Unit,
+    onRetest: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sorted = results.sortedDnsttBenchmarkResults()
@@ -99,6 +100,9 @@ internal fun DnsttBenchmarkDialog(
         }
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (!running && results.isNotEmpty()) {
+                TextButton(onClick = onRetest) { Text("Retest") }
+            }
             TextButton(onClick = onAutomatic) { Text("Automatic TCP") }
             TextButton(onClick = onDismiss) { Text(if (running) "Cancel" else "Close") }
         }

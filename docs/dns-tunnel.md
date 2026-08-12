@@ -36,9 +36,13 @@ startup. Candidates run sequentially while the VPN is stopped; each gets one bou
 512 KiB or three-second download through one temporary child. Results rank measured
 throughput before latency without an automatic recommendation. Selecting a result
 stores it as the existing strict manual override; choosing Automatic clears it.
-Results otherwise remain in the dialog and are not cached. The first reachable
-Cloudflare, OVH or Hetzner download endpoint is fixed for the whole benchmark so
-endpoint fallback does not multiply runs or make resolver scores incomparable.
+The last fully completed result set and selected benchmark host are stored with that
+profile. Reopening the benchmark shows this snapshot without starting a child; Retest
+runs the same foreground benchmark and replaces the snapshot only after success, so
+cancellation or failure keeps the previous one. Invalid saved snapshots are ignored.
+The first reachable Cloudflare, OVH or Hetzner download endpoint is fixed for the
+whole benchmark so endpoint fallback does not multiply runs or make resolver scores
+incomparable.
 
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent
@@ -69,8 +73,8 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
   fail-closed. When Android changes the physical underlay, Owenclave closes the old
   child and restarts DNS Tunnel; automatic mode discovers the new network's DNS,
   while a manually selected resolver stays pinned. There is no periodic health
-  check, background ranking, persistent benchmark cache, direct carrier, legacy SSH
-  path or direct destination fallback.
+  check, background ranking, direct carrier, legacy SSH path or direct destination
+  fallback.
 - Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
