@@ -155,7 +155,6 @@ internal class DnsttBenchmark(private val profile: ProxyEntity) {
             } catch (error: BenchmarkServersUnavailableException) {
                 result = result.copy(failure = error.message)
                 onUpdate(result)
-                throw error
             } catch (_: Throwable) {
                 if (V2RayInstance.underlayNetwork() != network) throw NetworkChangedException()
                 result = result.copy(
