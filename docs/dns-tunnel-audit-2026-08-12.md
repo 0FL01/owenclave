@@ -117,6 +117,10 @@ arguments or traffic logging as evidence.
   changes do not restart the selected DNS resolver.
 - Reproduce: confirm absence of VPN capture, application egress and child behavior
   across a Wi-Fi/LTE handover.
+- Evidence: Android 15 reproduced Proxy service reporting active with one Slipstream
+  child but no Android VPN; Firefox bypassed the carrier with `loc=RU`, `warp=off`.
+  The focused runtime guard now rejects this mode before child launch. Returning to
+  VPN/gVisor retained one child, passed TCP/UDP and restored DE WARP egress.
 
 ### W2.3 Automatic mode misses same-network DNS changes
 

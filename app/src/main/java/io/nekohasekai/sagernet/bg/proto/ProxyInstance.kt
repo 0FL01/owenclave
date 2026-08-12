@@ -20,6 +20,7 @@
 package io.nekohasekai.sagernet.bg.proto
 
 import com.github.exclavenetwork.exclave.core.app.observatory.OutboundStatus
+import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.LogLevel
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.BaseService
@@ -46,6 +47,9 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
     override suspend fun init() {
         super.init()
 
+        if (config.dnsttClients.isNotEmpty() && DataStore.serviceMode != Key.MODE_VPN) {
+            error("DNS Tunnel requires VPN service mode")
+        }
         if (DataStore.logLevel == LogLevel.DEBUG && config.dnsttClients.isEmpty()) {
             Logs.d(config.config)
             pluginConfigs.forEach { (_, plugin) ->

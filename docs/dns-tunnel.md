@@ -73,7 +73,8 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
 ## Runtime constraints
 
 - DNS Tunnel supports gVisor TUN only. System TUN cannot protect sockets opened by
-  the separate Slipstream process.
+  the separate Slipstream process. Proxy service mode is also rejected because it
+  creates no Android VPN and cannot capture application traffic through gVisor.
 - The Flow token and ephemeral loopback credentials reach the child only through
   stdin, not argv, environment variables or temporary files.
 - VPN startup allows 15 seconds for aggregate carrier readiness; latency tests
