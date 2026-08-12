@@ -808,7 +808,7 @@ fun buildV2RayConfig(
             )
         }
 
-        if (routeMode == RouteMode.DIRECT) {
+        if (routeMode == RouteMode.DIRECT && proxy.type != ProxyEntity.TYPE_DNSTT) {
             routing.rules.add(0, RoutingObject.RuleObject().apply {
                 type = "field"
                 port = "0-65535"

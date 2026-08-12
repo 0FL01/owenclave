@@ -49,6 +49,10 @@ TCP and UDP are supported; each TCP flow or UDP association gets an independent
 local connection and Slipstream QUIC stream. Mux, health-probe streams and a
 second carrier path are not part of this contract.
 
+Global Route Mode does not override that boundary for DNS Tunnel. In particular,
+`Direct` remains available for other profile types but cannot route DNS Tunnel or its
+benchmark payload around the authenticated carrier.
+
 ## Rejected direct UDP upgrade
 
 A restricted-LTE probe used the DNS Tunnel only for authenticated rendezvous and
