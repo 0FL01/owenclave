@@ -29,6 +29,14 @@ sequentially until real Slipstream `Connection ready`; a failed child is stopped
 before the next starts. Manual mode instead uses exactly one validated
 `udp://host:port` or `tcp://host:port` with no fallback.
 
+Using UDP instead of TCP for the same resolver is a rejected performance path for the
+tested LTE route. In a short production-gVisor A/B, UDP remained functional but exact
+download throughput averaged 18.121 kB/s versus 197.070 kB/s over TCP, the acknowledged
+upload did not complete and 4 KiB latency was 4.66x worse. The strict TCP selection was
+restored. Do not repeat this transport-only experiment without materially new network
+evidence; see
+[`goals/2026-08-12-dns-tunnel-udp-resolver-ab.md`](goals/2026-08-12-dns-tunnel-udp-resolver-ab.md).
+
 The explicit DNS benchmark keeps a separate labeled pool: the automatic candidates,
 all Yandex Basic, Safe and Family IPv4 pairs, and the nine user-supplied Rostelecom
 scan candidates. The latter are marked Experimental and are never part of automatic
