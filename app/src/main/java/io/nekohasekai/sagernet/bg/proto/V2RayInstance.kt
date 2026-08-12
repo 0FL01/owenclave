@@ -75,6 +75,7 @@ import java.net.Socket
         }
 
         protected open val dnsTunnelReadyTimeoutMs = DNS_TUNNEL_READY_TIMEOUT_MS
+        protected open fun onDnsTunnelStopped(error: IOException) {}
 
         private fun underlayDnsServer(): String? {
             val dnsServers = underlayDnsServers()
@@ -240,7 +241,7 @@ import java.net.Socket
             for ((index, resolver) in resolvers.withIndex()) {
                 val remaining = deadline - SystemClock.elapsedRealtime()
                 if (remaining <= 0) break
-                val instance = SlipstreamInstance(client, resolver)
+                val instance = SlipstreamInstance(client, resolver, ::onDnsTunnelStopped)
                 dnsTunnelInstance = instance
                 try {
                     withTimeout((remaining / (resolvers.size - index).coerceAtLeast(1)).coerceAtLeast(1L)) {

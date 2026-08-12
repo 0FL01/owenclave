@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class SlipstreamInstance(
     private val config: DnsttClientConfig,
     private val resolver: DnsttResolver,
+    private val onStopped: (IOException) -> Unit,
 ) : AbstractInstance {
     private companion object {
         const val WORKERS = 32
@@ -311,12 +312,9 @@ internal class SlipstreamInstance(
                 synchronized(lock) {
                     if (closed) return@launch
                     if (!isAlive(process)) {
-                        Logs.w("slipstream: process stopped, restarting")
-                        stopLocked()
-                        if (process == null) {
-                            runCatching { startLocked() }
-                                .onFailure { Logs.w("slipstream: process restart failed") }
-                        }
+                        Logs.w("slipstream: process stopped after readiness")
+                        onStopped(IOException("DNS Tunnel carrier stopped"))
+                        return@launch
                     }
                 }
             }

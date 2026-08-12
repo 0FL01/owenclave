@@ -153,6 +153,11 @@ arguments or traffic logging as evidence.
   indefinitely while payload is blocked.
 - Reproduce: use a disposable resolver or controlled forwarder; never disrupt the live
   public carrier for this test.
+- Evidence: Android 15 connected through a disposable localhost TCP DNS forwarder.
+  After the ready child was killed and the forwarder removed, the baseline immediately
+  launched a live replacement and remained Connected indefinitely. The fix routes the
+  exit through full service startup: the replacement stayed under the 15-second
+  Connecting gate and the VPN/child stopped when it could not become ready.
 
 ### W3.2 Failed gVisor TCP dials retain connection state
 

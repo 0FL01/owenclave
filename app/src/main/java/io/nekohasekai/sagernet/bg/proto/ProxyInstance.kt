@@ -42,6 +42,10 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
 ),
     ObservatoryStatusUpdateListener {
 
+    override fun onDnsTunnelStopped(error: IOException) {
+        service.stopRunner(restart = true, msg = error.message)
+    }
+
     lateinit var observatoryJob: Job
 
     override suspend fun init() {

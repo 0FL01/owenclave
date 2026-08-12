@@ -82,7 +82,10 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
 - Automatic candidate exhaustion, carrier failure and FlowRelay failure are
   fail-closed. When Android changes the physical underlay, Owenclave closes the old
   child and restarts DNS Tunnel; automatic mode discovers the new network's DNS,
-  while a manually selected resolver stays pinned. There is no periodic health
+  while a manually selected resolver stays pinned. A child exit after readiness
+  restarts the full DNS Tunnel session through the same bounded readiness gate; if no
+  resolver becomes ready, the service stops instead of remaining falsely Connected.
+  There is no periodic health
   check, background ranking, direct carrier, legacy SSH path or direct destination
   fallback.
 - Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
