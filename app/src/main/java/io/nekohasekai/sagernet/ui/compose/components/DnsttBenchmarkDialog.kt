@@ -62,7 +62,7 @@ internal fun DnsttBenchmarkDialog(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             sorted.forEach { result ->
-                val selectable = !running && result.complete
+                val selectable = result.complete
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
