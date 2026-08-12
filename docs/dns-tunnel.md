@@ -92,6 +92,8 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
   and empty keepalive remains 5 seconds.
+- A captured TCP flow whose carrier dial fails is closed and removed from the active
+  connection set immediately; failed flows are not retained until VPN shutdown.
 - The generated Android Slipstream artifact is currently arm64-only and ignored
   under `app/src/main/jniLibs/`. A clean build must run
   `./bin/lib/slipstream/build.sh`.

@@ -289,6 +289,13 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	t.connectionsLock.Lock()
 	elem := t.connections.PushBack(cancel)
 	t.connectionsLock.Unlock()
+	defer func() {
+		cancel()
+		t.connectionsLock.Lock()
+		t.connections.Remove(elem)
+		t.connectionsLock.Unlock()
+		common.CloseIgnore(conn)
+	}()
 
 	ctx = v2log.ContextWithAccessMessage(ctx, &v2log.AccessMessage{
 		From:   source,
@@ -310,10 +317,6 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		return io.EOF
 	})
 
-	t.connectionsLock.Lock()
-	t.connections.Remove(elem)
-	t.connectionsLock.Unlock()
-	common.CloseIgnore(conn)
 }
 
 type packet struct {

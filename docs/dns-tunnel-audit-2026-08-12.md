@@ -162,13 +162,17 @@ arguments or traffic logging as evidence.
 ### W3.2 Failed gVisor TCP dials retain connection state
 
 - Severity: medium
-- Confidence: high from source
+- Status: fixed and verified
+- Confidence: confirmed
 - Source: `library/core/tun.go:287-316`
 - Trigger: repeated captured TCP attempts while the carrier SOCKS dial fails.
 - Risk: the error return skips context cancellation, list removal and incoming
   connection close, accumulating resources until VPN shutdown.
-- Reproduce: use a bounded number of failed connections and compare process/FD memory
-  before, after and after VPN stop.
+- Evidence: a focused deterministic core test forced `V2RayInstance.dial` to fail.
+  The baseline retained one connection-list entry and left the incoming `net.Conn`
+  open; the fixed path cancels the context, removes the entry and closes the incoming
+  connection on every return. The rebuilt arm64 core was packaged in a signed release;
+  Android 15 retained one VPN/child and Firefox reached DE WARP through gVisor.
 
 ### W3.3 Stop and restart requests can cross
 

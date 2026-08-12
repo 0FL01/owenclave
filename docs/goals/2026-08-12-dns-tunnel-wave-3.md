@@ -41,8 +41,13 @@ fix, build, validate, commit and push each confirmed defect before starting the 
     connection-list entry until VPN shutdown.
   - Primary evidence: controlled failing dial reproduction with before/after resource
     observation or a focused deterministic core test.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: the focused `TestNewConnectionClosesFailedDial` reproduced one retained
+    list entry and open incoming connection on the baseline. The fixed common return
+    cleanup cancels context, removes the entry and closes the incoming connection;
+    focused and full `CGO_ENABLED=0 go test ./...` passed. The rebuilt arm64 core was
+    packaged into a signed/aligned release, and Android 15 kept one VPN/child with
+    Firefox payload at `loc=DE`, `warp=on`.
 
 - R3: A final stop request wins over an already queued restart.
   - Source: user-approved W3.3.
@@ -88,21 +93,21 @@ fix, build, validate, commit and push each confirmed defect before starting the 
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: build and validate the non-debug release, commit/push R1, then
-  begin R2 from the clean checkpoint.
-- Expected evidence: signed release retains ordinary one-child DNS payload and the
-  fault-injection build leaves no stale Connected state.
-- Stop or replan if: the production build changes the tested lifecycle behavior.
+- Closes: R2.
+- Smallest next action: commit/push the verified core cleanup, then reproduce R3 with
+  a temporary controlled teardown barrier.
+- Expected evidence: clean R2 checkpoint and deterministic crossed restart/stop
+  ordering on the baseline.
+- Stop or replan if: R3 cannot be triggered without a committed runtime hook.
 
 ## Current State
 
-- Resolved: R1. Post-readiness child exit now reuses full service startup readiness
-  instead of launching an unobserved replacement.
-- Last relevant evidence: unavailable disposable resolver ended with zero VPN/child
-  after the bounded replacement attempt; the public carrier was not changed.
+- Resolved: R1-R2. Post-readiness child exit uses full service readiness; all captured
+  TCP returns now release their connection owner.
+- Last relevant evidence: focused failed-dial regression test and full core tests
+  passed; rebuilt Android release retained one VPN/child and DE WARP payload.
 - Blocker: none.
-- Next: final R1 release validation and separate commit/push.
+- Next: separate R2 commit/push, then R3 reproduction.
 
 ## Material Decisions
 
@@ -116,6 +121,8 @@ fix, build, validate, commit and push each confirmed defect before starting the 
 - 2026-08-12: contract frozen; R1 is current.
 - 2026-08-12: R1 reproduced and fixed by routing post-readiness exit through the
   existing full-service readiness and failure path.
+- 2026-08-12: R2 reproduced with a deterministic failed core dial and fixed by common
+  deferred cancellation, list removal and incoming connection close.
 
 ## Completion
 
