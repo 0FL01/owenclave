@@ -17,6 +17,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -37,6 +41,12 @@ internal fun DnsttBenchmarkDialog(
     onDismiss: () -> Unit,
 ) {
     val sorted = results.sortedDnsttBenchmarkResults()
+    var selectionMade by remember { mutableStateOf(false) }
+    fun selectOnce(action: () -> Unit) {
+        if (selectionMade) return
+        selectionMade = true
+        action()
+    }
     ExpressiveDialog(onDismissRequest = onDismiss) {
         Text("DNS benchmark", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(6.dp))
@@ -62,11 +72,13 @@ internal fun DnsttBenchmarkDialog(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             sorted.forEach { result ->
-                val selectable = result.complete
+                val selectable = !selectionMade && result.complete
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = selectable) { onSelect(result) },
+                        .clickable(enabled = selectable) {
+                            selectOnce { onSelect(result) }
+                        },
                     shape = MaterialTheme.shapes.large,
                     color = if (result.resolver.toString() == currentResolver) {
                         MaterialTheme.colorScheme.secondaryContainer
@@ -103,7 +115,10 @@ internal fun DnsttBenchmarkDialog(
             if (!running && results.isNotEmpty()) {
                 TextButton(onClick = onRetest) { Text("Retest") }
             }
-            TextButton(onClick = onAutomatic) { Text("Automatic TCP") }
+            TextButton(
+                enabled = !selectionMade,
+                onClick = { selectOnce(onAutomatic) },
+            ) { Text("Automatic TCP") }
             TextButton(onClick = onDismiss) { Text(if (running) "Cancel" else "Close") }
         }
     }

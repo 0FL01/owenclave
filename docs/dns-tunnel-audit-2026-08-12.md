@@ -70,6 +70,10 @@ arguments or traffic logging as evidence.
   overwrite the user's final choice.
 - Reproduce: alternate two visibly distinct choices and reopen the profile; compare
   the displayed final selection with the last tap.
+- Evidence: Android reproduced resolver-first/Automatic-second ending with the first
+  resolver persisted even though both controls accepted taps. The fix accepts exactly
+  one choice and immediately disables every resolver plus Automatic until cleanup and
+  persistence finish, eliminating concurrent selection owners.
 
 ### W1.5 Empty per-app Proxy list captures every app
 

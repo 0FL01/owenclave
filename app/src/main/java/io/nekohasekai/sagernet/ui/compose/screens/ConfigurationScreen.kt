@@ -250,8 +250,8 @@ fun ConfigurationScreen(
         val runningJob = benchmarkJob
         benchmarkJob = null
         scope.launch(Dispatchers.IO) {
+            withContext(NonCancellable) { runningJob?.cancelAndJoin() }
             try {
-                withContext(NonCancellable) { runningJob?.cancelAndJoin() }
                 val profile = ProfileManager.getProfile(profileId) ?: return@launch
                 val bean = profile.dnsttBean ?: return@launch
                 bean.resolver = value

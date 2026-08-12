@@ -1,6 +1,6 @@
 # Goal: Close confirmed DNS Tunnel defects
 
-Status: active
+Status: complete
 Source: user-approved 2026-08-12 Wave 1 defect list and iterative delivery order
 Last updated: 2026-08-12
 
@@ -62,12 +62,17 @@ fix, validate, commit and push each outcome separately before continuing.
 
 - R4: rapid benchmark resolver choices persist the final user action.
   - Source: user defect 4.
-  - Acceptance: repeated resolver/Automatic choices are serialized or superseded so
-    the last accepted tap is the persisted mode; no benchmark child remains.
+  - Acceptance: repeated resolver/Automatic choices have one accepted owner, so the
+    last accepted tap is the persisted mode; no benchmark child remains.
   - Primary evidence: reproduce out-of-order persistence before the fix, then repeat a
     bounded alternating-choice sequence and verify the final displayed selection.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: Android reproduced a completed resolver tap followed immediately by
+    Automatic, but the earlier resolver was persisted even though both controls
+    accepted taps. The focused fix accepts exactly one choice and disables all
+    selectors until cleanup/persistence finish. Rapid resolver/Automatic and
+    Automatic/resolver sequences each accepted one owner, persisted that first/last
+    accepted tap and left zero child.
 
 ### Constraints
 
@@ -100,21 +105,20 @@ fix, validate, commit and push each outcome separately before continuing.
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: commit and push verified R3, then reproduce rapid completed
-  resolver followed by Automatic while a benchmark remains active.
-- Expected evidence: the persisted mode can differ from the final accepted tap.
-- Stop or replan if: the UI already accepts only one selection or final-tap ordering is
-  deterministic on the current build.
+- Closes: R1-R4.
+- Smallest next action: commit/push this final checkpoint, replace the requested APK
+  and stop.
+- Expected evidence: clean pushed tree and matching source/destination APK hashes.
+- Stop or replan if: final delivery changes the verified artifact.
 
 ## Current State
 
-- Resolved: R1-R3. Direct cannot bypass DNS Tunnel, Test all cannot overlap an active
-  service, and benchmark Cancel joins cleanup before exposing Connect.
-- Last relevant evidence: Android transitioned from active benchmark to hidden dialog
-  only at zero child; immediate VPN connection and TCP/UDP payload passed.
+- Resolved: R1-R4. Direct cannot bypass DNS Tunnel, Test all cannot overlap an active
+  service, Cancel joins cleanup, and benchmark selection has one accepted owner.
+- Last relevant evidence: both rapid selection orders persisted the only accepted
+  control and left zero child; release assembly passed.
 - Blocker: none.
-- Next: commit/push R3, then reproduce R4 before editing it.
+- Next: commit/push R4, replace the requested APK and stop.
 
 ## Material Decisions
 
@@ -130,10 +134,16 @@ fix, validate, commit and push each outcome separately before continuing.
   disabled and guarded while the proxy service is starting or connected.
 - 2026-08-12: R3 confirmed that Cancel had no UI cleanup barrier; the dialog now stays
   visible until benchmark cancellation and child teardown join.
+- 2026-08-12: R4 reproduced ambiguous double acceptance; the first selection now owns
+  cleanup/persistence and all other selectors disable immediately.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1-R4 verified.
+- Commands and artifacts: four focused Android reproductions/fixes; release assembly,
+  ZIP integrity, v1/v2 signature and 16 KiB alignment; LTE DNS Tunnel TCP/UDP payload,
+  DE WARP egress and n-de1 stability checks.
+- Constraint and diff-scope check: gVisor-only, one-child, authenticated carrier and
+  fail-closed contracts remain; no server, credential, wire-format, olcRTC, dependency
+  or persistent-schema change.
+- Final status: complete.

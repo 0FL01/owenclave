@@ -41,7 +41,8 @@ profile. Reopening the benchmark shows this snapshot without starting a child; R
 runs the same foreground benchmark and replaces the snapshot only after success, so
 cancellation or failure keeps the previous one. Cancel keeps the dialog visible until
 the active child has stopped, then makes connection controls available again. Invalid
-saved snapshots are ignored.
+saved snapshots are ignored. The first resolver or Automatic choice is accepted and
+the selector is disabled while cleanup and persistence finish.
 Profile batch testing is unavailable while the proxy service is starting or connected,
 so it cannot create a second DNS Tunnel child beside the active VPN.
 The first reachable Cloudflare, OVH or Hetzner download endpoint is fixed for the
