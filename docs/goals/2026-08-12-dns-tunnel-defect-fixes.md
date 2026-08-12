@@ -40,8 +40,12 @@ fix, validate, commit and push each outcome separately before continuing.
     controlled restart remain healthy.
   - Primary evidence: reproduce overlap before the fix, then observe at most one child
     plus successful payload and restart after the fix.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: Android 15 reproduced two concurrent Slipstream children immediately
+    after Test all was pressed beside a connected DNS Tunnel VPN. The focused UI fix
+    disables the action while the service is starting or connected and rechecks that
+    state in the handler. The fixed action launched no batch test and retained exactly
+    one child; DE WARP, TCP/UDP payload and a controlled VPN restart passed.
 
 - R3: closing an active DNS benchmark waits for cleanup before Connect is reachable.
   - Source: user defect 3.
@@ -92,21 +96,21 @@ fix, validate, commit and push each outcome separately before continuing.
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: commit and push verified R1, then reproduce `Test all` while a
-  DNS Tunnel VPN is connected without altering the live carrier.
-- Expected evidence: two concurrent Slipstream children or another observable shared
-  ownership violation on the current code.
-- Stop or replan if: the test action is already blocked or no overlap is observable.
+- Closes: R3.
+- Smallest next action: commit and push verified R2, then reproduce benchmark Cancel
+  followed by immediate Connect before changing its cleanup path.
+- Expected evidence: a measurable interval where the dialog is gone but the benchmark
+  child or cleanup owner remains active.
+- Stop or replan if: Connect is already ordered after benchmark teardown.
 
 ## Current State
 
-- Resolved: R1. DNS Tunnel ignores the global Direct catch-all while olcRTC behavior is
-  unchanged.
-- Last relevant evidence: Android Route Mode Direct E2E returned DE WARP egress with
-  one child and successful TCP/UDP payload; release assembly passed.
+- Resolved: R1-R2. DNS Tunnel ignores the global Direct catch-all, and Test all cannot
+  start while the proxy service is starting or connected.
+- Last relevant evidence: Android kept one child and no batch progress after Test all
+  was pressed; DE WARP, TCP/UDP payload and stop/start recovery passed.
 - Blocker: none.
-- Next: commit/push R1, then reproduce R2 before editing it.
+- Next: commit/push R2, then reproduce R3 before editing it.
 
 ## Material Decisions
 
@@ -118,6 +122,8 @@ fix, validate, commit and push each outcome separately before continuing.
 - 2026-08-12: contract frozen; R1 is current and no runtime fix has been made.
 - 2026-08-12: R1 reproduced direct LTE bypass and closed it with a one-condition
   config fix; Direct-mode DNS Tunnel E2E passed through DE WARP.
+- 2026-08-12: R2 reproduced two concurrent Slipstream children; Test all is now
+  disabled and guarded while the proxy service is starting or connected.
 
 ## Completion
 

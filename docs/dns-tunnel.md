@@ -40,6 +40,8 @@ The last fully completed result set and selected benchmark host are stored with 
 profile. Reopening the benchmark shows this snapshot without starting a child; Retest
 runs the same foreground benchmark and replaces the snapshot only after success, so
 cancellation or failure keeps the previous one. Invalid saved snapshots are ignored.
+Profile batch testing is unavailable while the proxy service is starting or connected,
+so it cannot create a second DNS Tunnel child beside the active VPN.
 The first reachable Cloudflare, OVH or Hetzner download endpoint is fixed for the
 whole benchmark so endpoint fallback does not multiply runs or make resolver scores
 incomparable.

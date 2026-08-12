@@ -36,6 +36,11 @@ arguments or traffic logging as evidence.
   production-child restart.
 - Reproduce: observe child count during Test all, then verify live payload and a
   controlled VPN restart. Do not print child command lines.
+- Evidence: Android 15 reproduced two concurrent Slipstream children immediately
+  after Test all was pressed beside a connected DNS Tunnel VPN. The fixed UI disables
+  Test all while the service is starting or connected and rechecks the state in the
+  action handler; the active VPN retained one child and its payload/restart stayed
+  healthy.
 
 ### W1.3 Benchmark Cancel exposes cleanup as complete too early
 

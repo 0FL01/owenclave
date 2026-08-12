@@ -163,6 +163,14 @@ fun ConfigurationScreen(
     }
 
     fun batchUrlTest() {
+        if (serviceRunning) {
+            android.widget.Toast.makeText(
+                context,
+                "Stop the connection before testing profiles",
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
         batchTestJob?.cancel()
         batchTestJob = scope.launch(Dispatchers.IO) {
             val groupId = DataStore.currentGroupId()
@@ -395,6 +403,7 @@ fun ConfigurationScreen(
                             }
                         } else {
                             IconButton(
+                                enabled = !serviceRunning,
                                 onClick = { batchUrlTest() },
                             ) {
                                 Icon(Icons.Filled.Speed, contentDescription = "Test all")
