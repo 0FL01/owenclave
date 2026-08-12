@@ -137,6 +137,9 @@ arguments or traffic logging as evidence.
 - Risk: automatic mode keeps an obsolete network-local resolver and does not recover.
 - Reproduce: on controlled Wi-Fi, change advertised DNS without disconnecting and
   verify Network identity, child PID and payload recovery.
+- Status: closed without a fix by user direction. Bounded Android 15 attempts did not
+  produce a same-Network DNS-list change, and speculative callback changes were removed;
+  no router or server setting was altered.
 
 ## Wave 3 — controlled fault injection
 

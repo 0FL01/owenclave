@@ -1,6 +1,6 @@
 # Goal: Recover DNS Tunnel across Android network changes
 
-Status: active
+Status: complete
 Source: user-approved 2026-08-12 W2.1 and W2.3 audit slices
 Last updated: 2026-08-12
 
@@ -41,8 +41,11 @@ fix, validate, commit and push R1 before starting R2.
     Tunnel and takes a fresh resolver snapshot; manual mode remains pinned.
   - Primary evidence: controlled same-Network callback reproduction followed by
     automatic child replacement/payload and no manual-mode restart.
-  - Status: pending
-  - Evidence:
+  - Status: superseded
+  - Evidence: the user closed W2.3 after bounded Android 15 attempts could not produce
+    a same-Network `LinkProperties.dnsServers` change. Private DNS did not change the
+    resolver list or child, and no router/server settings were altered. The unverified
+    callback implementation was removed rather than shipped without runtime evidence.
 
 ### Constraints
 
@@ -77,19 +80,18 @@ fix, validate, commit and push R1 before starting R2.
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: commit/push R1 before starting R2.
-- Expected evidence: clean pushed R1 tree and R2 remains untouched.
-- Stop or replan if: the final R1 diff changes the tested handover behavior.
+- Closes: R2 by explicit user supersession.
+- Smallest next action: verify cleanup and stop this objective.
+- Expected evidence: no W2.3 runtime diff remains and R1 stays pushed.
+- Stop or replan if: cleanup removes the verified R1 listener ownership fix.
 
 ## Current State
 
-- Resolved: R1. A stale listener teardown cannot remove a replacement session, and a
-  restarted session takes its own current-underlay baseline.
-- Last relevant evidence: two strict-resolver handovers each replaced the child and
-  recovered DE WARP with n-de1 restart counters unchanged at 5/0.
+- Resolved: R1 verified; R2 superseded by the user after its controlled trigger could
+  not be produced without changing network infrastructure.
+- Last relevant evidence: R1 remains at `fab79d9`; W2.3 source changes were removed.
 - Blocker: none.
-- Next: commit/push R1, restore Automatic, then reproduce R2.
+- Next: begin the separately approved Wave 3 objective.
 
 ## Material Decisions
 
@@ -101,10 +103,14 @@ fix, validate, commit and push R1 before starting R2.
 - 2026-08-12: contract frozen; R1 is current.
 - 2026-08-12: R1 reproduced and closed with per-session listener ownership plus fresh
   restart baseline; automatic timing was deliberately excluded from this checkpoint.
+- 2026-08-12: bounded W2.3 attempts did not alter same-Network DNS. The user closed the
+  slice; speculative callback changes were discarded and no infrastructure was changed.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1 verified; R2 superseded by explicit user direction.
+- Commands and artifacts: Android 15 two-handover acceptance for R1 and source cleanup
+  against `fab79d9` for R2.
+- Constraint and diff-scope check: verified R1 retained; no W2.3 runtime change, network
+  infrastructure change, secret or new dependency remains.
+- Final status: complete.
