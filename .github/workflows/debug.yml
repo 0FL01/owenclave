@@ -43,15 +43,15 @@ jobs:
         run: |
           ./run lib core debug
           ./bin/lib/olcrtc/build.sh
-          ./bin/lib/naive/download.sh
-          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
-            test -s "app/src/main/jniLibs/$abi/libolcrtc.so"
-            test -s "app/src/main/jniLibs/$abi/libnaive.so"
-          done
+          ./bin/lib/slipstream/build.sh
+          test -s app/libs/libexclavecore.aar
+          test -s app/src/main/jniLibs/arm64-v8a/libolcrtc.so
+          test -s app/src/main/jniLibs/arm64-v8a/libslipstream.so
+          ! find app/src/main/jniLibs -type f \( -name libdnstt.so -o -name libnaive.so \) -print -quit | grep -q .
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          path: app/libs/libowenclavecore.aar
+          path: app/libs/libexclavecore.aar
           name: "LibExclaveCore"
       - name: Gradle Cache
         uses: actions/cache@v6

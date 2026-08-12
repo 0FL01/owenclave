@@ -65,12 +65,6 @@
 
     <queries>
         <intent>
-            <action android:name="com.github.shadowsocks.plugin.ACTION_NATIVE_PLUGIN" />
-        </intent>
-        <intent>
-            <action android:name="io.nekohasekai.sagernet.plugin.ACTION_NATIVE_PLUGIN" />
-        </intent>
-        <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
@@ -128,32 +122,7 @@
 
                 <!--data android:scheme="http" /-->
                 <!--data android:scheme="https" /-->
-                <data android:scheme="ss" />
-                <!--data android:scheme="ssh" /-->
-                <data android:scheme="ssr" />
-                <data android:scheme="socks" />
-                <data android:scheme="socks4" />
-                <data android:scheme="socks4a" />
-                <data android:scheme="sock5" />
-                <data android:scheme="sock5h" />
-                <data android:scheme="vmess" />
-                <data android:scheme="vless" />
-                <data android:scheme="trojan" />
-                <data android:scheme="naive+https" />
-                <data android:scheme="naive+quic" />
-                <data android:scheme="hysteria2" />
-                <data android:scheme="hy2" />
-                <data android:scheme="juicity" />
-                <data android:scheme="tuic" />
-                <data android:scheme="wireguard" />
-                <data android:scheme="wg" />
-                <data android:scheme="mierus" />
-                <data android:scheme="quic" />
-                <data android:scheme="anytls" />
-                <data android:scheme="tt" />
-                <data android:scheme="sq" />
-                <data android:scheme="shadowquic" />
-                <data android:scheme="owenkey" />
+                <data android:scheme="olcrtc" />
             </intent-filter>
 
             <meta-data
@@ -255,11 +224,6 @@
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.github.shadowsocks.plugin.v2ray.ConfigActivity" />
-        <activity
-            android:name="com.github.shadowsocks.plugin.obfs_local.ConfigActivity" />
-
         <service
             android:name="io.nekohasekai.sagernet.bg.ProxyService"
             android:exported="false"

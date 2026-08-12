@@ -558,29 +558,8 @@ private fun ProtocolPickerDialog(
     onDismiss: () -> Unit,
 ) {
     val protocols = listOf(
-        "SOCKS" to ProxyEntity.TYPE_SOCKS,
-        "HTTP" to ProxyEntity.TYPE_HTTP,
-        "Shadowsocks" to ProxyEntity.TYPE_SS,
-        "ShadowsocksR" to ProxyEntity.TYPE_SSR,
-        "VMess" to ProxyEntity.TYPE_VMESS,
-        "VLESS" to ProxyEntity.TYPE_VLESS,
-        "Trojan" to ProxyEntity.TYPE_TROJAN,
-        "Naive" to ProxyEntity.TYPE_NAIVE,
-        "Hysteria 2" to ProxyEntity.TYPE_HYSTERIA2,
         "DNS Tunnel" to ProxyEntity.TYPE_DNSTT,
-        "WireGuard" to ProxyEntity.TYPE_WG,
-        "Mieru" to ProxyEntity.TYPE_MIERU,
-        "TUIC" to ProxyEntity.TYPE_TUIC5,
-        "Juicity" to ProxyEntity.TYPE_JUICITY,
-        "HTTP/3" to ProxyEntity.TYPE_HTTP3,
-        "AnyTLS" to ProxyEntity.TYPE_ANYTLS,
-        "ShadowQUIC" to ProxyEntity.TYPE_SHADOWQUIC,
-        "TrustTunnel" to ProxyEntity.TYPE_TRUSTTUNNEL,
-        "Snell" to ProxyEntity.TYPE_SNELL,
         "OLCRTC" to ProxyEntity.TYPE_OLCRTC,
-        "Chain" to ProxyEntity.TYPE_CHAIN,
-        "Balancer" to ProxyEntity.TYPE_BALANCER,
-        "Custom Config" to ProxyEntity.TYPE_CONFIG,
     )
 
     io.nekohasekai.sagernet.ui.compose.components.ExpressiveDialog(onDismissRequest = onDismiss) {

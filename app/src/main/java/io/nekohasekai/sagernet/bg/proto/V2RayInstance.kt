@@ -116,9 +116,7 @@ import java.net.Socket
                 if (username.isNotEmpty()) appendLine("  user: \"$username\"")
                 if (password.isNotEmpty()) appendLine("  pass: \"$password\"")
                 appendLine("data: \"${dataDir.absolutePath}\"")
-                appendLine("debug: true")
-            }.also {
-                Logs.d("olcrtc yaml config for port $port:\n$it")
+                appendLine("debug: false")
             }
         }
 
@@ -280,7 +278,6 @@ import java.net.Socket
                         Logs.i("olcrtc: nativeLibraryDir=${context.applicationInfo.nativeLibraryDir}")
                         Logs.i("olcrtc: binary=${olcrtcBin.absolutePath} exists=${olcrtcBin.exists()} canExecute=${olcrtcBin.canExecute()} size=${if (olcrtcBin.exists()) olcrtcBin.length() else -1}")
                         Logs.i("olcrtc: config file=${configFile.absolutePath} exists=${configFile.exists()}")
-                        Logs.d("olcrtc: config content:\n$config")
                         if (!olcrtcBin.exists()) {
                             Logs.e("olcrtc: binary libolcrtc.so NOT FOUND in nativeLibraryDir. " +
                                 "Check that jniLibs/<abi>/libolcrtc.so is packaged and extractNativeLibs/useLegacyPackaging is enabled.")
