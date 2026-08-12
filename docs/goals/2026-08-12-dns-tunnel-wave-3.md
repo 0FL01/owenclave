@@ -1,6 +1,6 @@
 # Goal: Close DNS Tunnel Wave 3 lifecycle defects
 
-Status: active
+Status: complete
 Source: user-approved 2026-08-12 Wave 3 audit slice
 Last updated: 2026-08-12
 
@@ -55,8 +55,12 @@ fix, build, validate, commit and push each confirmed defect before starting the 
     Stopped and does not start another VPN session.
   - Primary evidence: controlled teardown barrier reproducing the crossed requests,
     then the same ordering on the fixed build.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: a temporary five-second teardown barrier reproduced the crossed order:
+    `RELOAD` then `CLOSE` still replaced child PID 14363 with 14854 and retained the
+    VPN. The fixed build records a final stop during `Stopping`; the same sequence
+    removed child PID 15231 and VPN state, and neither returned during 12 seconds.
+    The barrier and debuggable build flag were removed before the final build.
 
 ### Constraints
 
@@ -93,21 +97,19 @@ fix, build, validate, commit and push each confirmed defect before starting the 
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: commit/push the verified core cleanup, then reproduce R3 with
-  a temporary controlled teardown barrier.
-- Expected evidence: clean R2 checkpoint and deterministic crossed restart/stop
-  ordering on the baseline.
-- Stop or replan if: R3 cannot be triggered without a committed runtime hook.
+- Closes: R1-R3.
+- Smallest next action: commit/push the final verified checkpoint and stop.
+- Expected evidence: clean branch at the pushed R3 commit.
+- Stop or replan if: the tracked closure diff changes.
 
 ## Current State
 
-- Resolved: R1-R2. Post-readiness child exit uses full service readiness; all captured
-  TCP returns now release their connection owner.
-- Last relevant evidence: focused failed-dial regression test and full core tests
-  passed; rebuilt Android release retained one VPN/child and DE WARP payload.
+- Resolved: R1-R3. Carrier recovery is readiness-gated, failed TCP dials release their
+  owner, and final stop intent overrides queued restart intent.
+- Last relevant evidence: final non-debug arm64 release retained one child/VPN and
+  Firefox payload at `loc=DE`, `warp=on`; stop left zero child/VPN.
 - Blocker: none.
-- Next: separate R2 commit/push, then R3 reproduction.
+- Next: commit/push and stop.
 
 ## Material Decisions
 
@@ -123,10 +125,16 @@ fix, build, validate, commit and push each confirmed defect before starting the 
   existing full-service readiness and failure path.
 - 2026-08-12: R2 reproduced with a deterministic failed core dial and fixed by common
   deferred cancellation, list removal and incoming connection close.
+- 2026-08-12: R3 reproduced with a temporary teardown barrier and fixed by preserving
+  mutable restart intent while cleanup is in progress.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1-R3 verified.
+- Commands and artifacts: focused/full core Go tests and module verification, clean
+  arm64 core build, `:app:assembleOssRelease`, APK ZIP/signature/16 KiB alignment,
+  controlled Android fault injection and final DNS Tunnel payload acceptance.
+- Constraint and diff-scope check: gVisor-only, one child, authenticated carrier and
+  fail-closed routing remain; no server, protocol, credential, dependency or olcRTC
+  changes, and all temporary fault hooks were removed.
+- Final status: complete.

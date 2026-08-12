@@ -177,13 +177,17 @@ arguments or traffic logging as evidence.
 ### W3.3 Stop and restart requests can cross
 
 - Severity: medium
-- Confidence: medium-high from source
+- Status: fixed and verified
+- Confidence: confirmed
 - Source: `bg/BaseService.kt:401-445`
 - Trigger: a user stop or fatal callback arrives while an underlay/reload restart is
   already in Stopping.
 - Risk: the stop request can be ignored and the VPN starts again unexpectedly.
-- Reproduce: use an instrumentation barrier around queued teardown; do not depend on
-  nondeterministic tapping as sole evidence.
+- Evidence: a temporary five-second teardown barrier made the ordering deterministic.
+  On the baseline, `RELOAD` followed by `CLOSE` replaced child PID 14363 with 14854 and
+  retained the VPN. The fixed build records final stop intent during `Stopping`; the
+  identical sequence removed child PID 15231 and the VPN, with neither returning during
+  the bounded observation. The barrier and debuggable release flag were removed.
 
 ## Additional findings
 

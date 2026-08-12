@@ -82,6 +82,7 @@ class BaseService {
 
         val binder = Binder(this)
         var connectingJob: Job? = null
+        var restartAfterStop = false
 
         fun changeState(s: State, msg: String? = null) {
             if (state == s && msg == null) return
@@ -399,12 +400,17 @@ class BaseService {
         }
 
         fun stopRunner(restart: Boolean = false, msg: String? = null, keepState: Boolean = true) {
+            synchronized(data) {
+                if (data.state == State.Stopping) {
+                    if (!restart) data.restartAfterStop = false
+                    return
+                }
+                data.restartAfterStop = restart
+                data.changeState(State.Stopping)
+            }
             data.notification?.destroy()
             data.notification = null
-            if (data.state == State.Stopping) return
             this as Service
-
-            data.changeState(State.Stopping)
 
             runOnMainDispatcher {
                 data.connectingJob?.cancelAndJoin() // ensure stop connecting first
@@ -419,9 +425,6 @@ class BaseService {
                     data.binder.profilePersisted(listOfNotNull(data.proxy).map { it.profile.id })
                     data.proxy = null
                 }
-
-                // change the state
-                data.changeState(State.Stopped, msg)
                 val startedProfileId = DataStore.startedProfile
                 val startTime = DataStore.connectionStart
                 if (startedProfileId > 0 && startTime > 0) {
@@ -437,8 +440,12 @@ class BaseService {
                 DataStore.connectionStart = 0L
                 DataStore.startedProfile = 0L
                 if (!keepState) DataStore.currentProfile = 0L
+                val restartAfterStop = synchronized(data) {
+                    data.changeState(State.Stopped, msg)
+                    data.restartAfterStop
+                }
                 // stop the service if nothing has bound to it
-                if (restart) startRunner() else { //   BootReceiver.enabled = false
+                if (restartAfterStop) startRunner() else { //   BootReceiver.enabled = false
                     stopSelf()
                 }
             }

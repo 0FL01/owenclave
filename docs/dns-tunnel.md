@@ -85,9 +85,9 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
   while a manually selected resolver stays pinned. A child exit after readiness
   restarts the full DNS Tunnel session through the same bounded readiness gate; if no
   resolver becomes ready, the service stops instead of remaining falsely Connected.
-  There is no periodic health
-  check, background ranking, direct carrier, legacy SSH path or direct destination
-  fallback.
+  A user or fatal stop received during restart teardown cancels that queued restart.
+  There is no periodic health check, background ranking, direct carrier, legacy SSH
+  path or direct destination fallback.
 - Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
