@@ -106,6 +106,11 @@ arguments or traffic logging as evidence.
   installed by the replacement session. The next handover is then ignored.
 - Reproduce: perform at least two consecutive Wi-Fi/LTE handovers and require a child
   restart plus payload recovery after each one.
+- Evidence: Android 15 reproduced Wi-Fi to LTE replacing the child, while the next
+  LTE to Wi-Fi transition stopped the service instead of recovering. Listener sessions
+  now use unique keys, and teardown resets the old underlay baseline. With one strict
+  resolver to isolate listener ownership from automatic candidate timing, both fixed
+  transitions replaced the child, retained one VPN/child and reached DE WARP.
 
 ### W2.2 Proxy service mode violates the gVisor-only boundary
 

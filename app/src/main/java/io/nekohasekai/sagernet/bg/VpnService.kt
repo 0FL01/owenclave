@@ -105,7 +105,7 @@ class VpnService : BaseVpnService(),
             if (Build.VERSION.SDK_INT == 28 && metered) null else underlyingNetwork?.let {
                 arrayOf(it)
             }
-    private var networkListenerIsRunning = false
+    private var networkListenerKey: Any? = null
     private var lastUnderlyingNetwork: Network? = null
 
     override suspend fun startProcesses() {
@@ -134,8 +134,12 @@ class VpnService : BaseVpnService(),
         tun?.apply {
             tun = null
         }
-        networkListenerIsRunning = false
-        GlobalScope.launch(Dispatchers.Default) { DefaultNetworkListener.stop(this) }
+        val listenerKey = networkListenerKey
+        networkListenerKey = null
+        lastUnderlyingNetwork = null
+        GlobalScope.launch(Dispatchers.Default) {
+            if (listenerKey != null) DefaultNetworkListener.stop(listenerKey)
+        }
     }
 
     override fun onBind(intent: Intent) = when (intent.action) {
@@ -166,9 +170,10 @@ class VpnService : BaseVpnService(),
     }
 
     override suspend fun preInit() {
-        networkListenerIsRunning = true
-        DefaultNetworkListener.start(this) {
-            if (networkListenerIsRunning) {
+        val listenerKey = Any()
+        networkListenerKey = listenerKey
+        DefaultNetworkListener.start(listenerKey) {
+            if (networkListenerKey === listenerKey) {
                 val previous = lastUnderlyingNetwork
                 if (it != null) lastUnderlyingNetwork = it
                 underlyingNetwork = it
