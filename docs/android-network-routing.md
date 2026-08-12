@@ -23,6 +23,9 @@ Per-app VPN controls which installed application packages enter Android's VPN:
 Owenclave adjusts its own package membership as required by the selected TUN
 implementation. The separate `Allow apps to bypass VPN` setting enables Android's
 system-provided `VpnService` bypass mechanism; it is not the per-app package list.
+For DNS Tunnel, an empty `Proxy` allowlist fails before Android creates the VPN;
+otherwise Android would interpret the missing allowlist as capture all and include
+the separate Slipstream child in its own tunnel.
 Routing rules may also match packages after traffic has entered the VPN. That
 rule-level match does not change which packages Android captures.
 

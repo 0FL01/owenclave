@@ -87,6 +87,11 @@ arguments or traffic logging as evidence.
   recursion and readiness failure instead of capturing no applications.
 - Reproduce: compare two ordinary applications with an empty list and a one-app list;
   record capture and carrier readiness separately.
+- Evidence: Android 15 reproduced an empty `Proxy` list creating a VPN and one
+  Slipstream child before carrier recursion stopped both after the readiness window.
+  The focused fix rejects that state before retaining either resource. With Firefox
+  as the only selected app, one child remained connected, Firefox reached DE WARP,
+  and unselected Termux received no external payload on restricted LTE.
 
 ## Wave 2 — network and mode lifecycle
 

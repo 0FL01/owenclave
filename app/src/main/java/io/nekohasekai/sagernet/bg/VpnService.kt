@@ -254,6 +254,11 @@ class VpnService : BaseVpnService(),
             val bypass = DataStore.bypass
             val individual = mutableSetOf<String>()
             individual.addAll(DataStore.individual.split('\n').filter { it.isNotEmpty() })
+            if (!bypass && individual.isEmpty() && data.proxy?.hasDnsTunnel() == true) {
+                throw BaseService.ExpectedExceptionWrapper(
+                    IllegalStateException("Select at least one app for DNS Tunnel Proxy mode")
+                )
+            }
             individual.apply {
                 if (bypass xor needIncludeSelf) add(packageName) else remove(packageName)
             }.forEach {
