@@ -1,6 +1,6 @@
 # Goal: Remove DNS Tunnel process-supervision polling
 
-Status: active
+Status: complete
 Source: user-approved post-RECON battery plan, 2026-08-14
 Last updated: 2026-08-14
 
@@ -78,8 +78,11 @@ evidence and smallest unlock.
     current branch, and the matching arm64 release APK exists in the documented output
     path.
   - Primary evidence: commit/push result, clean tracked tree and APK digest.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: Runtime commit `31003aa` was pushed to `origin/dev`. The matching arm64
+    release APK has SHA-256
+    `dc163af932c18b95ad8676e1acaa815017499826dd304ce2a927fe45eb552cfd` in both the
+    documented build output and the user-requested replacement destination.
 
 ### Constraints
 
@@ -115,22 +118,21 @@ evidence and smallest unlock.
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: commit and push the verified source and goal, then copy the
-  matching arm64 APK to the user-requested destination.
-- Expected evidence: pushed `dev` commit, clean tracked tree and matching APK digest.
-- Stop or replan if: `origin/dev` moved or publication fails.
+- Closes: complete.
+- Smallest next action: none.
+- Expected evidence: closure check passed.
+- Stop or replan if: not applicable.
 
 ## Current State
 
-- Resolved: R1 and the measurement portion of R3 were superseded by the user's later
-  implementation instruction; R2 is verified.
+- Resolved: R1 and R3 are superseded by the user's later implementation instruction;
+  R2 and R4 are verified.
 - Last relevant evidence: arm64 APK SHA-256
   `dc163af932c18b95ad8676e1acaa815017499826dd304ce2a927fe45eb552cfd` passed v1/v2
   signature and 16 KiB alignment checks, installed, and passed one-child/VPN, TCP/UDP,
   WARP and clean Stop/reconnect gates with stable DE counters.
 - Blocker: none.
-- Next: R4 commit, push and requested APK copy.
+- Next: none; goal complete.
 
 ## Material Decisions
 
@@ -147,10 +149,18 @@ evidence and smallest unlock.
 - 2026-08-14: contract frozen after source, goals, Android and DE RECON; R1 started.
 - 2026-08-14: invalid baseline evidence was stopped; the focused event-driven change
   compiled, assembled, installed and passed bounded Android lifecycle and payload gates.
+- 2026-08-14: runtime commit `31003aa` was pushed and the matching arm64 APK replaced
+  the requested destination with an identical digest.
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1 and R3 superseded by the later explicit instruction; R2 and R4
+  verified.
+- Commands and artifacts: `:app:compileOssReleaseKotlin`,
+  `:app:assembleOssRelease`, `apksigner verify`, 16 KiB `zipalign`, Android install,
+  bounded Stop/reconnect and TCP/UDP/WARP checks, DE restart-counter comparison,
+  commit/push, and matching source/destination APK digests.
+- Constraint and diff-scope check: one Kotlin lifecycle owner and this goal changed;
+  carrier protocol, scheduler, resolver, server runtime, dependencies and persistent
+  telemetry are unchanged. No battery amount is claimed.
+- Final status: complete.
