@@ -13,11 +13,9 @@ import io.nekohasekai.sagernet.ktx.joinHostPort
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -47,7 +45,6 @@ internal class SlipstreamInstance(
         const val WORKERS = 32
         const val QUERY_MAX_AGE_MS = 10_000L
         const val SOCKET_TIMEOUT_MS = 8_000
-        const val MONITOR_INTERVAL_MS = 2_000L
     }
 
     private class DnsTcpAdapter(
@@ -188,7 +185,7 @@ internal class SlipstreamInstance(
     private lateinit var authority: String
     private val ready = CompletableDeferred<Unit>()
     private var process: Process? = null
-    private var monitor: Job? = null
+    private var readyAccepted = false
     private lateinit var certificate: File
     @Volatile
     private var closed = false
@@ -264,7 +261,20 @@ internal class SlipstreamInstance(
         drain(child.errorStream)
         scope.launch {
             child.waitFor()
-            if (!closed) ready.completeExceptionally(IOException("Slipstream stopped before becoming ready"))
+            val stoppedAfterReadiness = synchronized(lock) {
+                if (closed) {
+                    false
+                } else if (readyAccepted) {
+                    true
+                } else {
+                    ready.completeExceptionally(IOException("Slipstream stopped before becoming ready"))
+                    false
+                }
+            }
+            if (stoppedAfterReadiness) {
+                Logs.w("slipstream: process stopped after readiness")
+                onStopped(IOException("DNS Tunnel carrier stopped"))
+            }
         }
         Logs.i("slipstream: starting single DNS resolver")
     }
@@ -299,26 +309,10 @@ internal class SlipstreamInstance(
         withContext(Dispatchers.IO) { ready.await() }
         synchronized(lock) {
             if (closed) throw IOException("Slipstream closed before becoming ready")
-            startMonitorLocked()
+            if (!isAlive(process)) throw IOException("Slipstream stopped before becoming ready")
+            readyAccepted = true
         }
         Logs.i("slipstream: carrier ready")
-    }
-
-    private fun startMonitorLocked() {
-        if (monitor != null) return
-        monitor = scope.launch {
-            while (isActive) {
-                delay(MONITOR_INTERVAL_MS)
-                synchronized(lock) {
-                    if (closed) return@launch
-                    if (!isAlive(process)) {
-                        Logs.w("slipstream: process stopped after readiness")
-                        onStopped(IOException("DNS Tunnel carrier stopped"))
-                        return@launch
-                    }
-                }
-            }
-        }
     }
 
     override fun close() {
@@ -326,7 +320,6 @@ internal class SlipstreamInstance(
             if (closed) return
             closed = true
             ready.cancel()
-            monitor?.cancel()
             stopLocked()
             runCatching { adapter?.close() }
             adapter = null
