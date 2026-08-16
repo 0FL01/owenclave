@@ -36,6 +36,7 @@ Android proxy client based on Exclave/SagerNet. Application ID is
   health checks; cancellation and failed runs must keep the previous snapshot.
 - Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
+- Per-app `Proxy`/`Bypass` controls Android VPN capture only; it is not a stealth guarantee. Claims about what another app can observe through interfaces, routes, DNS or egress require device- and Android-version-specific evidence.
 - Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.
 - Keep Slipstream polling activity-aware: Busy retains pacing and 400 ms keepalive,
   Warm permits one poll per 400 ms, quiet open streams one poll per 2 seconds, and
