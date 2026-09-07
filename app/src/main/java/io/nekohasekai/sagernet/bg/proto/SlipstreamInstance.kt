@@ -42,7 +42,8 @@ internal class SlipstreamInstance(
     private val onStopped: (IOException) -> Unit,
 ) : AbstractInstance {
     private companion object {
-        const val WORKERS = 32
+        const val WORKERS = 48
+        const val QUERY_QUEUE_CAPACITY = 64
         const val QUERY_MAX_AGE_MS = 10_000L
         const val SOCKET_TIMEOUT_MS = 8_000
     }
@@ -66,7 +67,7 @@ internal class SlipstreamInstance(
         }
 
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private val queue = Channel<Query>(WORKERS * 2)
+        private val queue = Channel<Query>(QUERY_QUEUE_CAPACITY)
         private val udp = DatagramSocket(null).apply {
             bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0))
         }

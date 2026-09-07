@@ -100,6 +100,12 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
   and empty keepalive remains 5 seconds.
+- The TCP DNS adapter uses 48 serial workers with a separate 64-query queue;
+  increasing workers must not implicitly grow the queue. Each persistent resolver
+  connection has one outstanding exchange, with no pipelining. A clean-APK six-pair
+  LTE comparison measured +34.9% paired download, -6.6% upload and improved loaded
+  p95 on the tested TCP resolver; this is path-specific, not a universal guarantee.
+  See [performance experiments and acceptance](goals/2026-09-07-dns-tunnel-performance.md).
 - A captured TCP flow whose carrier dial fails is closed and removed from the active
   connection set immediately; failed flows are not retained until VPN shutdown.
 - The generated Android Slipstream artifact is currently arm64-only and ignored
