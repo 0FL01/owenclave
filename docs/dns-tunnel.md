@@ -13,6 +13,9 @@ it did not pass the original latency gate. See
 [`goals/2026-09-07-slipstream-dcubic-ab.md`](goals/2026-09-07-slipstream-dcubic-ab.md).
 Later modern-BBR3 and resolver-aware pacing candidates did not displace DCUBIC:
 see [four-variant comparison and rejected candidates](goals/2026-09-07-bbr3-resolver-experiment.md).
+The MasterDNS Base36 codec was measured but rejected for migration: active-domain
+capacity gain is only 1.38% and mobile encoding is slower. See
+[Base36 codec experiment](goals/2026-09-07-base36-experiment.md).
 Retained `bin/lib/masterdns/` is experimental source, not part of the active build.
 Comparison results and rollback evidence remain in
 [`goals/2026-09-07-masterdns-migration.md`](goals/2026-09-07-masterdns-migration.md).
