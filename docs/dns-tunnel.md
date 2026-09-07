@@ -4,6 +4,19 @@ This is the stable Android contract for the DNS Tunnel profile, Rust Slipstream
 sidecar and FlowRelay boundary. Historical implementation and acceptance evidence
 lives in [`goals/`](goals/).
 
+The MasterDnsVPN migration was rolled back by user request on 2026-09-07.
+The active client is again the accepted Slipstream 48-worker/64-queue implementation.
+Slipstream now explicitly selects `dcubic` congestion control. Six paired LTE tests
+measured +27.3% download and +42.7% upload, with loaded p95 increasing from 0.907 s
+to 1.084 s. The user explicitly accepted this latency trade-off for throughput;
+it did not pass the original latency gate. See
+[`goals/2026-09-07-slipstream-dcubic-ab.md`](goals/2026-09-07-slipstream-dcubic-ab.md).
+Later modern-BBR3 and resolver-aware pacing candidates did not displace DCUBIC:
+see [four-variant comparison and rejected candidates](goals/2026-09-07-bbr3-resolver-experiment.md).
+Retained `bin/lib/masterdns/` is experimental source, not part of the active build.
+Comparison results and rollback evidence remain in
+[`goals/2026-09-07-masterdns-migration.md`](goals/2026-09-07-masterdns-migration.md).
+
 ## Data path
 
 ```text

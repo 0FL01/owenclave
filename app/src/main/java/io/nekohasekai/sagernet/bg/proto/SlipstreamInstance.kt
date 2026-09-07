@@ -242,6 +242,7 @@ internal class SlipstreamInstance(
             "--domain", config.domain,
             "--cert", certificate.absolutePath,
             "--authoritative", authority,
+            "--congestion-control", "dcubic",
             "--flow-relay-stdin",
         )
         val child = ProcessBuilder(command)
