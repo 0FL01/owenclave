@@ -20,6 +20,11 @@ import time
 
 VERSION = 2
 SIZES = (8192, 32768, 131072, 524288)
+TOPOLOGIES = {
+    'accepted': [(('77.88.8.88',), 28, 32), (('77.88.8.1',), 28, 32)],
+    'third': [(('77.88.8.88',), 19, 22), (('77.88.8.1',), 19, 21), (('77.88.8.8',), 18, 21)],
+    'shard': [(('77.88.8.88',), 28, 32), (('77.88.8.1', '77.88.8.8'), 28, 32)],
+}
 
 
 def emit(row):
@@ -43,7 +48,7 @@ class Adapter(asyncio.DatagramProtocol):
     no blocking IO dispatcher. Queue and TCP counts remain identical.
     """
     def __init__(self, host, port=53, workers=28, capacity=32, timeout=8., age=10.):
-        self.host, self.port = host, port
+        self.hosts, self.port = (host,) if isinstance(host, str) else tuple(host), port
         self.workers, self.timeout, self.age = workers, timeout, age
         self.queue = asyncio.Queue(capacity)
         self.tasks = []
@@ -54,7 +59,7 @@ class Adapter(asyncio.DatagramProtocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.tasks = [asyncio.create_task(self.worker()) for _ in range(self.workers)]
+        self.tasks = [asyncio.create_task(self.worker(i)) for i in range(self.workers)]
 
     def datagram_received(self, data, peer):
         if self.closed:
@@ -69,7 +74,9 @@ class Adapter(asyncio.DatagramProtocol):
         except asyncio.QueueFull:
             self.stats['dropped'] += 1
 
-    async def worker(self):
+    async def worker(self, index):
+        # Sharding is worker-affine, including retry; QUIC sees a pooled path RTT.
+        host = self.hosts[index % len(self.hosts)]
         reader = writer = None
         try:
             while True:
@@ -88,7 +95,7 @@ class Adapter(asyncio.DatagramProtocol):
                             async with asyncio.timeout(remaining):
                                 if writer is None:
                                     reader, writer = await asyncio.open_connection(
-                                        self.host, self.port, limit=8192)
+                                        host, self.port, limit=8192)
                                 writer.write(struct.pack('!H', len(data)) + data)
                                 await writer.drain()
                                 size = struct.unpack('!H', await reader.readexactly(2))[0]
@@ -260,18 +267,19 @@ async def run(args, secret):
                     script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     fixture_cert_sha256=hashlib.sha256(Path(args.fixture_cert).read_bytes()).hexdigest(),
                     python=platform.python_version(), machine=platform.machine(),
-                    deadline=args.deadline, sizes=SIZES, workers=56, queue=64, egress=args.egress)
+                    deadline=args.deadline, sizes=SIZES, workers=56, queue=64, egress=args.egress,
+                    topology=args.topology, path_layout=TOPOLOGIES[args.topology])
     if args.mode == 'native':
         manifest['native_sha256'] = hashlib.sha256(Path(args.native).read_bytes()).hexdigest()
     emit(manifest)
     try:
         if args.mode == 'native':
             argv = []
-            hosts = ['77.88.8.88', '77.88.8.1']
+            layout = list(TOPOLOGIES[args.topology])
             if args.order == 'reverse':
-                hosts.reverse()
-            for host in hosts:
-                path = Adapter(host)
+                layout.reverse()
+            for hosts, workers, capacity in layout:
+                path = Adapter(hosts, workers=workers, capacity=capacity)
                 transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
                     lambda: path, local_addr=('127.0.0.1', 0))
                 paths.append(path)
@@ -328,6 +336,7 @@ def arguments():
     parser.add_argument('--cert', help='Unchanged public carrier certificate')
     parser.add_argument('--domain', default='t.x.ass-peak.de')
     parser.add_argument('--order', choices=['accepted', 'reverse'], default='accepted')
+    parser.add_argument('--topology', choices=TOPOLOGIES, default='accepted')
     parser.add_argument('--fixture-host', required=True)
     parser.add_argument('--fixture-port', type=int, default=40004)
     parser.add_argument('--fixture-cert', required=True)

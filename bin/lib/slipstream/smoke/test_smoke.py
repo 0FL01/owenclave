@@ -19,6 +19,15 @@ from fixture import Fixture
 
 
 class HostTests(unittest.TestCase):
+    def test_topologies_keep_aggregate_bounds(self):
+        for layout in device.TOPOLOGIES.values():
+            self.assertEqual(sum(workers for _, workers, _ in layout), 56)
+            self.assertEqual(sum(capacity for _, _, capacity in layout), 64)
+            self.assertLessEqual(len(layout), 3)
+            for hosts, workers, capacity in layout:
+                self.assertGreater(capacity, 0)
+                self.assertEqual(workers % len(hosts), 0)
+
     def test_active_network_agent_not_callback_or_not_vpn_capability(self):
         self.assertFalse(host.active_vpn('NetworkAgentInfo{ Transports: CELLULAR Capabilities: NOT_VPN }'))
         self.assertFalse(host.active_vpn('NetworkRequest Transports: VPN Capabilities: INTERNET'))
@@ -142,6 +151,29 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         reply, _ = await asyncio.wait_for(self.received.get(), 1)
         self.assertEqual(reply[:2], b'\x00\x03')
 
+    async def test_shard_worker_affinity_survives_retry(self):
+        await self.adapter.close()
+        self.adapter = device.Adapter(('127.0.0.1', '127.0.0.2'),
+                                      self.server.sockets[0].getsockname()[1],
+                                      workers=2, capacity=2, timeout=.05, age=.11)
+        opened = []
+        original = asyncio.open_connection
+        async def connect(host, port, **kwargs):
+            opened.append((asyncio.current_task(), host))
+            return await original('127.0.0.1', port, **kwargs)
+        self.behavior = 'stall'
+        with patch.object(asyncio, 'open_connection', connect):
+            self.transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+                lambda: self.adapter, local_addr=('127.0.0.1', 0))
+            self.send(1)
+            self.send(2)
+            await asyncio.sleep(.15)
+        self.assertEqual(len(opened), 4)
+        self.assertEqual({host for _, host in opened}, {'127.0.0.1', '127.0.0.2'})
+        for task in self.adapter.tasks:
+            self.assertEqual(len({host for owner, host in opened if owner is task}), 1)
+        self.assertTrue(self.received.empty())
+
     async def test_bad_query_and_expiry(self):
         self.adapter.datagram_received(b'x', ('127.0.0.1', 100))
         self.adapter.datagram_received(bytes(12), ('192.0.2.1', 100))
@@ -198,7 +230,7 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         async def wait(*args):
             started.set()
             await asyncio.sleep(60)
-        args = SimpleNamespace(mode='native', order='accepted', fixture_cert=self.cert, deadline=1,
+        args = SimpleNamespace(mode='native', order='accepted', topology='third', fixture_cert=self.cert, deadline=1,
                                egress='direct', native=sys.executable, domain='example.test', cert=self.cert)
         output = io.StringIO()
         with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):
@@ -210,7 +242,7 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         cleanup = json.loads(output.getvalue().splitlines()[-1])
         self.assertFalse(cleanup['child_alive'])
         self.assertEqual(cleanup['workers_alive'], 0)
-        self.assertEqual(len(cleanup['paths']), 2)
+        self.assertEqual(len(cleanup['paths']), 3)
         self.assertIsNotNone(children[0].returncode)
 
     async def test_unknown_auth_zero_ack_no_secret_output(self):

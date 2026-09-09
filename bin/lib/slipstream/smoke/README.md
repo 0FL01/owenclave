@@ -11,10 +11,16 @@ changes. Host Python uses only its standard library. Unit tests additionally use
 - `host.py` owns one ADB run using a serial-specific advisory lock. Native mode
   requires Wi-Fi off, LTE, VPN stopped and zero carrier children. It extracts the
   ELF from `--apk` or uses `--native`; neither option installs an APK.
-- `device.py` runs the native client in Termux with two loopback UDP adapters,
-  each 28 serial persistent TCP workers and 32 queued queries, drop-new. The accepted
+- `device.py` runs the native client in Termux, by default with two loopback UDP
+  adapters, each 28 serial persistent TCP workers and 32 queued queries, drop-new. The accepted
   order is Safe `77.88.8.88:53`, Basic `77.88.8.1:53`; reverse is experimental.
   One child uses DCUBIC, authoritative endpoints and the unchanged carrier pin.
+- Experimental `--topology third` adds Basic `77.88.8.8:53` as a third native path,
+  workers19/19/18 and queues22/21/21. `--topology shard` keeps two native paths and
+  splits the second adapter's28 workers equally between Basic .1/.8, sharing queue32.
+  Retry stays worker-affine; QUIC sees pooled RTT/loss on that adapter. Both retain
+  aggregate56/64. Equal budgets do not prove equal polling load or independent
+  same-provider capacity. These are rejected research options, not APK profile modes.
 - Flow token and generated SOCKS credentials enter native stdin only. Host secret
   JSON is a private `0600` file with `flow_token` (32 hex digits) and `fixture_token`
   (64 hex digits). Values travel via stdin, never argv/environment or phone files.
@@ -73,8 +79,11 @@ can vary by destination/flow; a single trace IP is not a stable fixture allowlis
 Do not broaden production routing to accommodate the test. Remove temporary units,
 listeners, firewall rules, private keys and all local/remote credential copies at
 the end. Neither fixture nor direct dispatch is currently deployed. The documented
-backup anchor is `/root/backups/owenclave-smoke-20260909T135858Z/`; it has original
-production binaries/units/firewall, not usable test credentials.
+latest backup anchor is `/root/backups/owenclave-rnd-20260909T154514Z/`; it has original
+production binaries/units/firewall, not usable test credentials. Deploying/removing
+the dispatch override restarts FlowRelay **and** its dependent Slipstream service;
+WARP is not restarted. The restored original FlowRelay predates `-check`: verify
+its original hash/unit and bounded namespace-loopback startup, not unsupported flags.
 
 ## Commands
 
@@ -96,6 +105,17 @@ Run pair 2 for the reverse CT/TC order. Use a new label and fresh balanced pairs
 confirmation (initially six), not reused screening windows. To re-screen H6 add
 `--candidate-order reverse` with the same control APK as candidate. For A/A
 reproducibility supply the control APK as both inputs, without `--candidate-native`.
+For H9/H10 use that same APK as both inputs and `--candidate-topology third` or
+`--candidate-topology shard` respectively. Topology/order/native identity may differ
+between arms; each arm's manifest must remain fixed throughout a report.
+
+Retained R&D reports need no live fixture or credentials:
+
+```sh
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h9-screen --pairs 2
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h10-screen --pairs 2
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h10-confirm --pairs 6
+```
 
 ```sh
 python3 bin/lib/slipstream/smoke/report.py \
@@ -108,7 +128,7 @@ python3 bin/lib/slipstream/smoke/host.py --mode gvisor \
 ```
 
 The second command requires the intended APK/profile already connected. Its manifest
-order/worker fields describe native harness defaults, not discovery of the APK's
+order/topology/path-layout/worker fields describe native harness defaults, not discovery of the APK's
 Automatic/single/MP profile; record that profile separately. Confirm installed APK
 hash in preflight. Stop VPN and verify zero children after each acceptance window.
 
@@ -121,8 +141,9 @@ make intervals descriptive, not universal confidence claims. No arbitrary >=10%
 gate: repeatable modest upload/completion gains matter, but new startup failures
 or short-upload regressions cannot be hidden by bulk medians.
 
-2026-09-09 campaign: H6/H7 screens and H8 six-pair confirmation rejected on measured
-regressions; accepted APK unchanged. Eleven local tests and real phone TERM/EOF
-cleanup passed. Same-workload accepted APK calibration and restored production
+2026-09-09 campaigns: H6/H7/H9 screens and H8/H10 six-pair confirmations rejected on
+measured regressions; accepted APK unchanged. Thirteen local tests (including bounded
+three-path cleanup and shard retry affinity) passed; earlier real phone TERM/EOF
+cleanup and all20 latest native-window cleanups passed. Same-workload accepted APK calibration and restored production
 Automatic/single/MP TCP/UDP checks were executed; intermittent TLS/ack failures remain
 recorded. Full results: [throughput goal](../../../../docs/goals/2026-09-09-multipath-throughput.md).

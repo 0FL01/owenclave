@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from report import read_window
+from device import TOPOLOGIES
 
 HERE = Path(__file__).resolve().parent
 
@@ -32,6 +33,7 @@ def main():
     p.add_argument('--candidate', required=True)
     p.add_argument('--candidate-native', action='store_true', help='Candidate path is ELF, not APK')
     p.add_argument('--candidate-order', default='accepted', choices=['accepted', 'reverse'])
+    p.add_argument('--candidate-topology', default='accepted', choices=TOPOLOGIES)
     p.add_argument('--pair', type=int, required=True)
     p.add_argument('--label', required=True)
     p.add_argument('--secret-file', required=True)
@@ -49,6 +51,7 @@ def main():
         source_option = '--native' if variant == 'candidate' and args.candidate_native else '--apk'
         command = [sys.executable, str(HERE / 'host.py'), '--mode', 'native', '--serial', args.serial,
                    source_option, getattr(args, variant), '--order', args.candidate_order if variant=='candidate' else 'accepted',
+                   '--topology', args.candidate_topology if variant == 'candidate' else 'accepted',
                    '--secret-file', args.secret_file, '--cert', args.cert, '--fixture-cert', args.fixture_cert,
                    '--fixture-host', args.fixture_host, '--output', str(path)]
         proc = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

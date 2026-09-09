@@ -27,7 +27,9 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   useful, including approximately +5-8% UL with a minor DL loss. Target
   direction declared per hypothesis before screen. Status: in_progress. Reusable
   Python-on-Android smoke, H6/H7 re-screens, H8 native-only build/screen/six-pair
-  confirmation and accepted-APK gVisor calibration executed below; no adopted gain.
+   confirmation, H9/H10 topology campaign and accepted-APK gVisor calibration executed
+   below; no adopted gain. The executed campaigns are closed; the broader gain
+   objective remains active, not claimed achieved or globally exhausted.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
   retained runtime with local correctness/fault tests and Automatic/manual/MP
   TCP/UDP WARP acceptance. Stop VPN with zero children, commit appropriate results,
@@ -80,6 +82,121 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
+Closed continuation: H9 adds Basic .8 as a third native path with19/19/18
+workers and22/21/21 queues. H10 instead keeps two native paths and shards only the
+second adapter between Basic .1/.8 using14 persistent workers each and its shared32
+queue; primary .88 remains28/32. Both retain56/64, accepted ELF, exact workload,
+strict Python query validation/deadlines and one foreground phone owner. No nested
+task tool exists; independent hypotheses are compared by this single owner.
+Predeclared target: acknowledged sequential/loaded8/32KiB completion and reliability,
+with128/512KiB/DL/recovery as non-regression context. Modest reproducible UL gains
+with minor DL loss qualify. Two balanced pairs screen each topology, then six NEW
+confirmation pairs for a credible candidate; APK/gVisor promotion only afterward.
+H9 tests exposed per-path QUIC scheduling; H10 tests extra resolver capacity without
+extra native polling allowance, at the explicit cost of pooled RTT/loss on path2.
+Neither equal workers nor same-provider addresses proves equal load/independent
+capacity. Temporary direct dispatch/fixture require two disclosed shared restarts;
+no production-token egress, WARP daemon, default profile or accepted APK change.
+
+H9 screen CT/TC completed: all16 candidate uploads acknowledged, but sequential8KiB
++16.77/-39.67%, loaded32KiB+21.02/-19.23%, DL+12.85/-28.63%; reject expansion to a
+third native path at this allocation. H10 screen all16 candidate uploads passed,
+loaded8KiB+19.97/+7.56% merits six NEW confirmation pairs despite mixed sequential
+8KiB-30.72/+9.13%, sequential32KiB+20.13/-13.16%, loaded32KiB-4.18/+0.27%,
+DL-11.17/+3.93%. These regressions stay in the decision; no APK promotion.
+Evidence labels `h9-screen`, `h10-screen` in `build/dns-smoke` (two pairs each).
+Thirteen focused Python tests passed, unchanged Flowd race/vet/build passed. Fresh
+direct/CloudflareWARP interface-bound HTTPS+transaction-STUN references matched
+test/production dispatch respectively; unknown token and stopped test backend closed,
+production still WARP during test-down. Backup `/root/backups/owenclave-rnd-20260909T154514Z`;
+temporary `/run/owenclave-rnd`, `flowd-rnd-direct.service`, `owenclave-rnd-fixture.service`,
+`/etc/systemd/system/flowd.service.d/90-rnd.conf`, `/usr/local/bin/flowd-rnd` are REMOVED,
+including all temporary rules, keys and local/remote credential copies. WARP PID589
+unchanged, Flowd/Slipstream NRestarts0. Initial missing directory/executable bit were
+fixed before any restart. H10 six-pair confirmation rejects the screened gain;
+details and closure below. No experiment/background phone work remains active.
+
+### H9/H10 Confirmation And Closure
+
+Six NEW balanced CT/TC H10 pairs (`h10-confirm`) used identical accepted ELF/APK,
+fixture, script and LTE preflight. The primary was still Safe .88; only the secondary
+adapter was worker-sharded over Basic .1/.8. All48 uploads per arm acknowledged exact
+size/hash, all60 foreground requests per arm passed, no startup failure. Native
+screen+confirmation totals:20 windows,160/160 uploads, including80 short8/32KiB
+uploads across both arms and load conditions. All windows stopped with zero children.
+
+| H10 confirmation metric | Median paired change | Wins | Range | Descriptive 95% median bootstrap interval |
+| --- | ---: | ---: | ---: | ---: |
+| Sequential8KiB upload | +13.62% | 4/6 | -42.87 to +86.57% | -30.59 to +57.18% |
+| Sequential32KiB upload | -23.28% | 1/6 | -62.65 to +4.86% | -47.36 to +0.49% |
+| Loaded8KiB upload | -3.81% | 3/6 | -13.69 to +22.85% | -12.33 to +18.57% |
+| Loaded32KiB upload | -15.75% | 2/6 | -30.89 to +90.48% | -30.13 to +45.81% |
+| Loaded512KiB upload | +5.09% | 5/6 | -18.91 to +24.34% | -8.59 to +23.55% |
+| Sequential1MiB download | -17.30% | 1/6 | -24.25 to +19.73% | -23.82 to +8.43% |
+
+Other medians: sequential128KiB-10.87% (1/6 wins; interval-20.39 to-0.03%),
+sequential512KiB-7.48% (2/6), loaded128KiB-3.13% (2/6), recovery-12.15% (2/6).
+Sequential32KiB completion p50 C1.88495s -> T2.38791s, p95/max2.54747s ->5.02371s;
+loaded32KiB p50 2.33646s ->2.73248s, max4.36240s ->3.45978s. Loaded512KiB p50
+29.6007s ->27.4252s, max36.2352s ->34.8697s. Startup p50 .9521s ->1.0356s,
+max1.2442s ->1.6918s. Report retains every size, phase, tail and failed-control ratio
+semantics; intervals are descriptive with only six pairs, not independent LTE draws.
+
+Decision: reject H10, not because +5.09% is below an arbitrary threshold, but because
+the predeclared short-upload target regressed and download loss was not minor.
+The screened loaded8KiB improvement disappeared. H9 was rejected at screen for
+inconsistent short uploads and large second-pair DL loss. Neither result proves that
+all third-path allocations or all scheduling strategies are bad. No credible candidate
+qualified for Kotlin/native APK promotion, so no candidate APK was built or installed.
+The retained changes only make both experiments reproducible in the smoke harness.
+
+Actual accepted-APK gVisor calibration used two DE-direct windows
+`rnd-gvisor-direct-{1,2}`:16/16 uploads plus download/recovery passed. Production
+`rnd-gvisor-production-{mp,single,automatic}-1` passed24/24 uploads plus download/
+recovery, HTTPS WARP and transaction-checked UDP. Each mode had one captured child;
+stop returned to zero. These are additional real APK observations, not equivalence
+between Python adapters and Kotlin's per-I/O blocking implementation. No synthetic
+result establishes a Telegram fix, and no account/message access occurred. Earlier
+TLS/ack failures remain evidence; zero failures in this campaign do not erase them.
+This was forced DNS over available LTE, not proof of a restricted-LTE allowlist.
+
+Restoration: original production binary/base unit/nftables byte-identical to preflight,
+test token rejected by original FlowRelay, test listeners40003/40004/40005 absent,
+private production40001 present, no test drop-in or retained traffic logs. Original
+FlowRelay predates `-check`; that unsupported test failed before rollback, then a
+bounded namespace-loopback startup/connect/terminate gate and original-unit verify
+passed. Immediate post-restart connect initially raced Type=simple readiness; bounded
+polling succeeded without another restart. Final actual MP/single/Automatic HTTPS/UDP
+passed again after original-binary restoration, with fresh interface-bound WARP
+references (final UDP fingerprint c1656e010c28 matched). WARP PID589 never restarted.
+Two disclosed shared FlowRelay/Slipstream restarts were deployment and restoration.
+No fixture or direct dispatch remains. Production-token manual MP restored, accepted
+APK unchanged, VPN stopped, zero children; final preflight100%/28C at16:47:21Z.
+Closure checks:13 smoke unit tests passed, all three retained reports regenerated
+without manifest drift, both repositories' `git diff --check` and scoped secret
+scans passed. Flowd race/vet/build and systemd/nft gates passed before deployment;
+Android/native production source was unchanged, so no new APK build or broad lint
+rerun was needed. Existing lint/clippy failures below remain unsuppressed.
+
+Reproduce reports without a phone/server:
+
+```sh
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h9-screen --pairs 2
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h10-screen --pairs 2
+python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h10-confirm --pairs 6
+```
+
+For fresh measurements provision new private credentials/short-lived fixture using
+the smoke README/DE operations boundary, then use `pair.py` with accepted fixed.apk
+as both `--control` and `--candidate`, `--candidate-topology third` or `shard`, pairs1/2
+for a new screen label. Confirmation uses six NEW pairs/new label. Artifact identity:
+device.py SHA256482a1f2149cb6444eafe420b9795bc6996600e8faa1a00b3b307a8b11541e321;
+fixture certificate SHA25603fe32c062ad3ba2af77d6a7eb08b5bfcfd0ee32988aac76d0d928c59282276b.
+All retained JSONL is aggregate-only under ignored `build/dns-smoke`; credentials
+are gone, so old secret paths cannot resume deployment. A next campaign must select
+a materially different scheduling hypothesis, not repeat these same allocations or
+promote the loaded512KiB subset while ignoring short uploads.
+
 Executed campaign: reusable Python ON Android invokes native Slipstream under LTE
 with VPN stopped, before any candidate APK build. See Android Native Smoke below.
 Short synthetic audio-like 8/32/128/512KiB uploads measure startup, TLS, completion,
@@ -113,10 +230,10 @@ SOCKS timing differences require same-control APK calibration, never equivalence
   Kotlin/test files exactly match4ba57ad. UI restored manual MP, VPN stopped,
   zero children. Delivered Torrents APK directory untouched. app/build output may
   still contain a rejected candidate: only immutable fixed.apk is accepted.
-- ADB device available, latest100%/29C USB. Restored Slipstream/Flowd active,
-  PIDs3099339/3099337, NRestarts0/0 stable, stdout/stderr null/no drop-ins. This smoke
-  campaign had two planned shared restart boundaries (deployment/restoration), in
-  addition to the three earlier documented restarts. WARP PID589 never restarted.
+- ADB device available, latest100%/28C USB. Restored Slipstream/Flowd active,
+   PIDs3119971/3119970, NRestarts0/0 stable, stdout/stderr null/no drop-ins. H9/H10
+   had two planned shared restart boundaries (deployment/restoration), in addition
+   to the preceding H6/H7/H8 smoke and dispatch campaigns. WARP PID589 never restarted.
 - Precommit Kotlin and16 JVM tests passed, five native fault scenarios passed
   with the exact corrected Debian server. Existing lint2371 errors/27 hints and
   two strict-clippy baseline errors remain documented, not suppressed.
