@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/binary"
@@ -28,13 +29,19 @@ const (
 )
 
 type config struct {
-	listen         string
-	tokenFile      string
-	device         string
-	resolver       string
-	maxSessions    int
-	headerTimeout  time.Duration
-	connectTimeout time.Duration
+	listen           string
+	tokenFile        string
+	device           string
+	resolver         string
+	maxSessions      int
+	headerTimeout    time.Duration
+	connectTimeout   time.Duration
+	check            bool
+	denyPrivate      bool
+	testTokenFile    string
+	backendTokenFile string
+	testBackend      string
+	testDevice       string
 }
 
 type destination struct {
@@ -45,6 +52,13 @@ type destination struct {
 type flowOpen struct {
 	command     byte
 	destination destination
+	testHeader  []byte
+}
+
+type testDispatch struct {
+	token, backendToken [16]byte
+	dial                func(context.Context) (*net.TCPConn, error)
+	limit               chan struct{}
 }
 
 type dialDestination func(context.Context, destination) (*net.TCPConn, error)
@@ -57,6 +71,7 @@ type server struct {
 	dial      dialDestination
 	resolve   resolveDestination
 	listenUDP listenUDP
+	test      *testDispatch
 }
 
 func main() {
@@ -77,9 +92,16 @@ func run(args []string) error {
 	if _, err := net.InterfaceByName(cfg.device); err != nil {
 		return err
 	}
-	dial, resolve, listenUDP, err := newWarpNetwork(cfg.device, cfg.resolver)
+	test, err := loadTestDispatch(cfg, token)
 	if err != nil {
 		return err
+	}
+	dial, resolve, listenUDP, err := newWarpNetwork(cfg.device, cfg.resolver, cfg.denyPrivate)
+	if err != nil {
+		return err
+	}
+	if cfg.check {
+		return nil
 	}
 	listener, err := net.Listen("tcp", cfg.listen)
 	if err != nil {
@@ -88,7 +110,7 @@ func run(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	return (&server{
-		config: cfg, token: token, dial: dial, resolve: resolve, listenUDP: listenUDP,
+		config: cfg, token: token, dial: dial, resolve: resolve, listenUDP: listenUDP, test: test,
 	}).serve(ctx, listener)
 }
 
@@ -101,6 +123,12 @@ func parseConfig(args []string) (config, error) {
 	flags.StringVar(&cfg.device, "interface", "CloudflareWARP", "outbound interface")
 	flags.StringVar(&cfg.resolver, "resolver", "1.1.1.1:53", "fixed DNS resolver")
 	flags.IntVar(&cfg.maxSessions, "max-sessions", 128, "maximum concurrent sessions")
+	flags.BoolVar(&cfg.check, "check", false, "validate configuration without listening")
+	flags.BoolVar(&cfg.denyPrivate, "deny-private", false, "reject non-public payload destinations")
+	flags.StringVar(&cfg.testTokenFile, "test-token-file", "", "optional test token credential file")
+	flags.StringVar(&cfg.backendTokenFile, "test-backend-token-file", "", "separate backend credential file")
+	flags.StringVar(&cfg.testBackend, "test-backend", "", "fixed private test backend address")
+	flags.StringVar(&cfg.testDevice, "test-interface", "", "interface for the fixed test backend only")
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
 		return config{}, errors.New("invalid arguments")
 	}
@@ -113,7 +141,55 @@ func parseConfig(args []string) (config, error) {
 	if err := validateResolver(cfg.resolver); err != nil {
 		return config{}, err
 	}
+	options := 0
+	for _, value := range []string{cfg.testTokenFile, cfg.backendTokenFile, cfg.testBackend, cfg.testDevice} {
+		if value != "" {
+			options++
+		}
+	}
+	if options != 0 {
+		if options != 4 || cfg.testBackend == cfg.listen {
+			return config{}, errors.New("incomplete or recursive test dispatch")
+		}
+		if err := validatePrivateAddress(cfg.testBackend); err != nil {
+			return config{}, err
+		}
+		if err := validateResolver(cfg.testBackend); err != nil {
+			return config{}, err
+		}
+	}
 	return cfg, nil
+}
+
+func loadTestDispatch(cfg config, productionToken [16]byte) (*testDispatch, error) {
+	if cfg.testTokenFile == "" {
+		return nil, nil
+	}
+	token, err := readToken(cfg.testTokenFile)
+	if err != nil {
+		return nil, err
+	}
+	backendToken, err := readToken(cfg.backendTokenFile)
+	if err != nil {
+		return nil, err
+	}
+	if token == productionToken || backendToken == productionToken || token == backendToken {
+		return nil, errors.New("test credentials must be distinct")
+	}
+	if _, err := net.InterfaceByName(cfg.testDevice); err != nil {
+		return nil, err
+	}
+	dialer := &net.Dialer{Control: bindToDevice(cfg.testDevice)}
+	return &testDispatch{
+		token: token, backendToken: backendToken, limit: make(chan struct{}, 16),
+		dial: func(ctx context.Context) (*net.TCPConn, error) {
+			conn, err := dialer.DialContext(ctx, "tcp", cfg.testBackend)
+			if err != nil {
+				return nil, err
+			}
+			return conn.(*net.TCPConn), nil
+		},
+	}, nil
 }
 
 func validatePrivateAddress(address string) error {
@@ -154,7 +230,7 @@ func readToken(path string) ([16]byte, error) {
 }
 
 func newWarpNetwork(
-	device, resolverAddress string,
+	device, resolverAddress string, denyPrivate bool,
 ) (dialDestination, resolveDestination, listenUDP, error) {
 	if err := validateResolver(resolverAddress); err != nil {
 		return nil, nil, nil, err
@@ -185,6 +261,16 @@ func newWarpNetwork(
 		}
 		if len(addresses) == 0 {
 			return nil, errors.New("destination did not resolve")
+		}
+		if denyPrivate {
+			for _, address := range addresses {
+				ip := address.IP
+				v4 := ip.To4()
+				if !ip.IsGlobalUnicast() || ip.IsPrivate() ||
+					(v4 != nil && v4[0] == 100 && v4[1]&0xc0 == 64) {
+					return nil, errors.New("non-public destination")
+				}
+			}
 		}
 		return addresses, nil
 	}
@@ -293,8 +379,42 @@ func (s *server) serve(ctx context.Context, listener net.Listener) error {
 func (s *server) handle(ctx context.Context, client *net.TCPConn) {
 	stop := context.AfterFunc(ctx, func() { client.Close() })
 	defer stop()
-	open, err := parseOpen(client, s.token, s.config.headerTimeout)
+	var testToken *[16]byte
+	if s.test != nil {
+		testToken = &s.test.token
+	}
+	open, err := parseOpen(client, s.token, s.config.headerTimeout, testToken)
 	if err != nil {
+		return
+	}
+	if open.testHeader != nil {
+		select {
+		case s.test.limit <- struct{}{}:
+			defer func() { <-s.test.limit }()
+		default:
+			return
+		}
+		connectCtx, cancel := context.WithTimeout(ctx, s.config.connectTimeout)
+		remote, err := s.test.dial(connectCtx)
+		cancel()
+		if err != nil {
+			return
+		}
+		defer remote.Close()
+		stopRemote := context.AfterFunc(ctx, func() { remote.Close() })
+		defer stopRemote()
+		// Only authenticated test OPENs cross this boundary; never forward the production token.
+		copy(open.testHeader[1:17], s.test.backendToken[:])
+		if err := remote.SetWriteDeadline(time.Now().Add(s.config.headerTimeout)); err != nil {
+			return
+		}
+		if _, err := io.Copy(remote, bytes.NewReader(open.testHeader)); err != nil {
+			return
+		}
+		if err := remote.SetWriteDeadline(time.Time{}); err != nil {
+			return
+		}
+		relay(client, remote)
 		return
 	}
 	if open.command == commandUDP {
@@ -316,7 +436,7 @@ func (s *server) handle(ctx context.Context, client *net.TCPConn) {
 	}
 }
 
-func parseOpen(reader net.Conn, token [16]byte, timeout time.Duration) (flowOpen, error) {
+func parseOpen(reader net.Conn, token [16]byte, timeout time.Duration, testToken *[16]byte) (flowOpen, error) {
 	if err := reader.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		return flowOpen{}, err
 	}
@@ -329,17 +449,28 @@ func parseOpen(reader net.Conn, token [16]byte, timeout time.Duration) (flowOpen
 	if meta>>5 != flowVersion || (command != commandTCP && command != commandUDP) || meta&1 != 0 {
 		return flowOpen{}, errors.New("invalid metadata")
 	}
-	if subtle.ConstantTimeCompare(fixed[1:], token[:]) != 1 {
+	production := subtle.ConstantTimeCompare(fixed[1:], token[:])
+	test := 0
+	if testToken != nil {
+		test = subtle.ConstantTimeCompare(fixed[1:], testToken[:])
+	}
+	if production|test != 1 {
 		return flowOpen{}, errors.New("unauthorized")
 	}
-	target, err := readDestination(reader, (meta>>1)&3)
+	var header bytes.Buffer
+	var destinationReader io.Reader = reader
+	if test == 1 && production == 0 {
+		header.Write(fixed[:])
+		destinationReader = io.TeeReader(reader, &header)
+	}
+	target, err := readDestination(destinationReader, (meta>>1)&3)
 	if err != nil {
 		return flowOpen{}, err
 	}
 	if err := reader.SetReadDeadline(time.Time{}); err != nil {
 		return flowOpen{}, err
 	}
-	return flowOpen{command: command, destination: target}, nil
+	return flowOpen{command: command, destination: target, testHeader: header.Bytes()}, nil
 }
 
 func readDestination(reader io.Reader, addressType byte) (destination, error) {

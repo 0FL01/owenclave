@@ -47,7 +47,7 @@ func TestParseOpen(t *testing.T) {
 				message = binary.BigEndian.AppendUint16(message, test.port)
 				right.Write(message)
 			}()
-			target, err := parseOpen(left, token, time.Second)
+			target, err := parseOpen(left, token, time.Second, nil)
 			if (err == nil) != test.valid {
 				t.Fatalf("valid=%v err=%v", test.valid, err)
 			}
@@ -69,7 +69,7 @@ func TestWrongTokenStopsBeforeDestination(t *testing.T) {
 		defer right.Close()
 		right.Write(append([]byte{0x20}, wrong[:]...))
 	}()
-	if _, err := parseOpen(left, expected, time.Second); err == nil {
+	if _, err := parseOpen(left, expected, time.Second, nil); err == nil {
 		t.Fatal("wrong token accepted")
 	}
 }

@@ -1,6 +1,6 @@
 # Goal: increase accepted multipath DNS throughput
 
-Status: blocked
+Status: active
 Source: user instruction 2026-09-09, commit all changes first, then continue iterative multipath DNS optimization for more throughput.
 Last updated: 2026-09-09
 
@@ -23,15 +23,16 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   lifecycle and bounded aggregate resource samples. Two balanced screening pairs;
   adoption requires six NEW CT/TC pairs, paired-median target gain >=10%, other
   direction loss <=10%, >=4 target wins and no failed required transfers. Target
-   direction declared per hypothesis before screen. Status: blocked for the latest
-   requested isolated direct/LTE comparison; missing independent recursive ingress
-   is documented below. Lab evidence does not satisfy the phone adoption gate.
+   direction declared per hypothesis before screen. Status: in_progress. The latest
+   authorized private test-token dispatch removes the claimed delegation blocker;
+   lab evidence still does not satisfy the phone adoption gate.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
   retained runtime with local correctness/fault tests and Automatic/manual/MP
   TCP/UDP WARP acceptance. Stop VPN with zero children, commit appropriate results,
   no push. Primary evidence: this document, existing harnesses, installed hashes
-   and service gates. Status: verified for restored runtime; results committed with
-   this goal document. No candidate performance code retained.
+   and service gates. Status: in_progress. Restored production runtime and MP/single
+   TCP/UDP pass; final Automatic upload failed as recorded below. No candidate
+   performance code retained, and no all-green three-mode acceptance claim.
 
 ## Constraints And Envelope
 
@@ -45,15 +46,20 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   immutable helpers/artifacts allowed. No source-cache resets, persistent traffic
   logs, captures, full configs, tokens, delivered APK directory changes or push.
 - Server d7667b1e6dde9ef4669cda08f576307d851b3ec8e32736ebdeabae4e9926191b
-  must retain path-loss safety fix; no rollback to crashing predecessor. No server
-  edits planned. FlowRelay/WARP, token, certs and routing unchanged.
+  must retain path-loss safety fix; no rollback to crashing predecessor. Slipstream
+  binary, ingress, certificate and target remain unchanged. Production-token
+  FlowRelay resolver/TCP/UDP sockets remain bound to CloudflareWARP, without fallback.
 - Latest user continuation authorizes a SEPARATE DE direct test path, not changing
   production Slipstream/WARP. Minimal new envelope: private loopback lab Slipstream
   and separate FlowRelay direct/WARP test instances, distinct lab token and pinned
   certificate, bounded resources/null output, removed from runtime after tests.
-  No production domain dispatch, public listener, firewall or profile change.
-  Public-recursive phone comparisons require independently delegated/reachable
-  authority; local delayed-path measurements cannot substitute for LTE adoption.
+  Follow-up authorization permits disabled-by-default private FlowRelay test-token
+  dispatch to one authenticated DE direct backend, replacing only the test OPEN
+  token. Unknown tokens and failed test backends never enter production handling.
+  Test-only binding and a narrow namespace-host address/port firewall rule are
+  allowed; no public listener or broad namespace exception. Back up and test before
+  the necessary FlowRelay restart; prove production TCP/UDP WARP before/after.
+  A temporary phone test token must be restored exactly; delivered APK untouched.
 - One phone owner, foreground bounded windows only. Preserve failed windows; only
   proved confounds invalidate them. No blind 112-worker increase: blocking carrier
   tasks already total61 of default IO64 before other app work.
@@ -71,12 +77,14 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
-Direct/WARP native laboratory and layer-isolation experiments are executed and torn
-down. R2 is blocked on a separately delegated/reachable UDP53 authority for the
-direct phone path. Smallest unlock: an independently reachable authority/address
-and delegation, without replacing production ingress or its single backend.
-Then prove explicit test-profile TCP/UDP direct egress before balanced phone tests.
-No new candidate is retained; do not reinterpret synthetic results as LTE adoption.
+The direct attribution and H6/H7 campaign is closed without adoption. Actual phone
+test-token direct egress used the same public carrier, pin, resolvers and accepted
+APK as WARP. H6 misses DL target; H7 misses its predeclared UL target. All temporary
+runtime/credentials are removed and the production profile restored. The durable
+gain objective remains active, not complete or externally blocked. Next unresolved
+evidence is the pre-payload TLS failure now reproduced in restored Automatic/single
+mode; no further carrier edit is justified by these two screens alone. Preserve
+the failed Automatic window before designing a materially different diagnostic.
 
 ## Current State
 
@@ -88,8 +96,9 @@ No new candidate is retained; do not reinterpret synthetic results as LTE adopti
   Kotlin/test files exactly match4ba57ad. UI restored manual MP, VPN stopped,
   zero children. Delivered Torrents APK directory untouched. app/build output may
   still contain a rejected candidate: only immutable fixed.apk is accepted.
-- ADB device available. Server active/enabled, restarts0/1, stdout/stderr null;
-  initial Slipstream memory6.2MB, flowd6.5MB; Slipstream CPU quota one core.
+- ADB device available, final100%/27C USB. Restored Slipstream/Flowd active, both
+  NRestarts0 since the deliberate restoration, stdout/stderr null. Three Flowd
+  restarts also restarted dependent Slipstream; WARP PID589 never restarted.
 - Precommit Kotlin and16 JVM tests passed, five native fault scenarios passed
   with the exact corrected Debian server. Existing lint2371 errors/27 hints and
   two strict-clippy baseline errors remain documented, not suppressed.
@@ -99,6 +108,19 @@ No new candidate is retained; do not reinterpret synthetic results as LTE adopti
 
 ## Checkpoint History
 
+- H6 envelope: temporarily accept explicit tcp+mp://77.88.8.1:53 as the reversed
+  existing pair in DnsttFmt.paths, with its parser regression test. Existing .88,
+  single and Automatic semantics, native, worker/queue allocation remain unchanged.
+  Adopt only after direct comparison and production safety gates; otherwise remove.
+- H6 first direct screen: C DL228871/UL21785 B/s, fifth loaded request TLS rc35
+  at0.516661s; T DL259028/UL23001, all payloads pass but loaded2.563150/2.511127s.
+  All failures retained. Aggregate private backend socket observations during T
+  reached the test dispatch ceiling8 for multiple three-second samples; test
+  resource saturation is a material confound, not proof of the earlier TLS cause.
+  Increase only the optional test cap8 to16 and backend max16 to32, still under
+  the production total128 and unchanged64MiB/50% backend limits. Repeat fresh
+  screen16 CT/TC, exclude cap8 windows from adoption. Flowd restart propagates to
+  Slipstream through Requires; this is now explicitly anticipated. WARP unchanged.
 - Preflight and commits completed before optimization edits. No push or remote edit.
 - H1 build/compile/16 JVM tests pass. skew40.apk SHA-256
   6aca458b98d7d644d6d58a7a3e2eac4bbcc6a4979b6190e67cc27aa543f9d087,
@@ -394,7 +416,7 @@ concurrent1MiB/18s requests, five loaded4KiB/20s requests and recovery.
   under /run/owenclave-direct-lab until reboot. Unit-only snapshots and unchanged
   production preflight copies remain /root/backups/direct-lab-20260909.
 
-### Direct Phone Blocker
+### Superseded Ingress Inference
 
 - Authoritative queries to aiden.ns.cloudflare.com prove t.x.ass-peak.de delegates
   to x.ass-peak.de ->195.128.101.186; x has no AAAA. Test direct.x.ass-peak.de has no
@@ -404,28 +426,153 @@ concurrent1MiB/18s requests, five loaded4KiB/20s requests and recovery.
 - Server source resolves ONE target_address and shares it across every configured
   domain. Adding a domain cannot choose an isolated direct backend. A different
   client port cannot tell Yandex recursive DNS to use authoritative UDP5303; NS
-  delegation does not encode a port. Replacing production ingress/dispatch is outside
-  the explicit boundary. A WARP trip to a DE HTTP endpoint is not direct carrier
-  isolation. Thus the authorized lab work is complete, but no available separate
-  recursive ingress permits the required direct phone comparison. Unlock R2 with a
-  separate reachable authority/address and delegation, not production reconfiguration.
+  delegation does not encode a port. These observations do NOT establish a blocker:
+  Slipstream transparently forwards OPEN to private FlowRelay, which can select a
+  separately authenticated fixed backend after checking an explicit test token.
+  Follow-up authorization permits this additive route without changing production
+  token semantics, public carrier or certificate. The earlier categorical need for
+  a second authority is withdrawn. A WARP trip to a DE HTTP endpoint alone would
+  still not prove direct carrier isolation.
 - Fresh local native fault suite passed all five retained scenarios with the exact
   corrected Debian server: reorder/duplicate, primary loss, dead bootstrap preserve
  131072 bytes each way/EOF; both dead and wrong pin fail closed with zero payload.
-  Production Kotlin/native source still exactly4ba57ad, installed APK c8f2c194,
-  phone unchanged/stopped/zero children,100%/25C at final check. No app build/install
-  or delivered artifact edits. Prior three-mode TCP/UDP acceptance remains the
-  applicable unchanged-runtime evidence, not a newly executed phone comparison.
-- Final production binaries, unit files and nftables are byte-identical to preflight;
+   At that earlier lab checkpoint, Kotlin/native matched4ba57ad and the phone was
+   unchanged/stopped/zero children,100%/25C. This is historical lab evidence, not
+   the final state of the subsequent phone campaign below.
+- At that earlier lab checkpoint production binaries, units and nftables matched preflight;
   Slipstream PID3001224/NRestarts0 and FlowRelay PID698/NRestarts1 remain active with
   null sinks. nft --check passes, public UDP53 and private40001 remain; no test or
   retired40002/private41924 listener. Every lab/observation job is terminal.
 
+### Actual Phone Direct Dispatch
+
+- Source: bin/lib/slipstream/flowd/main.go and dispatch_test.go. Optional four-flag
+  configuration is all-or-none and disabled by default. Private numeric backend,
+  three distinct16-byte credentials, fixed test-interface binding, max16 test
+  sessions within production128. Authenticated test OPEN only is forwarded after
+  replacing its token with the separate backend credential. Unknown/backend tokens
+  cannot select production handling; backend failure never falls back. Production
+  resolver/TCP/UDP interface binding remains CloudflareWARP.
+- Test backend10.200.0.1:40003 bound eth0, -deny-private rejects non-public resolved
+  destinations including CGNAT, max32/64MiB/50%CPU/128tasks, null sinks, one-hour
+  runtime bound. One static host rule accepted only warp-host source10.200.0.2 to
+  destination10.200.0.1 TCP40003; existing namespace private routing was reused,
+  with no namespace firewall or public listener change. No production token crossed
+  the direct boundary. Tokens came from protected credential files and child stdin.
+- go test -race -count=1 ./... passed after cap16, go vet ./... passed. Regression
+  tests cover production/test/unknown/disabled auth, TCP/UDP header preservation,
+  rewritten-backend authentication, exact bidirectional payload/half-close,
+  unavailable/timed-out backend, cancellation, slow header, session cap and bounded
+  max273-byte OPEN, private destination rejection and configuration validation.
+  Config -check, systemd-analyze verify and nft --check preceded deployment.
+- Backup /root/backups/flowd-test-dispatch-20260909T123023Z contains original
+  flowd binary/unit/nftables; cap8 and unit-only cap16 snapshots are under
+  /root/backups/flowd-test-cap-20260909T130503Z. No secret snapshots were retained.
+  Runtime override selected a NEW /usr/local/bin/flowd-test-dispatch binary; original
+  /usr/local/bin/flowd and all base units/nftables remained byte-identical.
+- Deployment, cap correction and restoration each restarted Flowd AND Slipstream
+  through Requires=flowd.service. First propagation was not anticipated and was
+  disclosed; later two were explicit. Slipstream executable/pin/authority/target
+  stayed fixed; WARP PID589/NRestarts0 and WARP routing never changed. Do not infer
+  no restart from reset NRestarts counters. Immediate cap-change probe initially
+  hit Type=simple startup ConnectionRefused; subsequent listener-gated proof passed.
+- Actual phone same accepted APK, gVisor, same .88+.1 Yandex TCP53 carrier and
+  certificate: production HTTPS warp:on/DE and STUN20/32; test HTTPS warp:off/DE,
+  exact DE direct address and STUN fingerprint425a872168cd matched the server.
+  Before/after deployment production proofs passed; WARP fingerprints rotated and
+  were matched against fresh references, not the old hardcoded acceptance hash.
+  An initial interface STUN assertion failed before successful fresh reference;
+  an Android autofill password prompt blocked the first direct Start before any
+  child/payload, then was dismissed without saving credentials. Both failures remain.
+- Remote backend-down test rejected test payload while production HTTPS/STUN still
+  used WARP. Authenticated test private destination and unknown token yielded
+  EOF/reset with zero payload. TLS pinning is unchanged on the actual public carrier;
+  wrong-pin and both-path-down native tests failed closed with zero payload.
+
+Balanced route attribution, same fixed speed.cloudflare.com IPv4162.159.140.220,
+HTTPS/SNI preserved, 56/64 and immutable route-pair{1,2}-{direct,warp}.jsonl:
+
+| Pair/order | Direct DL/UL B/s | WARP DL/UL B/s | Required failure |
+| --- | --- | --- | --- |
+| 1 D/W | 286570 / 19542 | 223949 / 19352 | WARP loaded4KiB timeout20.000861s |
+| 2 W/D | 269424 / 21580 | 255082 / 24125 | none |
+
+Direct DL wins both (+27.96%,+5.63%), UL mixed (+0.98%,-10.55%); all bulk4/4 per
+window. This is attribution, not a clean adoption sample or proof WARP alone causes
+the failures. These route windows used test cap8, a later observed potential
+resource confound. Same carrier removes delegation/pin confounds, but fixed-backend
+hop, interface/namespace and temporal network variability remain. Forced DNS LTE
+was used; Restricted LTE was not re-established.
+
+### H6/H7 Direct Screens
+
+Fresh cap16 CT/TC windows, all required payloads pass, bulk8/8 for each variant:
+
+| Candidate | Pair | C DL/UL B/s | T DL/UL B/s |
+| --- | --- | --- | --- |
+| H6 reverse primary | 1 | 228081 / 21922 | 243758 / 21313 |
+| H6 reverse primary | 2 | 268215 / 22871 | 246394 / 26991 |
+| H7 data burst40 | 1 | 186412 / 16682 | 257433 / 20420 |
+| H7 data burst40 | 2 | 254452 / 20817 | 237031 / 15088 |
+
+- H6 paired median DL-0.63%, UL+7.61%, target DL rejected. Loaded inclusive p95
+  C0.723578/T0.903890s, max0.727908/0.982273. Control recovery3.760475s retained.
+  reverse.apk742459f8464bed76fbe189bc6167017ebd6a58479667331d1a70fd637914cfc2;
+  same native/assets. Source parser/test edits removed. Immutable labels
+  reverse-direct-screen16-{1,2}-{c,t}; earlier cap8 failure remains separate.
+- H7 authoritative MP-only data-loop burst80->40, polls/pacing/receive burst/56/64
+  unchanged. Source upper bound80 data plus80 polls exceeds120 adapter slots; prior
+  counters proved drops but not packet class. This is distinct from rejected H3
+  poll-budget cap. Target UL declared before build. UL gains+22.41%/-27.52%, paired
+  median-2.56%; DL+15.63% is not permission to change target after seeing results.
+  Loaded p95 C1.111158/T0.871351s, max1.326707/0.965083. No six-pair confirmation.
+- H7 burst.apk511100c5b15a26093029b5c209bce51dea6e47eda6b047ad28e1d85bf2dc7644,
+  native351df8567c3ea8af10eb2ef64b1ce3587a3ad42d848e8b0d257fd7cd239f8427;
+  assets/other native equal control, excluding generated dexopt profiles. Android
+  incremental NDK29/Rust1.97.1 build, release Kotlin/APK and focused JVM gates pass.
+  Host candidate passed five real native reorder/duplicate/path-loss/dead-bootstrap/
+  all-down/wrong-pin scenarios, exact131072 bytes each way plus EOF when live.
+  Source patch preserved only as ignored build/dns-multipath/burst-source.patch;
+  cache runtime edit/build-list entry removed and accepted native restored.
+- Immutable burst-direct-screen-{1,2}-{c,t}.jsonl and corresponding helper retain
+  APK identity per window. Native samples one thread, RSS9500-10480KiB, lifetime
+  CPU13.7-15.4% of one core; bg93-95 threads in H7. These are snapshots, not interval
+  CPU or battery benefits. Phone100%/26C USB, one child live/zero after every window.
+
+### Dispatch Restoration
+
+- Phone production token restored through masked UI, accepted c8f2c194 installed,
+  native64cbc7 restored in jniLibs, manual MP selected, VPN stopped/zero children.
+  Android/native source matches4ba57ad. Delivered APK unchanged. No direct test
+  profile remains selected; local production/test credential copies were deleted.
+- Override /run/systemd/system/flowd.service.d/test-dispatch.conf and test unit
+  /run/systemd/system/owenclave-direct-test.service removed, daemon reloaded, original
+  Flowd restored. Test unit inactive/not-found; private40003 and rule comment
+  owenclave-direct-test absent. Test executable and both remote test credentials
+  removed. Only inert helpers/access batch remain in /run/owenclave-test-dispatch;
+  no automatic restoration, enabled test unit, listener or background sampler.
+- Final original Flowd/Slipstream PIDs3078733/3078737, NRestarts0/0 stable through
+  acceptance, both null sinks/no drop-ins. Original binary/unit/nftables hashes
+  unchanged; nft --check passes, public UDP53/private40001 present, test5303/5304/
+  40003 and retired40002/41924 absent. Final remote HTTPS/STUN production WARP pass.
+  Test token rejected after restoration. First negative invocation accidentally used
+  `testclosed` instead of `test closed`, producing unhandled reset; correct negative
+  mode proved zero payload without a server or helper change.
+- Final phone dispatch-final-multipath and dispatch-final-single: HTTPS WARP/DE,
+  STUN20/32 fingerprint41c736ee658d matches fresh pre-window server reference;
+  exact1MiB DL, acknowledged128KiB UL and recovery pass, zero child after Stop.
+- dispatch-final-automatic: HTTPS WARP/DE, same matched STUN, exact1MiB DL pass,
+  upload FAIL rc35/HTTP0/sent0 at10.667784s, recovery4096 passes. Original APK and
+  original server, no test dispatch, so neither MP nor dispatch is necessary for
+  this symptom. Failed window retained, no blind retry or all-green claim. A later
+  server STUN rotated to a367af216dcd; it does not invalidate the earlier matched
+  before-window reference. Automatic upload acceptance remains unresolved.
+
 ## Completion
 
-R1 verified; R3 retained-runtime safety verified. R2/objective blocked, not complete:
-five prior hypotheses rejected, separate direct/WARP lab and layer controls executed,
-no further gain adopted. The missing independent recursive authority blocks requested
-direct/LTE adoption tests. Accepted c8f2c194 APK/manual MP remains stopped; production
-unchanged, no active test runtime or background jobs. Only evidence and the affected
-node boundary are committed; no push or performance source change.
+R1 verified. This executed attribution/H6/H7 campaign is closed with no adopted gain;
+the broader R2 objective remains active. R3 restoration and MP/single safety gates
+pass but Automatic upload failed, so R3 is not fully verified. Optional dispatch
+source/tests remain disabled by default and are not deployed; all test runtime and
+credentials removed. No external delegation blocker, push, or delivered-artifact
+change. Do not present screening signals as a verified improvement.

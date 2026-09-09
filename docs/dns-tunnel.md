@@ -125,6 +125,18 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
 
 ## Runtime constraints
 
+FlowRelay source supports an explicit, disabled-by-default private test-token
+dispatch for same-carrier egress attribution. All four flags are required together:
+`-test-token-file`, `-test-backend-token-file`, `-test-backend` and `-test-interface`.
+The fixed numeric private backend receives only authenticated test OPENs, rewritten
+with a separate backend token; all three credentials must differ. Production tokens
+retain the deployment's original interface-bound handling, unknown tokens fail
+closed, and a failed test backend has no fallback. The16 test-session cap shares
+the existing global limit. A direct test backend additionally uses `-deny-private`;
+`-check` validates configuration without listening. Credentials are protected files,
+not command-line values. This facility is not enabled on n-de1 after the campaign;
+see [direct/WARP attribution and teardown](goals/2026-09-09-multipath-throughput.md).
+
 - DNS Tunnel supports gVisor TUN only. System TUN cannot protect sockets opened by
   the separate Slipstream process. Proxy service mode is also rejected because it
   creates no Android VPN and cannot capture application traffic through gVisor.
