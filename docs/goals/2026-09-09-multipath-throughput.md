@@ -21,18 +21,21 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   Primary evidence: immutable APKs, equal assets/native unless explicitly changed,
   exact 1MiB DL, acknowledged 128KiB UL, capped concurrent bulk, loaded p95/max,
   lifecycle and bounded aggregate resource samples. Two balanced screening pairs;
-  adoption requires six NEW CT/TC pairs, paired-median target gain >=10%, other
-  direction loss <=10%, >=4 target wins and no failed required transfers. Target
-   direction declared per hypothesis before screen. Status: in_progress. The latest
-   authorized private test-token dispatch removes the claimed delegation blocker;
-   lab evidence still does not satisfy the phone adoption gate.
+  adoption uses fresh balanced confirmation, initially six NEW CT/TC pairs, with
+  uncertainty and failures retained. The user's latest instruction supersedes the
+  arbitrary >=10% gate: a repeatable small upload or completion-latency benefit is
+  useful, including approximately +5-8% UL with a minor DL loss. Target
+  direction declared per hypothesis before screen. Status: in_progress. Reusable
+  Python-on-Android smoke, H6/H7 re-screens, H8 native-only build/screen/six-pair
+  confirmation and accepted-APK gVisor calibration executed below; no adopted gain.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
   retained runtime with local correctness/fault tests and Automatic/manual/MP
   TCP/UDP WARP acceptance. Stop VPN with zero children, commit appropriate results,
   no push. Primary evidence: this document, existing harnesses, installed hashes
-   and service gates. Status: in_progress. Restored production runtime and MP/single
-   TCP/UDP pass; final Automatic upload failed as recorded below. No candidate
-   performance code retained, and no all-green three-mode acceptance claim.
+  and service gates. Status: verified for this campaign. Original production runtime,
+  accepted APK and production-token manual MP restored, VPN stopped/zero children.
+  Fresh final MP/Automatic/single TCP/UDP WARP and acknowledged-upload windows pass;
+  earlier failures remain recorded, not claimed fixed. No performance code adopted.
 
 ## Constraints And Envelope
 
@@ -77,14 +80,28 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
-The direct attribution and H6/H7 campaign is closed without adoption. Actual phone
-test-token direct egress used the same public carrier, pin, resolvers and accepted
-APK as WARP. H6 misses DL target; H7 misses its predeclared UL target. All temporary
-runtime/credentials are removed and the production profile restored. The durable
-gain objective remains active, not complete or externally blocked. Next unresolved
-evidence is the pre-payload TLS failure now reproduced in restored Automatic/single
-mode; no further carrier edit is justified by these two screens alone. Preserve
-the failed Automatic window before designing a materially different diagnostic.
+Executed campaign: reusable Python ON Android invokes native Slipstream under LTE
+with VPN stopped, before any candidate APK build. See Android Native Smoke below.
+Short synthetic audio-like 8/32/128/512KiB uploads measure startup, TLS, completion,
+acknowledgement and stalls, both sequentially and under bounded load. No Telegram
+account data or real message sending. Native smoke screens are not gVisor acceptance;
+credible candidates must subsequently pass the actual APK workload and TCP/UDP gates.
+H6 was re-evaluated for upload (its old DL-target rejection is not current policy),
+then H7/H8 data-burst changes with polling unchanged. All rejected with current best
+preserved. Two screen pairs select, fresh balanced confirmation estimates small
+benefits; report every ratio, wins, p50/p95/max and bootstrap interval, not merely a
+threshold. Extra candidate startup/upload failures prevent adoption; ambiguity can
+justify further evidence, not erasure of failed windows or a fake global optimum.
+
+Minimal R2 envelope expansion: tracked device Python/ADB orchestration, bounded
+serial TCP adapters 28/32 per path, tests of the actual Python implementation and
+an ephemeral authenticated, source-restricted HTTPS size/hash acknowledgement
+fixture on DE. Private test-token dispatch may be reinstated with cap16/backend32;
+production-token WARP semantics/pin remain unchanged. Disclose the two planned
+Flowd/Slipstream restart boundaries before deployment/restoration. Fixture and test
+credentials/runtime are removed after the campaign. Accepted APK/delivery unchanged
+unless a candidate passes real gVisor confirmation. Python scheduling/timeout and
+SOCKS timing differences require same-control APK calibration, never equivalence claims.
 
 ## Current State
 
@@ -96,9 +113,10 @@ the failed Automatic window before designing a materially different diagnostic.
   Kotlin/test files exactly match4ba57ad. UI restored manual MP, VPN stopped,
   zero children. Delivered Torrents APK directory untouched. app/build output may
   still contain a rejected candidate: only immutable fixed.apk is accepted.
-- ADB device available, final100%/27C USB. Restored Slipstream/Flowd active, both
-  NRestarts0 since the deliberate restoration, stdout/stderr null. Three Flowd
-  restarts also restarted dependent Slipstream; WARP PID589 never restarted.
+- ADB device available, latest100%/29C USB. Restored Slipstream/Flowd active,
+  PIDs3099339/3099337, NRestarts0/0 stable, stdout/stderr null/no drop-ins. This smoke
+  campaign had two planned shared restart boundaries (deployment/restoration), in
+  addition to the three earlier documented restarts. WARP PID589 never restarted.
 - Precommit Kotlin and16 JVM tests passed, five native fault scenarios passed
   with the exact corrected Debian server. Existing lint2371 errors/27 hints and
   two strict-clippy baseline errors remain documented, not suppressed.
@@ -568,11 +586,131 @@ Fresh cap16 CT/TC windows, all required payloads pass, bulk8/8 for each variant:
   server STUN rotated to a367af216dcd; it does not invalidate the earlier matched
   before-window reference. Automatic upload acceptance remains unresolved.
 
+## Android Native Smoke
+
+- Implemented `bin/lib/slipstream/smoke/{device,host,pair,report,fixture,test_smoke}.py`
+  and its README. Native executes in Termux on Moto g54, not the host: accepted ELF
+  arm64 hash64cbc7, Python3.14.6, Wi-Fi0/LTE,LTE, battery100%/29-30C. Signed Termux
+  apt installation needed an explicit PATH; initial missing-GPG failure did not
+  justify unsigned packages. No root or SELinux change. Device direct baseline
+  reached ya.ru302, cloudflare.com301, google.com301, speed.cloudflare.com200: this
+  proves LTE performance, NOT restricted-LTE/allowlist traversal.
+- Two bounded28-worker/32-queue serial persistent TCP adapters match budgets but
+  not Kotlin scheduling: Python whole-exchange timeout and strict DNS ID/QR checks
+  differ from Kotlin per-I/O timeouts/no ID/QR check. Same accepted native and Python
+  adapter control every candidate. Source data-send80 then poll up-to40 per path are
+  upper bounds, not unconditional160 sends; readiness/pacing/cwin limit actual work.
+  Aggregate adapter capacity120 does not prove instantaneous overflow.
+- Workload: fresh incompressible8/32/128/512KiB HTTPS uploads sequentially and each
+  under one replenished1MiB download; exactsize/SHA256 acknowledgement, sequential
+  1MiB DL,4KiB recovery. Deadline40s, failures zeroackBps, phases/cumulative TLS/startup/
+  completion/local drain stalls retained. Local submitted bytes are NOT remote ACKs.
+  Native logs discarded, credentials stdin only, results aggregate JSONL exclusive-create.
+- Preserved initial harness failures calibration-native-{1,2,3}: VPN callback mistaken
+  for active VPN, ADB stdin EOF/copy timeout, generated-copy syntax/exec-out exit status.
+  calibration-native-4 passed all8 uploads; startup0.99975s, sequential completion
+  1.466/1.892/5.508/17.309s, loaded1.145/2.493/6.827/23.218s, DL259462Bps.
+  These are fixturev1. Fixturev2 adds source identity/version; all H8 confirmation
+  windows share script7d75bfc4 and fixture-cert36a844f4, unchanged workloads.
+- H6 two fresh balanced screens used accepted ELF, reversed order only. Median
+  within-pair upload ratios+2.12%/+0.65%, DL-14.82%/-14.56%. Sequential8KiB
+  -28.65%/-19.08%,32KiB-5.37%/-14.05%; loaded512KiB+3.84%/+40.86%. All32 uploads
+  passed. Rejected for repeat short sequential/DL regressions, NOT the old10% rule.
+- H7 extracted ELF351df856 from existing burst.apk, no APK build/install. Data-send
+  max80->40 only, polling unchanged. Two screen UL medians+20.44%/+1.39%, DL+34.46%/
+  +4.46%; loaded512KiB-43.52%/-24.43%, completion37.763/33.174s. All uploads passed,
+  but repeat loaded-large regression rejected. Not an unconditional throughput win.
+- H8 compromise max80->60 for multiple Authoritative resolvers only, polling unchanged.
+  Isolated `build/dns-smoke/h8-src` copied pinnedbc772dd/picoquic4bd356c plus existing
+  safety patches; no cache reset or accepted jniLibs/source edit. Android ELF build18s,
+  `h8-native` SHA2560ad7668745c7d903a84c59173403c18be99ab750f999f82196a8d0615b728eb1;
+  `h8-source.patch` preserves the exact minimal change. Source fmt and24 native
+  client tests pass. Host test build initially failed on Perl paths/version/vendor
+  modules, resolved using retained bbr3/perl-root; no source workaround. Strict
+  workspace/all-target Clippy fails existing collapsible_if at runtime.rs656 (control
+  corresponding line648), not H8 burst code; no suppression or clean-lint claim.
+- H8 screen UL medians+2.29%/+6.10%, DL-6.18%/+11.54%; loaded32KiB+24.96%/+23.46%
+  justified six fresh confirmation pairs despite mixed other sizes, not adoption.
+  `h8-confirm-p{1..6}-{control,candidate}.jsonl` are immutable. Report command:
+  `python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label h8-confirm --pairs 6`.
+
+| H8 confirmation workload | Paired median | Wins | Bootstrap95 median interval |
+| --- | ---: | ---: | ---: |
+| Sequential8KiB upload | -13.44% | 1/6 | -25.74% to+20.13% |
+| Sequential32KiB upload | -19.04% | 0/6 | -25.13% to-4.87% |
+| Sequential128KiB upload | +0.72% | 3/6 | -9.11% to+25.41% |
+| Sequential512KiB upload | +0.97% | 3/6 | -11.07% to+16.20% |
+| Loaded8KiB upload | +2.15% | 3/6 | -4.64% to+12.96% |
+| Loaded32KiB upload | +7.35% | 4/6 | -11.94% to+26.28% |
+| Loaded128KiB upload | +2.32% | 4/6 | -8.19% to+28.39% |
+| Loaded512KiB upload | -3.32% | 2/5 defined | -100% to+2.74% |
+| Sequential1MiB download | +5.38% | 4/6 | -8.97% to+23.16% |
+
+- Both variants failed1/48 uploads: control pair1 loaded512KiB40.00096s and candidate
+  pair6 loaded512KiB40.00156s, phaseack/submitted524288/zeroack. Undefined ratio for
+  failed control retained separately, candidate failure contributes-100%. Startup
+  C/T p50 .769/.860s, p95=max2.298/1.686s; TLS phase p95 .856/.980s, max1.413/1.506s.
+  Sequential32KiB completion C/T p50 1.988/2.362s, p95=max2.221/2.722s. Loaded32KiB
+  p50 2.842/2.817s, p95=max3.633/3.433s; paired ratios and ratio-of-medians differ.
+  Six pairs give descriptive uncertainty, not a carrier-wide guarantee. H8 rejected:
+  its modest loaded gain is eligible in principle, but cannot outweigh repeat short
+  sequential regression and unresolved loaded timeout. No candidate APK promotion
+  or build was justified. Current best preserved; no arbitrary attempt cap invoked.
+- Calibration on actual accepted APK/gVisor: first direct window blocked by harness
+  parser (CELLULAR|VPN not exact VPN), after TCP trace/UDP already passed. Preserved
+  `calibration-gvisor-direct-1.jsonl`; fixed/tested active-agent transport parsing,
+  not a tunnel failure. Fresh direct-{2,3} all16 uploads/2DL/2recovery pass. Sequential
+  8/32/128/512KiB completion1.040/1.883/4.409/14.499s and1.142/1.788/4.561/14.928s;
+  DL281311/277311Bps. Larger sequential uploads faster than Python controls in this
+  session; these nonrandomized calibrations prove the harness is NOT APK-equivalent.
+- WARP calibration gVisor1 failed sequential512KiB: TLS .368s, submitted .384s,
+  no ACK, IncompleteReadError24.01165s; all other uploads/DL/recovery passed. Native
+  WARP1 failed loaded512KiB40.00226s. After restoring ORIGINAL Flowd, native WARP2
+  first8KiB failed in TLS10.27961s/submitted0; subsequent32/128/512KiB sequential
+  uploads passed, loaded512KiB timed out40.00052s. Thus neither gVisor nor optional
+  test dispatch is necessary for all observed failure modes; WARP-only causation
+  and Telegram fixes are NOT proven. No Telegram/account content sent.
+- Final restored-server gVisor MP2 all8 uploads/DL/recovery pass: sequential
+  1.172/2.215/5.676/16.282s, loaded1.010/2.634/6.609/19.602s, DL211074Bps. Fresh
+  Automatic and single(.8 TCP) each all8 uploads/DL/recovery pass, DL254618/251225Bps.
+  All three modes independently passed HTTPS WARP/DE and STUN20->32 matching
+  fresh server fingerprint609b85ac032a. Earlier original Automatic TLS10.667784s
+  failure remains valid history; last successful gates do not establish a fix.
+- Eleven Python tests pass: fragmented persistent DNS/affinity, malformed/truncated/
+  wrong-ID responses, drop-new bounds, timeout/path recovery, cancellation/reaping
+  one real helper child and56 workers, exacthash TLS fixture, wrong auth/no leaked
+  token, malformed/slow headers, VPN agent parsing, report failure handling.
+  Real phone TERM while active also passed: host-2, no owner.pid, zero children/VPN
+  off, recorded cancel-term-1.jsonl. EOF cancels before TERM fallback, avoiding a
+  double cancellation during cleanup. That lifecycle-only script revision has hash
+  bd365194 and was used for WARP checks; not mixed into H8 confirmation statistics.
+- Server campaign backup `/root/backups/owenclave-smoke-20260909T135858Z/`. Two planned
+  shared restart boundaries, no WARP restart. Temporary direct cap16/backend32;
+  isolated backend runtime extended1h->4h with only its own restart, no shared PID
+  change. Fixture DynamicUser/nullsinks/64MiB/CPU50%/Tasks16, source-restricted40004
+  and independent32-byte auth, never a proxy. WARP destination-dependent IPs needed
+  a test-only104.28/16 ingress allowance plus auth, not any production route change.
+- Original Flowd SHAeb07424f and corrected Slipstream SHAd7667b1 restored/unchanged;
+  base units/nftables byte-identical backup. Final PIDs3099337/3099339, NRestarts0/0,
+  null sinks/no drop-ins; WARP589 unchanged. Unit verify/nft-check pass, publicUDP53
+  and privatewarpns40001 present;40003/40004/40002/41924private/9100 absent, host route
+  direct. One remote original-flowd1.1.1.1 TLS reset retained; interface-bound WARP
+  trace and alternate1.0.0.1 authenticated FlowRelay TCP/UDP passed. Retired test and
+  unknown tokens returned zero payload. Test units/binary/rules, both /run test dirs,
+  private keys and local/remote credential copies removed (a harmless generated
+  __pycache__ initially prevented rmdir; inspected and removed). No timers/auto-redeploy.
+- Phone remains accepted c8f2c194, native64cbc7, production-token manualMP, stopped
+  with zero children. Delivery directory not accessed; no APK built/installed this
+  campaign. Native H7/H8 ELF experiments and aggregate JSONLs remain ignored artifacts.
+
 ## Completion
 
-R1 verified. This executed attribution/H6/H7 campaign is closed with no adopted gain;
-the broader R2 objective remains active. R3 restoration and MP/single safety gates
-pass but Automatic upload failed, so R3 is not fully verified. Optional dispatch
-source/tests remain disabled by default and are not deployed; all test runtime and
-credentials removed. No external delegation blocker, push, or delivered-artifact
-change. Do not present screening signals as a verified improvement.
+R1 verified; this native-smoke implementation/screening/calibration campaign is
+closed with evidence-backed H6/H7/H8 rejections and R3 restoration verified. The
+broader R2 optimization objective remains active, not a global optimum or a Telegram
+fix. Future carrier changes use this native screen before any APK build; only a
+credible non-regressing signal advances to actual gVisor candidate confirmation.
+Known TLS/ack failures are now measured separately from bulk speed and must not be
+erased by successful later windows. All test runtime/credentials removed, production
+unchanged, no push or delivered-artifact change. Appropriate tracked harness/docs
+are the only retained implementation changes.

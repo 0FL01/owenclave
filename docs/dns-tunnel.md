@@ -137,6 +137,11 @@ the existing global limit. A direct test backend additionally uses `-deny-privat
 not command-line values. This facility is not enabled on n-de1 after the campaign;
 see [direct/WARP attribution and teardown](goals/2026-09-09-multipath-throughput.md).
 
+Native optimization uses the foreground [Android Python smoke harness](../bin/lib/slipstream/smoke/README.md)
+before candidate APK builds. Its acknowledged small-upload workload also runs through
+the real APK/gVisor path; Python adapter results alone never authorize a release.
+The HTTPS fixture and private direct test dispatch are ephemeral, not production services.
+
 - DNS Tunnel supports gVisor TUN only. System TUN cannot protect sockets opened by
   the separate Slipstream process. Proxy service mode is also rejected because it
   creates no Android VPN and cannot capture application traffic through gVisor.
