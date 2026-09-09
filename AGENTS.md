@@ -10,7 +10,7 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/dnstt/DnsttFmt.kt` - token, resolver and automatic candidate validation.
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/dnstt/DnsttBean.java` - dedicated DNS Tunnel profile persistence.
 - `app/src/main/java/io/nekohasekai/sagernet/fmt/ConfigBuilder.kt` - authenticated local carrier boundary.
-- `app/src/main/java/io/nekohasekai/sagernet/bg/proto/SlipstreamInstance.kt` - single-resolver Rust Slipstream lifecycle and optional TCP DNS adapter.
+- `app/src/main/java/io/nekohasekai/sagernet/bg/proto/SlipstreamInstance.kt` - one-child Rust Slipstream lifecycle and bounded TCP DNS adapters.
 - `app/src/main/java/io/nekohasekai/sagernet/bg/proto/V2RayInstance.kt` - sidecar ownership and gVisor restriction.
 - `bin/lib/slipstream/build.sh` - pinned arm64 Android client artifact and patches.
 - `bin/lib/slipstream/flowd/` - private FlowRelay backend and focused tests.
@@ -23,7 +23,8 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 - Automatic setup accepts only a 32-lowercase-hex token and snapshots the first two
   unique non-VPN underlay DNS addresses, then TCP `77.88.8.8:53` and
   `77.88.8.1:53`. Manual mode accepts exactly one `udp://host:port` or
-  `tcp://host:port` override.
+  `tcp://host:port` override, or the explicit experimental Yandex pair documented in
+  `docs/dns-tunnel.md`. Never silently turn a single override into multipath.
 - Try automatic candidates sequentially under one deadline. Stop after real
   `Connection ready` and retain one child/resolver. A physical underlay change
   restarts DNS Tunnel; automatic mode takes a fresh DNS snapshot and a pinned
@@ -32,9 +33,12 @@ Android proxy client based on Exclave/SagerNet. Application ID is
   separate from automatic startup, test candidates sequentially with one child and
   one bounded 512 KiB/3 second download through one fixed Cloudflare/OVH/Hetzner host,
   rank throughput before latency, and persist the last completed per-profile snapshot
-  plus a resolver the user selects. Never add multipath, background ranking or periodic
+  plus a resolver the user selects. Never add benchmark multipath, background ranking or periodic
   health checks; cancellation and failed runs must keep the previous snapshot.
-- Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt, multipath or direct-carrier fallback.
+- Rust Slipstream accepts authenticated loopback SOCKS5 and emits FlowRelay OPEN before payload. Pass the Flow token and ephemeral local credentials only through child stdin; do not add dnstt or direct-carrier fallback.
+- Explicit multipath retains one child, separate loopback endpoints and aggregate
+  56 workers/64 queued queries. Keep the bootstrap and server picoquic path-identity
+  patches paired; an unpatched server can crash on path loss.
 - DNS Tunnel supports gVisor TUN only. A child process cannot use the System TUN socket-protection path.
 - Per-app `Proxy`/`Bypass` controls Android VPN capture only; it is not a stealth guarantee. Claims about what another app can observe through interfaces, routes, DNS or egress require device- and Android-version-specific evidence.
 - Keep one application flow per local TCP connection and independent Slipstream QUIC stream. Do not enable Exclave mux/smux or add health-probe streams.

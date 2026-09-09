@@ -5,7 +5,8 @@ sidecar and FlowRelay boundary. Historical implementation and acceptance evidenc
 lives in [`goals/`](goals/).
 
 The MasterDnsVPN migration was rolled back by user request on 2026-09-07.
-The active client is again the accepted Slipstream 48-worker/64-queue implementation.
+The active client retains Slipstream's aggregate 56-worker/64-queue budget, with
+an explicit experimental Yandex multipath option described below.
 Slipstream now explicitly selects `dcubic` congestion control. Six paired LTE tests
 measured +27.3% download and +42.7% upload, with loaded p95 increasing from 0.907 s
 to 1.084 s. The user explicitly accepted this latency trade-off for throughput;
@@ -16,6 +17,19 @@ see [four-variant comparison and rejected candidates](goals/2026-09-07-bbr3-reso
 The MasterDNS Base36 codec was measured but rejected for migration: active-domain
 capacity gain is only 1.38% and mobile encoding is slower. See
 [Base36 codec experiment](goals/2026-09-07-base36-experiment.md).
+ARQ is already supplied by QUIC, including enabled preemptive repeats; an extra
+reliability layer has no demonstrated LTE benefit. See
+[ARQ reconnaissance and baseline test limitations](goals/2026-09-08-arq-recon.md).
+The subsequent 48-to-56-worker change improved paired-median download by 24.48%
+and upload by 23.85% across six fresh forced-DNS LTE pairs. Loaded p95 increased
+from 0.819 to 0.847 s, with a 6.19 s maximum outlier; all required transfers passed.
+Reducing the queue to 16 then lost throughput and was rejected. See
+[throughput iteration and rollback](goals/2026-09-08-dns-throughput-iteration.md).
+The subsequent strict whole-query deadline candidate passed 12 isolated tests but
+was rejected after balanced phone screening: paired-median download -4.03%, upload
++4.90%, below the 10% target. The 56-worker/64-queue exchange implementation was
+retained; deadline code is retained only as a test fixture. See
+[deadline experiment and evidence](goals/2026-09-08-dns-query-deadline.md).
 Retained `bin/lib/masterdns/` is experimental source, not part of the active build.
 Comparison results and rollback evidence remain in
 [`goals/2026-09-07-masterdns-migration.md`](goals/2026-09-07-masterdns-migration.md).
@@ -44,6 +58,20 @@ non-VPN underlay and tries the first two unique DNS addresses over TCP, then TCP
 sequentially until real Slipstream `Connection ready`; a failed child is stopped
 before the next starts. Manual mode instead uses exactly one validated
 `udp://host:port` or `tcp://host:port` with no fallback.
+
+Manual `tcp+mp://77.88.8.88:53` explicitly opts into the fixed Yandex Safe
+`77.88.8.88:53` / Basic `77.88.8.1:53` TCP pair. Other multipath hosts/ports are
+rejected; ordinary `tcp://77.88.8.88:53` remains single. Both paths share one
+native QUIC connection and one child, not two tunnels. This mixed pair does not
+promise Safe filtering, independent provider capacity or a universal speed gain.
+Automatic startup and the separate foreground resolver benchmark remain single-path.
+
+Six fresh alternating CT/TC forced-DNS LTE pairs on the same corrected APK measured
+paired-median download +17.09% and acknowledged upload +30.84%, each with 5/6 wins.
+Loaded p95 was 0.707 -> 0.696 s, maximum 0.708 -> 0.727 s; required transfers all
+passed. One upload window lost 40.24%, so the option remains experimental. Earlier
+accepted-APK comparisons included a control upload timeout and are retained, not
+counted as six valid upload pairs. See [multipath results, fixes and rollback](goals/2026-09-09-yandex-multipath.md).
 
 Using UDP instead of TCP for the same resolver is a rejected performance path for the
 tested LTE route. In a short production-gVisor A/B, UDP remained functional but exact
@@ -76,7 +104,8 @@ incomparable.
 The Exclave outbound uses the authenticated loopback SOCKS boundary. Application
 TCP and UDP are supported; each TCP flow or UDP association gets an independent
 local connection and Slipstream QUIC stream. Mux, health-probe streams and a
-second carrier path are not part of this contract.
+non-DNS carrier fallback are not part of this contract. Multipath scheduling is
+QUIC packet-level, not application-stream assignment to resolvers.
 
 Global Route Mode does not override that boundary for DNS Tunnel. In particular,
 `Direct` remains available for other profile types but cannot route DNS Tunnel or its
@@ -112,14 +141,23 @@ the carrier allowlist; DNS remains the data path rather than a one-time bootstra
   A user or fatal stop received during restart teardown cancels that queued restart.
   There is no periodic health check, background ranking, direct carrier, legacy SSH
   path or direct destination fallback.
-- Stable runtime retains one resolver and one child. Busy uses the existing 50 ms
+- Runtime retains one child and either one resolver or the explicit two-path pair.
+  Multipath bootstrap tries each configured endpoint once, allowing 3 seconds per
+  pre-readiness attempt inside the existing aggregate deadline. Both-dead and wrong
+  certificate cases fail closed. A server forced-path identity/CID guard is required
+  before enabling multipath; see `bin/lib/slipstream/picoquic-multipath.patch`.
+  Busy uses the existing 50 ms
   pacing and 400 ms keepalive; Warm polls at most once per 400 ms; quiet open streams
   poll at most once per 2 seconds; empty connections do not explicitly poll. Quiet
   and empty keepalive remains 5 seconds.
-- The TCP DNS adapter uses 48 serial workers with a separate 64-query queue;
+- The single TCP DNS adapter uses 56 serial workers with a separate 64-query queue;
+  multipath splits this into two 28-worker/32-query adapters with distinct loopback
+  UDP ports. Responses keep their source path identity. Busy native poll allowance
+  remains per path, so equal worker counts do not imply equal DNS query load or
+  battery cost; no battery improvement is claimed.
   increasing workers must not implicitly grow the queue. Each persistent resolver
-  connection has one outstanding exchange, with no pipelining. A clean-APK six-pair
-  LTE comparison measured +34.9% paired download, -6.6% upload and improved loaded
+  connection has one outstanding exchange, with no pipelining. The earlier 48-worker
+  clean-APK six-pair comparison measured +34.9% download, -6.6% upload and improved loaded
   p95 on the tested TCP resolver; this is path-specific, not a universal guarantee.
   See [performance experiments and acceptance](goals/2026-09-07-dns-tunnel-performance.md).
 - A captured TCP flow whose carrier dial fails is closed and removed from the active

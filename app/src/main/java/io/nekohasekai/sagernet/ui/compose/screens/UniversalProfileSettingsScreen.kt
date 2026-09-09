@@ -199,6 +199,7 @@ private fun DnsttFields(state: ProfileFieldState, update: (ProfileFieldState) ->
             ProfileTextField("DNS Resolver (udp:// or tcp://)", state.dnsttResolver) {
                 update(state.copy(dnsttResolver = it))
             }
+            Text("Experimental Yandex Safe .88 + Basic .1: tcp+mp://77.88.8.88:53")
         }
     }
 }

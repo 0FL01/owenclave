@@ -42,15 +42,18 @@ internal class SlipstreamInstance(
     private val onStopped: (IOException) -> Unit,
 ) : AbstractInstance {
     private companion object {
-        const val WORKERS = 48
+        const val WORKERS = 56
         const val QUERY_QUEUE_CAPACITY = 64
         const val QUERY_MAX_AGE_MS = 10_000L
         const val SOCKET_TIMEOUT_MS = 8_000
     }
 
-    private class DnsTcpAdapter(
+    internal class DnsTcpAdapter(
         private val resolverHost: String,
         private val resolverPort: Int,
+        workers: Int = WORKERS,
+        queueCapacity: Int = QUERY_QUEUE_CAPACITY,
+        private val elapsedRealtime: () -> Long = SystemClock::elapsedRealtime,
     ) : AutoCloseable {
         private data class Query(
             val data: ByteArray,
@@ -67,7 +70,7 @@ internal class SlipstreamInstance(
         }
 
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private val queue = Channel<Query>(QUERY_QUEUE_CAPACITY)
+        private val queue = Channel<Query>(queueCapacity)
         private val udp = DatagramSocket(null).apply {
             bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0))
         }
@@ -90,12 +93,12 @@ internal class SlipstreamInstance(
                         Query(
                             packet.data.copyOfRange(packet.offset, packet.offset + packet.length),
                             packet.socketAddress as InetSocketAddress,
-                            SystemClock.elapsedRealtime(),
+                            elapsedRealtime(),
                         ),
                     )
                 }
             }
-            repeat(WORKERS) { scope.launch { worker() } }
+            repeat(workers) { scope.launch { worker() } }
         }
 
         private fun connect(timeoutMs: Int): Connection {
@@ -130,7 +133,7 @@ internal class SlipstreamInstance(
         }
 
         private fun remainingMs(query: Query) =
-            (QUERY_MAX_AGE_MS - (SystemClock.elapsedRealtime() - query.createdAt))
+            (QUERY_MAX_AGE_MS - (elapsedRealtime() - query.createdAt))
                 .coerceAtMost(SOCKET_TIMEOUT_MS.toLong()).toInt()
 
         private suspend fun worker() {
@@ -182,8 +185,8 @@ internal class SlipstreamInstance(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
-    private var adapter: DnsTcpAdapter? = null
-    private lateinit var authority: String
+    private val adapters = mutableListOf<DnsTcpAdapter>()
+    private lateinit var authorities: List<String>
     private val ready = CompletableDeferred<Unit>()
     private var process: Process? = null
     private var readyAccepted = false
@@ -241,10 +244,9 @@ internal class SlipstreamInstance(
             "--tcp-listen-port", config.localPort.toString(),
             "--domain", config.domain,
             "--cert", certificate.absolutePath,
-            "--authoritative", authority,
             "--congestion-control", "dcubic",
             "--flow-relay-stdin",
-        )
+        ) + authorities.flatMap { listOf("--authoritative", it) }
         val child = ProcessBuilder(command)
             .directory(SagerNet.application.noBackupFilesDir)
             .start()
@@ -278,7 +280,7 @@ internal class SlipstreamInstance(
                 onStopped(IOException("DNS Tunnel carrier stopped"))
             }
         }
-        Logs.i("slipstream: starting single DNS resolver")
+        Logs.i("slipstream: starting DNS carrier")
     }
 
     override fun launch() {
@@ -289,18 +291,21 @@ internal class SlipstreamInstance(
                 certificate.outputStream().use { input.copyTo(it) }
             }
             try {
-                authority = when (resolver.transport) {
-                    "udp" -> joinHostPort(resolver.host, resolver.port)
-                    "tcp" -> DnsTcpAdapter(resolver.host, resolver.port).let {
-                        adapter = it
-                        "127.0.0.1:${it.port}"
+                val paths = resolver.paths()
+                authorities = paths.map { path ->
+                    when (path.transport) {
+                        "udp" -> joinHostPort(path.host, path.port)
+                        "tcp" -> DnsTcpAdapter(path.host, path.port, WORKERS / paths.size, QUERY_QUEUE_CAPACITY / paths.size).let {
+                            adapters.add(it)
+                            "127.0.0.1:${it.port}"
+                        }
+                        else -> throw IOException("Unsupported DNS resolver transport")
                     }
-                    else -> throw IOException("Unsupported DNS resolver transport")
                 }
                 startLocked()
             } catch (error: Throwable) {
-                runCatching { adapter?.close() }
-                adapter = null
+                adapters.forEach { runCatching { it.close() } }
+                adapters.clear()
                 certificate.delete()
                 throw error
             }
@@ -323,8 +328,8 @@ internal class SlipstreamInstance(
             closed = true
             ready.cancel()
             stopLocked()
-            runCatching { adapter?.close() }
-            adapter = null
+            adapters.forEach { runCatching { it.close() } }
+            adapters.clear()
             if (::certificate.isInitialized) certificate.delete()
         }
         scope.cancel()

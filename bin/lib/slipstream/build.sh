@@ -10,6 +10,7 @@ PATCHES=(
   "$ROOT/bin/lib/slipstream/adaptive-idle.patch"
   "$ROOT/bin/lib/slipstream/flow-relay.patch"
   "$ROOT/bin/lib/slipstream/battery-scheduler.patch"
+  "$ROOT/bin/lib/slipstream/multipath-bootstrap.patch"
 )
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/owenclave-slipstream"
 SRC="${SLIPSTREAM_SRC:-$CACHE/src}"
@@ -42,6 +43,12 @@ for patch in "${PATCHES[@]}"; do
   git -C "$SRC" apply --check "$patch"
   git -C "$SRC" apply "$patch"
 done
+
+PICOQUIC_PATCH="$ROOT/bin/lib/slipstream/picoquic-multipath.patch"
+if ! git -C "$SRC/vendor/picoquic" apply --reverse --check "$PICOQUIC_PATCH" 2>/dev/null; then
+  git -C "$SRC/vendor/picoquic" apply --check "$PICOQUIC_PATCH"
+  git -C "$SRC/vendor/picoquic" apply "$PICOQUIC_PATCH"
+fi
 
 export ANDROID_ABI=arm64-v8a
 export ANDROID_PLATFORM=android-21
