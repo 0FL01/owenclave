@@ -72,6 +72,14 @@ DE `195.128.101.186`, fixture TCP `40004`; other hosts require changing that ide
 check deliberately. `egress=warp` rejects DE direct, but still needs an independent
 interface-bound WARP proof; a different source IP alone is not WARP proof.
 
+Optional `--stats-file` writes one exclusive-create `0600` JSON on graceful shutdown:
+TLS-completed handlers, authenticated requests, complete upload bodies, drained
+replies, HTTP timeouts, I/O errors and bounded-close aborts. It retains no payload,
+request identifier or peer address. These synthetic-only totals distinguish an
+incomplete body from a missing application ACK; `reply_drained` is still a local
+buffer boundary, not remote receipt. Pre-TLS failures are not counted. A close abort
+alone does not prove payload loss. Leave this option off outside the bounded fixture.
+
 DE operations own deployment, secret provisioning and teardown. For direct tests,
 use optional FlowRelay dispatch cap16/backend32, not the confounded former cap8.
 Production credentials, WARP binding, pin and firewall remain unchanged. WARP IPs
@@ -141,9 +149,37 @@ make intervals descriptive, not universal confidence claims. No arbitrary >=10%
 gate: repeatable modest upload/completion gains matter, but new startup failures
 or short-upload regressions cannot be hidden by bulk medians.
 
-2026-09-09 campaigns: H6/H7/H9 screens and H8/H10 six-pair confirmations rejected on
-measured regressions; accepted APK unchanged. Thirteen local tests (including bounded
-three-path cleanup and shard retry affinity) passed; earlier real phone TERM/EOF
-cleanup and all20 latest native-window cleanups passed. Same-workload accepted APK calibration and restored production
-Automatic/single/MP TCP/UDP checks were executed; intermittent TLS/ack failures remain
-recorded. Full results: [throughput goal](../../../../docs/goals/2026-09-09-multipath-throughput.md).
+## Local Causal Probe
+
+`causal.py` uses the existing Linux client/server, two synthetic UDP adapters
+(28 workers/32 queued each), one fixed authenticated loopback bridge and the same
+pinned HTTPS workload. It does NOT use Android, real recursive DNS, real FlowRelay
+or WARP. Synthetic service delay is not a faithful model of TCP resolver capacity.
+OpenSSL creates ephemeral credentials/certificate in a temporary directory; native
+output is discarded. No phone, public fixture or production secret is needed.
+
+```sh
+python3 bin/lib/slipstream/smoke/causal.py \
+  --client build/dns-multipath/host-fixed/release/slipstream-client \
+  --server build/dns-multipath/host-fixed/release/slipstream-server \
+  --delay .08 .4 --windows 2 --output build/dns-smoke/causal-new.jsonl
+```
+
+Use a new output path for each run. Default mode executes the full workload. Add
+`--focused` for only loaded512KiB plus recovery, with aggregate bridge progress every
+5 seconds (at most eight samples). Add `--release-load-after 20` only as a causal
+intervention: stopping DL changes offered load and MUST NOT be reported as a
+same-workload speed gain. Bounds: 1..6 windows, two delays0..0.5s, release0..30s,
+readiness15s, request40s, fixed bridge cap8. The exit code indicates experiment
+execution, NOT successful payload acceptance: inspect every `window.ok`, request
+failure and cleanup row. SIGINT/SIGTERM cancellation reaps both native children and
+closes owned sockets/tasks; interrupted evidence remains exclusive-create.
+
+2026-09-09 H13: eight valid local windows, one Android-native window and three
+accepted APK/gVisor windows executed. Local asymmetry reproduced an incomplete-body
+ACK timeout without the external layers; focused intervention showed continued
+progress and load competition, not a proven global deadlock. Phone results were
+29/32 exact upload ACKs, so production payload acceptance remains red. No performance
+code or APK adopted. Fifteen unit tests passed, including phase-counter auth/partial
+body tests and two-child cancellation; real local TERM cleanup also passed.
+Full results: [throughput goal](../../../../docs/goals/2026-09-09-multipath-throughput.md).

@@ -17,8 +17,11 @@ class Fixture:
     def __init__(self, token, timeout=45):
         self.token, self.timeout = token, timeout
         self.active = set()
+        self.stats = dict(tls_complete=0, authenticated=0, upload_complete=0,
+                          reply_drained=0, http_timeout=0, io_error=0, close_abort=0)
 
     async def handle(self, reader, writer):
+        self.stats['tls_complete'] += 1
         task = asyncio.current_task()
         if len(self.active) >= 8:
             writer.close()
@@ -42,6 +45,7 @@ class Fixture:
                     fields[key] = value
                 if not hmac.compare_digest(fields.get('authorization', ''), 'Bearer ' + self.token):
                     return
+                self.stats['authenticated'] += 1
                 if 'transfer-encoding' in fields or version != 'HTTP/1.1':
                     return
                 length = int(fields.get('content-length', '0'))
@@ -49,6 +53,7 @@ class Fixture:
                     return
                 if method == 'POST' and path == '/up' and length > 0:
                     body = await reader.readexactly(length)
+                    self.stats['upload_complete'] += 1
                     reply = json.dumps({'bytes': length, 'sha256': hashlib.sha256(body).hexdigest()}).encode()
                 elif method == 'GET' and path.startswith('/down?bytes=') and length == 0:
                     size = int(path.removeprefix('/down?bytes='))
@@ -65,13 +70,17 @@ class Fixture:
                               (len(reply), hashlib.sha256(reply).hexdigest(), peer == '195.128.101.186',
                                fingerprint, VERSION)).encode() + reply)
                 await writer.drain()
-        except (OSError, EOFError, ValueError, TimeoutError):
-            pass
+                self.stats['reply_drained'] += 1
+        except TimeoutError:
+            self.stats['http_timeout'] += 1
+        except (OSError, EOFError, ValueError):
+            self.stats['io_error'] += 1
         finally:
             writer.close()
             try:
                 await asyncio.wait_for(writer.wait_closed(), 1)
             except (OSError, TimeoutError):
+                self.stats['close_abort'] += 1
                 writer.transport.abort()
             self.active.discard(task)
 
@@ -95,6 +104,11 @@ async def main(args):
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
+    if args.stats_file:
+        # Opt-in synthetic benchmark totals only, emitted once after shutdown.
+        fd = os.open(args.stats_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w') as output:
+            json.dump(fixture.stats, output)
 
 
 if __name__ == '__main__':
@@ -102,4 +116,5 @@ if __name__ == '__main__':
     for name in ('host', 'cert', 'key', 'token-file'):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--port', type=int, default=40004)
+    parser.add_argument('--stats-file', help='Exclusive-create aggregate totals on shutdown; synthetic tests only')
     asyncio.run(main(parser.parse_args()))

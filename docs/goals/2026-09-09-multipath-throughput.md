@@ -28,7 +28,7 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   direction declared per hypothesis before screen. Status: in_progress. Reusable
    Python-on-Android smoke, H6/H7 re-screens, H8 native-only build/screen/six-pair
     confirmation, H9/H10 topology campaign, H11/H12 native scheduling and actual H12
-    APK/gVisor comparison executed
+     APK/gVisor comparison and H13 causal/production phase campaign executed
    below; no adopted gain. The executed campaigns are closed; the broader gain
    objective remains active, not claimed achieved or globally exhausted.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
@@ -37,10 +37,10 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   no push. Primary evidence: this document, existing harnesses, installed hashes
   and service gates. Status: in_progress. Original production runtime,
   accepted APK and production-token manual MP restored, VPN stopped/zero children.
-  Latest H11/H12 closure verifies exact rollback and TCP/UDP WARP in all modes, but
-  full payload acceptance is NOT clean: restored MP/single retain TLS/ACK failures;
-  Automatic passes. Earlier green windows do not supersede these failures. No
-  performance code adopted; see H11/H12 Campaign Closure for exact evidence.
+   Latest H13 closure keeps production untouched and verifies TCP/UDP WARP in all APK
+   modes, but full payload acceptance is NOT clean: native MP and APK single retain
+   TLS/ACK failures; APK MP/Automatic pass this window only. Earlier failures remain.
+   No performance code adopted; see H13 for phase evidence and exact teardown.
 
 ## Constraints And Envelope
 
@@ -85,13 +85,16 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
-H11/H12 campaign is closed below: H12 reached actual APK/gVisor and was rejected
-for short-upload regressions, not an arbitrary percentage floor. R2 remains active;
-R3 exact restoration is verified but clean production payload acceptance remains
-unresolved. No test runtime or background job remains. Next justified experiment
-would attribute the restored production loaded8 ACK timeout/TLS resets with matched
-native/gVisor/FlowRelay-only windows and bounded aggregate phase evidence, before
-another scheduler parameter change. This experiment has NOT been started or promised.
+H13 causal campaign is closed below: partial-body delivery, rather than lost HTTP
+ACK, is supported for the two latest phone ACK timeouts. Local asymmetric paths
+reproduce this failure class without Android/Yandex/FlowRelay/WARP, and focused
+load release shows continued progress with bandwidth competition. This does not
+identify the exact native bottleneck or explain the separate TLS reset. H12 remains
+rejected by actual APK short-upload regressions. R2 remains active; R3 restoration
+is verified but clean production payload acceptance remains unresolved. No test
+runtime/background job remains. A future in-scope checkpoint must distinguish
+native query admission/recovery pressure from stream scheduling under unchanged
+offered load, or establish the TLS-reset phase; no such new change is claimed tested.
 
 ### H12 Predeclared Plan
 
@@ -1026,10 +1029,170 @@ SHA-256c8f2c194 in `app/build/outputs/apk/oss/release/Owenclave-0.17.50-arm64-v8
 Delivered /home/stfu/Torrents/apk untouched. Candidate APK/ELFs, source deltas and
 exclusive aggregate JSONLs/reports remain ignored research artifacts, not releases.
 
+## H13 Causal Campaign
+
+The requested general/task delegation tool was not exposed. Four independent
+read-only research tracks were conducted centrally instead; no fictitious agents
+or background work. This checkpoint targeted R2/R3 failure attribution, not another
+constant sweep. The accepted Android/native implementation was never changed.
+
+### Research And Decisions
+
+- Scheduler/ACK/recovery: picoquic separates path choice from stream scheduling;
+  congestion, pacing and recovery remain binding [1][2]. Pinned source
+  `crates/slipstream-ffi/src/runtime.rs:72` sets stream priority2; pinned
+  `vendor/picoquic/picoquic/frames.c:1359-1430` treats even priority as round-robin
+  and odd as FIFO. Therefore "enable round-robin by changing2 to3" was rejected
+  before editing; it would do the opposite. Existing preemptive repeat is already
+  enabled. No blind extra ARQ, H11+H12 combination or min-RTT adoption.
+- DNS capacity/framing: RFC7766 supports pipelining with response-ID matching and
+  warns about connection limits [3]; this does not overturn H4's measured pipeline2
+  failure. RFC9715's recommended UDP maximum1400 allows smaller values [4]; phone
+  TCP53 does not remove the resolver-to-authority UDP constraint. Same-provider IPs
+  are not independent capacity. No unmeasured EDNS/framing speed claim.
+- Android/smoke divergence: Kotlin IO normally shares a64-thread minimum pool;
+  elastic `limitedParallelism` views can exceed that bound [5]. The app's56 blocking
+  workers plus2 receivers and3 lifecycle tasks can occupy61 IO tasks, unlike Python
+  async exchanges. Python whole-query10s/strictID+QR versus Kotlin per-I/O8s/noID+QR
+  remains a real fidelity gap, not proof of starvation. No unbounded thread increase.
+- TLS/ACK attribution: Python `drain()` reports local watermarks, not receipt [6].
+  QUIC stream ordering/reassembly and connection transport limits still matter [7].
+  A completed TLS handshake excludes the earlier FlowRelay dial timeout as the
+  explanation for that request's post-TLS stall. Phase counters and a controlled
+  load intervention were implemented instead of inferring a cause from11-second
+  elapsed time. A superficially similar CPython STARTTLS issue [8] concerns buffered
+  ClientHello on server upgrade, not this client-first TLS sequence; not adopted as
+  diagnosis.
+
+### Implemented And Executed
+
+`bin/lib/slipstream/smoke/causal.py` runs accepted Linux Slipstream client/server,
+two bounded loopback synthetic DNS paths, fixed authenticated private bridge and
+the existing exact-size/SHA256 HTTPS workload. It adds aggregate bridge bytes,
+TLS/header/body/reply phase counts, focused512KiB+recovery mode and optional bounded
+load release. It is NOT real FlowRelay, a TCP recursive simulator or LTE acceptance.
+`fixture.py --stats-file` optionally emits only aggregate synthetic phase totals on
+graceful shutdown, exclusive0600. No production traffic instrumentation was enabled.
+
+Eight valid local windows, unchanged binaries:
+
+| Artifact under `build/dns-smoke/` | Executed result |
+| --- | --- |
+| `h13-local-b.jsonl` | Two full80/120ms windows:20/20 foreground,16/16 upload ACKs |
+| `h13-local-asymmetric-valid.jsonl` | Two full80/400ms windows:19/20 foreground,15/16 upload ACKs. First loaded512 times out40.000s with only7/8 bodies complete; second completes38.155s with8/8 bodies. Both recover and clean up |
+| `h13-local-focused.jsonl` | Two fresh focused80/400ms windows: loaded512 ACK32.776/31.971s, both recovery passes; bridge bytes continue increasing every5s |
+| `h13-local-released.jsonl` | Two focused windows, stop DL at20s: ACK27.049/25.819s. Bridge UL byte rate over15..20s is11.7/13.3kB/s, over20..25s32.6/31.9kB/s; both recover |
+
+The latter is a causal intervention, NOT an optimization: offered DL changes. The
+remaining upload still takes several seconds after release, not an instantaneous
+previously-lost ACK. It supports competition/finite delivery rate rather than a
+global deadlock in these focused windows. Aggregate TLS-byte counters include small
+request overhead; they are not plaintext goodput. The full-window timeout and the
+near-deadline success must both remain visible. No universal reproduction rate.
+
+Invalid calibrations retained: `h13-local-a.jsonl` has two windows with an incorrect
+test-only OPEN header (IPv4 versus the actual domain-encoded literal), corrected
+against source. `h13-local-asymmetric.jsonl` contains one measured timeout followed
+by a probe cleanup CancelledError, fixed by aborting an already-cancelled close
+waiter. These three windows are not valid performance/cleanup evidence. Subsequent
+valid windows close both native children, all owned tasks and paths. A real3s TERM
+test in `h13-local-term.jsonl` retains cancellation and zero-child/task cleanup;
+the expected CancelledError exit is not a payload pass.
+
+Four fresh LTE phone windows followed, native first, then the already accepted APK
+through actual Kotlin/gVisor. Same pinned authenticated fixture, original production
+FlowRelay/WARP, no temporary direct dispatch. Each has8 uploads plus DL/recovery:
+
+| Artifact | Foreground / upload ACK | Failure |
+| --- | --- | --- |
+| `h13-native-warp.jsonl` | 9/10,7/8 | Sequential128KiB: TLS0.302s, locally submitted0.323s, no ACK40.003s |
+| `h13-gvisor-warp-mp.jsonl` | 10/10,8/8 | None in this window |
+| `h13-gvisor-warp-single.jsonl` | 8/10,6/8 | Sequential128KiB: TLS0.190s, submitted0.196s, no ACK40.040s; following512KiB TLS reset11.448s, zero submitted |
+| `h13-gvisor-warp-auto.jsonl` | 10/10,8/8 | None in this window |
+
+Total37/40 foreground,29/32 exact upload ACKs. All16 short8/32KiB uploads passed
+this series, but earlier loaded8 failures remain unresolved. One window per mode is
+not an A/B speed comparison and cannot establish a Telegram voice fix. No messages
+or account data were sent. All three APK modes additionally passed HTTPS WARP and
+transaction-checked UDP STUN; fresh interface-bound WARP reference returned DE/on.
+Native route used unchanged production WARP with fixture egress validation; the
+separate transaction probe was performed for APK modes, not native mode.
+
+Remote fixture totals:79 completed TLS/authenticated requests,29 complete upload
+bodies,77 drained replies,2 HTTP timeouts,0 I/O errors,42 bounded close aborts.
+These align with29 exact upload ACKs and two post-TLS incomplete-body timeouts,
+not two fully-received uploads with lost replies. No per-flow server correlation
+was retained, and pre-TLS failures are not counted. The separate TLS reset remains
+unattributed. Close-abort count alone does not establish a loss mechanism.
+
+### Identity, Checks And Teardown
+
+Reproduction commands and bounds are in the smoke README's Local Causal Probe
+section. Executed full/asymmetric, focused and released commands use respectively
+`--delay .08 .12`, `--delay .08 .4`, add `--focused`, then add
+`--release-load-after 20`, each `--windows 2` with the artifact paths above.
+Phone windows use existing `host.py --mode native --apk build/dns-multipath/fixed.apk`
+or `--mode gvisor`, `--egress warp`, fixed fixture host195.128.101.186 and private
+stdin-provisioned JSON. The ignored `build/dns-smoke/h13-run.py` owned profile/start/
+stop and installed-hash checks. Its deleted credentials must not be reconstructed
+from an old backup. No APK rebuild/install or native source/cache change occurred.
+
+SHA-256 identities:
+
+```text
+accepted APK c8f2c1943dfd75dc40d35e5243942e5a302c5a6ae7907ce2447631a627ca36ac
+Android ELF 64cbc7d115c7b3b1f23be1687571c51ed7cde0403c5d9f4a150940028b9067e2
+Linux client ac9ce61406498df9af18554c4d6eb3f1858fc8f3ff79da44c621699061c06eaf
+Linux server 7d9ab58b4aef693c57b7cb7ddd8e434fe59ae1db6057ddad81ec8cdbf5eb1555
+fixture.py 5511642c23b2b87b8063c96cd721fa7338b707ab40405acc7b8f0fe915bd4bdf
+causal.py final 85d7a5c7f737a9b29680ad36d4eb96dd7834a45f146497c6a0e8b2711cdc901e
+h13-local-b.jsonl 7d8f9b6abc6a6e24e290ec1eba8b8f7a9a41e00d8c38f336bb29c13ee2c63b2c
+h13-local-asymmetric-valid.jsonl d2bab95aaa5846e949ddd549707b6ae81ee0bc0cef843a8b4f2e681bbb7d2d09
+h13-local-focused.jsonl 98b1a41b519676bc925dabeaa533027711deb6b90f7c64e569590cf7fd692844
+h13-local-released.jsonl 5c96698731db726f3b1db51243e3fc82f2a3abc81cbd6b60d7294a4ed7dbaa04
+h13-native-warp.jsonl db58681f0eac7469759074dde4c583607015456905f103e5a650bc0846cc5311
+h13-gvisor-warp-mp.jsonl 511391d3060331c670c4e20228f272bf95d405901a981bd7a5222059aa98d552
+h13-gvisor-warp-single.jsonl ec6e4aab539c8dbebf8ac6638ef0459f084ba5cc30c6e09a5869320ef51a35f0
+h13-gvisor-warp-auto.jsonl 45ae05133a673d0907beb45aee174d7aa109eba49fcb93ab2248f0faf49b37b7
+h13-fixture-stats.json dfb84ecb060ff117302d13d4c722f9adf5779e5b199201106125734c3c7832bd
+```
+
+`python3 -m unittest discover -s bin/lib/slipstream/smoke -p test_smoke.py`:
+15 passed, including unknown auth, incomplete-body attribution and owned two-child
+cancellation. Final SIGTERM wiring was tested against real native children. No
+Kotlin/Gradle/native fault rerun: application, native and backend code unchanged.
+Scoped secret scans and `git diff --check` passed in both repositories.
+
+DE firewall-only backup `/root/backups/owenclave-h13-20260909T195724Z/` contains
+`nftables.conf` and `runtime.nft`, no test secrets. Temporary authenticated fixture
+used only TCP40004, source-restricted to DE and WARP range, null output and bounded
+runtime/memory/tasks. No flowd/Slipstream/WARP restart. Unit
+`owenclave-h13-fixture.service`, `/run/owenclave-h13`, generated keys/credentials and
+the single `owenclave-h13-fixture` nft rule removed. Runtime ruleset compares exact
+to backup; persistent nft hash0de6ae94 and original flowd hash eb07424f unchanged.
+Ports40003/40004/40005 absent; final unit LoadState not-found. Flowd/slip PIDs
+3142713/3142714 and WARP589 unchanged, active, NRestarts0. `nft --check` passed.
+Host `build/dns-smoke/h13-private` removed. Phone retains production-token manual
+MP, accepted installed hash, VPN off/zero children, Wi-Fi off/LTE,100%/26C. No
+delivered APK changes, retained traffic logs, new fallback or weakened pin/auth.
+
+### Sources
+
+Verified live during H13; these justify mechanisms, not measured speed claims.
+
+1. https://github.com/private-octopus/picoquic/discussions/2111
+2. https://www.privateoctopus.com/2022/12/13/managing-quic-acks-in-picoquic.html
+3. https://www.rfc-editor.org/rfc/rfc7766.html
+4. https://www.rfc-editor.org/rfc/rfc9715.html
+5. https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html
+6. https://docs.python.org/3/library/asyncio-stream.html
+7. https://www.rfc-editor.org/rfc/rfc9000.html
+8. https://github.com/python/cpython/issues/142352
+
 ## Completion
 
-R1 verified. H11/H12 campaign completed through actual H12 APK/gVisor rejection,
-exact rollback and full laboratory teardown. R2 remains active; no new winner,
+R1 verified. H13 completed through local causal intervention, native-on-phone then
+actual accepted APK/gVisor phase checks and full fixture teardown. R2 remains active; no new winner,
 global optimum, Telegram diagnosis or external blocker is claimed. R3 restoration
 is verified, but its clean production payload gate remains unresolved with the
 specific failures above. Do not mark the broader goal complete or erase failed

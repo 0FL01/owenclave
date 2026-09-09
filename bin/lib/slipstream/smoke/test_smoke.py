@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 import device
+import causal
 import host
 import report
 from fixture import Fixture
@@ -216,6 +217,11 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
                 row = await device.request(self.args, {'fixture_token': 'a' * 64}, None, kind, size, 'test')
                 self.assertTrue(row['ok'])
                 self.assertEqual(row['acknowledged'], size)
+        self.assertEqual(self.fixture.stats['tls_complete'], 3)
+        self.assertEqual(self.fixture.stats['authenticated'], 3)
+        self.assertEqual(self.fixture.stats['upload_complete'], 2)
+        self.assertEqual(self.fixture.stats['reply_drained'], 3)
+        self.assertEqual(self.fixture.stats['http_timeout'], 0)
 
     async def test_owned_runtime_cancellation_reaps_child_and_56_workers(self):
         create = asyncio.create_subprocess_exec
@@ -252,6 +258,51 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(row['ok'])
         self.assertEqual(row['ack_Bps'], 0)
         self.assertNotIn('b' * 64, output.getvalue())
+        self.assertEqual(self.fixture.stats['tls_complete'], 1)
+        self.assertEqual(self.fixture.stats['authenticated'], 0)
+        self.assertEqual(self.fixture.stats['upload_complete'], 0)
+        self.assertEqual(self.fixture.stats['reply_drained'], 0)
+
+    async def test_causal_probe_cancellation_reaps_both_children_and_paths(self):
+        create = asyncio.create_subprocess_exec
+        children = []
+        started = asyncio.Event()
+        async def child(*argv, **kwargs):
+            proc = await create(sys.executable, '-c',
+                                'import time; print("Connection ready",flush=True); time.sleep(60)', **kwargs)
+            children.append(proc)
+            return proc
+        async def wait(*args):
+            started.set()
+            await asyncio.sleep(60)
+        args = SimpleNamespace(client=Path(sys.executable), server=Path(sys.executable),
+                               delay=[.08, .4], focused=False)
+        output = io.StringIO()
+        with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):
+            task = asyncio.create_task(causal.window(args, Path(self.tmp.name), 1))
+            await asyncio.wait_for(started.wait(), 3)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        cleanup = json.loads(output.getvalue().splitlines()[-1])
+        self.assertFalse(cleanup['child_alive'])
+        self.assertEqual(cleanup['tasks_alive'], 0)
+        self.assertEqual(len(cleanup['paths']), 2)
+        self.assertEqual(len(children), 2)
+        self.assertTrue(all(child.returncode is not None for child in children))
+
+    async def test_incomplete_body_not_counted_as_lost_ack(self):
+        context = ssl.create_default_context(cafile=self.cert)
+        reader, writer = await asyncio.open_connection('127.0.0.1', self.port, ssl=context)
+        writer.write(b'POST /up HTTP/1.1\r\nContent-Length: 8192\r\nAuthorization: Bearer ' +
+                     b'a' * 64 + b'\r\n\r\nx')
+        await writer.drain()
+        self.assertEqual(await asyncio.wait_for(reader.read(), 1), b'')
+        await device.close_writer(writer)
+        self.assertEqual(self.fixture.stats['authenticated'], 1)
+        self.assertEqual(self.fixture.stats['http_timeout'], 1)
+        self.assertEqual(self.fixture.stats['upload_complete'], 0)
+        self.assertEqual(self.fixture.stats['reply_drained'], 0)
 
     async def test_malformed_and_slow_headers_bounded(self):
         context = ssl.create_default_context(cafile=self.cert)
