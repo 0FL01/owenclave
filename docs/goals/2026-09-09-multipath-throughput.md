@@ -1,6 +1,6 @@
 # Goal: increase accepted multipath DNS throughput
 
-Status: active
+Status: blocked
 Source: user instruction 2026-09-09, commit all changes first, then continue iterative multipath DNS optimization for more throughput.
 Last updated: 2026-09-09
 
@@ -23,7 +23,9 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   lifecycle and bounded aggregate resource samples. Two balanced screening pairs;
   adoption requires six NEW CT/TC pairs, paired-median target gain >=10%, other
   direction loss <=10%, >=4 target wins and no failed required transfers. Target
-  direction declared per hypothesis before screen. Status: in_progress.
+   direction declared per hypothesis before screen. Status: blocked for the latest
+   requested isolated direct/LTE comparison; missing independent recursive ingress
+   is documented below. Lab evidence does not satisfy the phone adoption gate.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
   retained runtime with local correctness/fault tests and Automatic/manual/MP
   TCP/UDP WARP acceptance. Stop VPN with zero children, commit appropriate results,
@@ -45,6 +47,13 @@ accepted phone/runtime identity. Do not claim a universal optimum.
 - Server d7667b1e6dde9ef4669cda08f576307d851b3ec8e32736ebdeabae4e9926191b
   must retain path-loss safety fix; no rollback to crashing predecessor. No server
   edits planned. FlowRelay/WARP, token, certs and routing unchanged.
+- Latest user continuation authorizes a SEPARATE DE direct test path, not changing
+  production Slipstream/WARP. Minimal new envelope: private loopback lab Slipstream
+  and separate FlowRelay direct/WARP test instances, distinct lab token and pinned
+  certificate, bounded resources/null output, removed from runtime after tests.
+  No production domain dispatch, public listener, firewall or profile change.
+  Public-recursive phone comparisons require independently delegated/reachable
+  authority; local delayed-path measurements cannot substitute for LTE adoption.
 - One phone owner, foreground bounded windows only. Preserve failed windows; only
   proved confounds invalidate them. No blind 112-worker increase: blocking carrier
   tasks already total61 of default IO64 before other app work.
@@ -62,12 +71,12 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
-The explicitly requested continuation batch is closed: six independent startup
-windows, H5 queue-overflow screens/failed confirmation, and four independent
-before/after-DL upload diagnostics are executed below. No announced immediate test
-is left unperformed. R2's broader throughput objective remains active, not blocked
-or complete; no new gain accepted. H4 is not reinstated and H5 is removed. Do not
-treat successful diagnostics as erasing failures or as a new acceptance series.
+Direct/WARP native laboratory and layer-isolation experiments are executed and torn
+down. R2 is blocked on a separately delegated/reachable UDP53 authority for the
+direct phone path. Smallest unlock: an independently reachable authority/address
+and delegation, without replacing production ingress or its single backend.
+Then prove explicit test-profile TCP/UDP direct egress before balanced phone tests.
+No new candidate is retained; do not reinterpret synthetic results as LTE adoption.
 
 ## Current State
 
@@ -305,10 +314,118 @@ treat successful diagnostics as erasing failures or as a new acceptance series.
   diagnostic runs do not replace or generalize that evidence. No delivered artifact
   directory edits. No performance candidate source retained; only this goal changed.
 
+### Isolated DE Direct Laboratory
+
+- Latest user instruction requests separate direct egress to isolate suspected WARP
+  contribution, expressly prohibiting production WARP Slipstream reconfiguration.
+  Two independent test Slipstream listeners used127.0.0.1:5303/5304, both domain
+  direct-lab.invalid and a fresh pinned certificate. Separate authenticated FlowRelay
+  instances used127.0.0.1:40003 bound to eth0 and10.200.0.2:40003 bound to
+  CloudflareWARP. Production195.128.101.186:53 ->10.200.0.2:40001 was untouched.
+- Four /run/systemd/system/owenclave-lab-{direct,warp,slip-direct,slip-warp}.service
+  units were never enabled, had null output, DynamicUser, finite CPU/memory/tasks,
+  RuntimeMaxSec1800 and TimeoutStopSec5. Direct FlowRelay additionally denied private
+  destination ranges. Units/certificate were verified before starting only test units.
+  Wrong pin exited1 with zero payload; wrong token failed before HTTPS payload.
+  A host-reachable private SOCKS control was denied through authenticated test direct
+  FlowRelay with zero reply bytes/RST. Initial EOF-only assertion failed; accepting
+  EOF or RST corrected the harness, not backend policy.
+- Native lab client SHA-256
+  fa99d3810f653c42cd4bda8dc8e13b1c093294068bb589fc5d0444d045ee6de2,
+  built offline in existing Debian12 build image from retained patched source, used
+  the unchanged corrected server binary. Registry-mount omission initially failed
+  offline compilation; supplying the existing read-only registry resolved it. /run
+  is noexec, so execution used a private /opt test copy, subsequently removed.
+- Ignored helper build/dns-multipath/egress-lab.py implements two loopback DNS
+  adapters,28/28 workers and32/32 queues,150ms minimum exchange service or zero-delay
+  control. Native credentials/token enter through stdin; child output is discarded
+  except readiness. Only aggregate metrics are retained. This is native DE loopback,
+  NOT TCP Yandex recursion, Android/gVisor or LTE. Upstream UDP source sockets,
+  synthetic scheduling, destination routing/namespace and sample order remain
+  confounds. No endpoint/payload captures or production traffic logs were enabled.
+- Direct HTTPS proved DE/warp:off and the node's public IPv4; transaction-matched
+  STUN20-byte requests/32-byte replies independently proved direct UDP. WARP windows
+  that reached acceptance proved DE/warp:on and different TCP/UDP mapped addresses.
+  The WARP UDP fingerprint was6f75822ac616; direct00a97914de95 (lab-specific hash).
+
+Rates below are B/s. Failed/incomplete windows are preserved, not repaired or counted
+as paired confirmation. Payload workload is1MiB DL, acknowledged128KiB UL, four
+concurrent1MiB/18s requests, five loaded4KiB/20s requests and recovery.
+
+| Window | Direct | WARP | Interpretation |
+| --- | --- | --- | --- |
+| pair-1,150ms | DL245753,UL27289; required pass | DL249491; UL75.003555s timeout after TLS0.334134s/curl131072 sent, HTTP0 | Previous post-handshake symptom reproduced without Android/Yandex |
+| pair-2,reverse | Not run after failed first arm | DL257592; UL rc35/TLS0/HTTP0 in11.512862s | Incomplete pair; following requests recover |
+| zero-1 | DL1303766,UL164053; pass | DL1112867,UL118722; pass | Single zero-delay pair, not a gain claim |
+| fixed-3,payload IPv4 | DL258318,UL27144; pass | Preliminary hostname trace rc35/TLS0 in11.448580s | Fixed payload never reached on WARP; DNS not eliminated for trace |
+| ipv4-4,all TCP fixed | Not run after failed first arm | Fixed-IP trace rc35/TLS0 in11.550563s | DNS/IPv6 not necessary for this lab startup symptom |
+| single-warp-5 | Not run | One path56/64, DL242172,UL25812; all required pass | Single-path diagnostic, not LTE control |
+| mp-warp-6 | Not run | DL257847,UL29452; loaded request20.002211s timeout after TLS0.471267s | MP failure also occurs after successful upload |
+
+- Exact windows: ignored build/dns-multipath/direct-lab-{pair-1,pair-2,zero-1,
+  fixed-3,ipv4-4,single-warp-5,mp-warp-6}.jsonl. pair-1 was copied without alteration
+  from completed SSH spool1788954483073-68.log. Other files were transferred without
+  overwrite. Original helper retained as egress-lab-original.py. Fixed variants use
+  curl --connect-to speed.cloudflare.com:443:162.159.140.220:443, preserving TLS SNI;
+  all-TCP variant uses the same host/IP for trace and payload. All transfer workers
+  report zero socket errors; overflow drops still occur (pair-1 direct581 versus
+  WARP2559). This does not isolate a queue cause or measure real resolver capacity.
+  Pair-1 loaded inclusive p95 direct0.862919/WARP1.402852s, max0.878057/1.403766s;
+  four concurrent bulk requests pass on each arm. The failed required upload still
+  disqualifies that WARP window; these latency values do not rehabilitate it.
+- Layer controls: direct interface-bound curl passed a27kB/s acknowledged upload;
+  first WARP-bound curl to the same fixed IPv4 failed TLS before sending payload at
+ 25.001747s WITHOUT Slipstream/FlowRelay. Four subsequent fixed-IP uploads across
+  two destination IPv4s passed, then balanced direct/WARP/WARP/direct rate-limited
+  uploads all passed in4.856-4.858s. No persistent IP block or slow-upload cause proved.
+- build/dns-multipath/flowd-lab.py bypassed Slipstream but retained authenticated
+  private test FlowRelay, fixed destination IPv4 and verified HTTPS. WARP/direct/
+  direct/WARP27kB/s uploads all acknowledged131072 bytes, TLS0.029-0.045s,
+  total4.886-4.900s; exact direct-lab-flowd-only.jsonl. Therefore neither WARP alone,
+  FlowRelay alone nor MP alone is established as sole cause. Synthetic MP failures
+  warrant preserving the reproducer, not blindly changing worker/poll budgets.
+- Resource observation was bounded: native RSS3352KiB/one thread, lifetime CPU1.4%
+  of one core; Python RSS10384KiB/4.2%. These are lab snapshots, not phone interval CPU
+  or battery results. Test units had NRestarts0 during all windows. Final test-WARP
+  FlowRelay stop hit the5s stop timeout; systemd terminated it and retained a failed
+  record. That failure is preserved here; only the deleted test unit's failed state
+  was reset. All four test units are now inactive/not-found,5303/5304/40003 absent,
+  lab key/cert/token/upload/client deleted. Only inert aggregate files/helpers remain
+  under /run/owenclave-direct-lab until reboot. Unit-only snapshots and unchanged
+  production preflight copies remain /root/backups/direct-lab-20260909.
+
+### Direct Phone Blocker
+
+- Authoritative queries to aiden.ns.cloudflare.com prove t.x.ass-peak.de delegates
+  to x.ass-peak.de ->195.128.101.186; x has no AAAA. Test direct.x.ass-peak.de has no
+  NS/A and returns SOA. DE has one public IPv4, no host public IPv6, and public UDP53
+  already belongs to production. No available separate delegation/zone API config
+  was found in the inspected operational boundary.
+- Server source resolves ONE target_address and shares it across every configured
+  domain. Adding a domain cannot choose an isolated direct backend. A different
+  client port cannot tell Yandex recursive DNS to use authoritative UDP5303; NS
+  delegation does not encode a port. Replacing production ingress/dispatch is outside
+  the explicit boundary. A WARP trip to a DE HTTP endpoint is not direct carrier
+  isolation. Thus the authorized lab work is complete, but no available separate
+  recursive ingress permits the required direct phone comparison. Unlock R2 with a
+  separate reachable authority/address and delegation, not production reconfiguration.
+- Fresh local native fault suite passed all five retained scenarios with the exact
+  corrected Debian server: reorder/duplicate, primary loss, dead bootstrap preserve
+ 131072 bytes each way/EOF; both dead and wrong pin fail closed with zero payload.
+  Production Kotlin/native source still exactly4ba57ad, installed APK c8f2c194,
+  phone unchanged/stopped/zero children,100%/25C at final check. No app build/install
+  or delivered artifact edits. Prior three-mode TCP/UDP acceptance remains the
+  applicable unchanged-runtime evidence, not a newly executed phone comparison.
+- Final production binaries, unit files and nftables are byte-identical to preflight;
+  Slipstream PID3001224/NRestarts0 and FlowRelay PID698/NRestarts1 remain active with
+  null sinks. nft --check passes, public UDP53 and private40001 remain; no test or
+  retired40002/private41924 listener. Every lab/observation job is terminal.
+
 ## Completion
 
-R1 verified; R3 restored-runtime safety and acceptance verified. R2 and objective
-remain active: five meaningful hypotheses tested, no new gain adopted. The bounded
-continuation and its announced startup/upload investigations are executed. Final phone
-is accepted c8f2c194 APK with manual MP selected and VPN stopped. Only this evidence
-document is newly committed; no push, rejected production changes, or hidden jobs.
+R1 verified; R3 retained-runtime safety verified. R2/objective blocked, not complete:
+five prior hypotheses rejected, separate direct/WARP lab and layer controls executed,
+no further gain adopted. The missing independent recursive authority blocks requested
+direct/LTE adoption tests. Accepted c8f2c194 APK/manual MP remains stopped; production
+unchanged, no active test runtime or background jobs. Only evidence and the affected
+node boundary are committed; no push or performance source change.
