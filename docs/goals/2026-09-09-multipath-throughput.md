@@ -26,18 +26,21 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   arbitrary >=10% gate: a repeatable small upload or completion-latency benefit is
   useful, including approximately +5-8% UL with a minor DL loss. Target
   direction declared per hypothesis before screen. Status: in_progress. Reusable
-  Python-on-Android smoke, H6/H7 re-screens, H8 native-only build/screen/six-pair
-   confirmation, H9/H10 topology campaign and accepted-APK gVisor calibration executed
+   Python-on-Android smoke, H6/H7 re-screens, H8 native-only build/screen/six-pair
+    confirmation, H9/H10 topology campaign, H11/H12 native scheduling and actual H12
+    APK/gVisor comparison executed
    below; no adopted gain. The executed campaigns are closed; the broader gain
    objective remains active, not claimed achieved or globally exhausted.
 - R3: Keep only verified benefit, record wins/losses and final rollback, verify
   retained runtime with local correctness/fault tests and Automatic/manual/MP
   TCP/UDP WARP acceptance. Stop VPN with zero children, commit appropriate results,
   no push. Primary evidence: this document, existing harnesses, installed hashes
-  and service gates. Status: verified for this campaign. Original production runtime,
+  and service gates. Status: in_progress. Original production runtime,
   accepted APK and production-token manual MP restored, VPN stopped/zero children.
-  Fresh final MP/Automatic/single TCP/UDP WARP and acknowledged-upload windows pass;
-  earlier failures remain recorded, not claimed fixed. No performance code adopted.
+  Latest H11/H12 closure verifies exact rollback and TCP/UDP WARP in all modes, but
+  full payload acceptance is NOT clean: restored MP/single retain TLS/ACK failures;
+  Automatic passes. Earlier green windows do not supersede these failures. No
+  performance code adopted; see H11/H12 Campaign Closure for exact evidence.
 
 ## Constraints And Envelope
 
@@ -81,6 +84,60 @@ work at a proven external blocker, approved budget boundary, or when no remainin
 in-scope action has a falsifiable expected result; record evidence and smallest unlock.
 
 ## Current Checkpoint
+
+H11/H12 campaign is closed below: H12 reached actual APK/gVisor and was rejected
+for short-upload regressions, not an arbitrary percentage floor. R2 remains active;
+R3 exact restoration is verified but clean production payload acceptance remains
+unresolved. No test runtime or background job remains. Next justified experiment
+would attribute the restored production loaded8 ACK timeout/TLS resets with matched
+native/gVisor/FlowRelay-only windows and bounded aggregate phase evidence, before
+another scheduler parameter change. This experiment has NOT been started or promised.
+
+### H12 Predeclared Plan
+
+H12 targets R2 after H11's short-upload screen did not qualify. Build independently
+from accepted source, not on H11: picoquic's congestion-eligible data path selection
+currently uses least-recently-sent path, while ACK selection already considers RTT.
+Compare data selection by smoothed RTT * (1 + bytes-in-transit/cwnd), keeping path
+validation/demotion, congestion and pacing gates, affinity/ACK priority and all
+native/adapter budgets. This estimates queued delivery, not independent resolver
+capacity or a proven root cause. Same predeclared sequential AND loaded8/32KiB
+target, two balanced screens then six NEW confirmations if credible, and mandatory
+APK/gVisor promotion gates. No native logging, protocol or production changes.
+H12 two-pair screen gives loaded8KiB +7.61/+10.79%, but sequential8KiB
++13.89/-51.51% and sequential32KiB -39.61/+15.83%. Continue the unchanged ELF to
+six NEW balanced pairs to resolve the modest loaded signal AND the sequential
+regression risk; screening is not counted as confirmation or acceptance. All four
+short-upload conditions remain mandatory. Do not promote based on loaded8 alone.
+Six fresh native pairs retain loaded8 +8.11% (4/6), seq8 +11.04% (3/6), seq32
++1.66% (3/6), loaded32 -1.04% (3/6), DL +4.98% (5/6), zero failed foreground
+requests. All descriptive intervals cross zero. Sequential8 maximum grows
+1.745->2.185s; loaded32 maximum3.059->3.339s. This qualifies only for experimental
+APK integration/calibration, NOT acceptance. Test two balanced actual APK/gVisor
+pairs on the same DE-direct fixture; retain short tails and every failure. If
+credible, six fresh gVisor pairs and single/Automatic production payload gates
+are required before acceptance. Otherwise restore accepted artifact and close
+this campaign with the cross-harness evidence, without claiming R2 complete.
+
+### H11 Screening History
+
+H11 targets R2: drain already-ready DNS responses before sending even when the
+runtime select wakes for a command/data notification. Source inspection found
+the existing bounded receive drain is confined to the UDP-select arm; the other
+arms proceed directly to data/poll emission. Preserve the receive/send burst caps,
+two accepted path identities, polling policy, 56/64 adapters and accepted APK.
+This is a receive-feedback scheduling hypothesis, NOT another smaller send burst
+or resolver/worker allocation. First build an isolated native candidate retaining
+all client/server safety patches, run focused native/fault gates, then two balanced
+LTE native screening pairs with the ephemeral authenticated DE-direct fixture.
+Predeclared target: sequential AND loaded8/32KiB acknowledged completion, without
+new startup/short-upload failure; larger uploads/DL/recovery remain context. A
+credible modest gain proceeds to six NEW confirmation pairs and APK/gVisor testing.
+No gain is accepted from native smoke alone. Shared Flowd/Slipstream restarts for
+test dispatch deployment/removal must be disclosed; WARP itself is never restarted.
+R3 must be reverified at this campaign's teardown. Earlier closures follow as history.
+
+### H9/H10 Screening History
 
 Closed continuation: H9 adds Basic .8 as a third native path with19/19/18
 workers and22/21/21 queues. H10 instead keeps two native paths and shards only the
@@ -820,14 +877,160 @@ Fresh cap16 CT/TC windows, all required payloads pass, bulk8/8 for each variant:
   with zero children. Delivery directory not accessed; no APK built/installed this
   campaign. Native H7/H8 ELF experiments and aggregate JSONLs remain ignored artifacts.
 
+## H11/H12 Campaign Closure
+
+Two distinct source-led candidates were implemented, built and measured, not a
+repeat of worker skew (H1/H2), pipeline depth, burst cap, resolver order or sharding.
+Initial repos were clean at Owenclave0008ac1/operations2232827. No nested delegation
+tool was available; one foreground phone owner ran every window. Accepted source
+cache was copied, never reset or edited. All paths below are under Owenclave unless
+an absolute DE path is specified. Tests are forced DNS on ordinary LTE, NOT proof
+of restricted LTE: final direct ya.ru302/0.395s and cloudflare.com301/0.350s both
+reachable with Wi-Fi0, LTE/LTE, VPN off, zero children at18:35:01Z.
+
+### Candidates And Gates
+
+- H11 moves the existing bounded DNS receive drain after every runtime select arm,
+  before commands/data/send processing, counting an already received packet toward
+  the unchanged receive cap. No send/poll/path/adapter budget change. Isolated
+  `build/dns-smoke/h11-src/crates/slipstream-client/src/runtime.rs`, SHA-256
+  `1253e62ad0825eb9b0971e9a227e4f29e5a7308c7caa366567cd3f39c5308034`.
+  Native `build/dns-smoke/h11-droid/target/aarch64-linux-android/release/slipstream-client`
+  SHA-256 `ccce158336e9bee03282489c871419b300ea387aed6eda422c7de07b515cd1ee`.
+  Delta `build/dns-smoke/h11-source.patch` SHA-256
+  `68bb6030037ac24f52a00058a9fed652eff6365d04637e931f930b06762f46b7`.
+- H12 independently starts from accepted, without H11. In picoquic
+  `picoquic_select_next_path_mp`, congestion-eligible client stream data selects by
+  smoothed RTT*(1+bytes-in-transit/cwnd), with last-send tie break, rather than
+  least-recent send alone. Existing pacing/cwnd/validation/demotion/challenge/ACK/
+  affinity priorities stay intact; server-side and no-ready-stream selection stay
+  unchanged. This is a hypothesis about queued delivery, not measured path capacity.
+  `build/dns-smoke/h12-src/vendor/picoquic/picoquic/sender.c` SHA-256
+  `bcb4c88810fd23876c801f68effc2f70655588d6b9ae21116a1a9745fd0dc36d`;
+  delta `build/dns-smoke/h12-source.patch` SHA-256
+  `7a5aae702490ebfb827d4996cb9c88b8873938902a5074a3d911a1942efa4f4c`.
+  Native `build/dns-smoke/h12-droid/target/aarch64-linux-android/release/slipstream-client`
+  SHA-256 `8ecdaceed504f25d5ca074558d89648f833972df7f7d5e3e8256cc437282ad8d`.
+- Each candidate passed24 client tests, formatting and five exact multipath fault
+  scenarios: reorder/duplicate, fail-after-ready, dead-primary (131072 exact bytes
+  each direction/half-close), both-dead and wrong-pin (zero payload/exit1). H12
+  host/Android C libraries were rebuilt after removing only the isolated copied
+  host build directory and changing PICOQUIC_BUILD_DIR to invalidate stale FFI
+  linkage. Earlier wrong-architecture Android builds were never measured. Build
+  helpers `build/dns-smoke/{build-candidate,host-candidate}.py` retain commands.
+- Rust1.97.1/NDKr29/API21, pinned Rust/picoquic source and paired safety patches;
+  56 workers/64 queue, .88+.1, DCUBIC/authoritative, auth/pin/stdin secrets unchanged.
+  Fresh strict workspace clippy remains red only at the known udp_fallback.rs:225
+  question_mark and runtime.rs collapsible_if (H11:658/H12:648), not suppressed.
+  Flowd race tests/vet/build and13 Python smoke tests passed. No permanent logging.
+
+### Native Results
+
+All deltas below are median within-pair acknowledged-goodput ratios, not a pooled
+bulk median. Reports retain all requests, paired wins/ranges and10000-resample
+descriptive intervals. Six-pair H12 intervals all cross zero.
+
+| Candidate / Fresh Pairs | Seq8KiB | Seq32KiB | Loaded8KiB | Loaded32KiB | DL1MiB |
+|---|---:|---:|---:|---:|---:|
+| H11 screen / 2 | -5.29% (1/2) | -3.29% (0/2) | +7.42% (1/2) | +3.36% (1/2) | +18.42% (2/2) |
+| H12 screen / 2 | -18.81% (1/2) | -11.89% (1/2) | +9.20% (2/2) | +2.08% (1/2) | -0.29% (1/2) |
+| H12 confirmation / 6 | +11.04% (3/6) | +1.66% (3/6) | +8.11% (4/6) | -1.04% (3/6) | +4.98% (5/6) |
+
+H11 loses the sequential priority despite DL gain, so no APK promotion. H12's
+modest loaded8 signal justified experimental APK integration, not acceptance:
+confirmation seq8 maximum1.745->2.185s, loaded32 maximum3.059->3.339s; startup
+maximum2.668->1.311s. H12 seq128/512 medians+6.39/+3.23%, loaded128/512+4.30/+2.27%.
+All160/160 uploads across20 valid native windows had exact size/hash ACK and all
+foreground DL/recovery passed; no startup failure. Immutable labels:
+`h11-screen-valid` (2), `h12-screen` (2), `h12-confirm` (6), under `build/dns-smoke/`.
+Commands: `python3 build/dns-smoke/h11-run.py pair <label> <pair> <candidate-ELF>`;
+`python3 bin/lib/slipstream/smoke/report.py --directory build/dns-smoke --label <label> --pairs <n>`.
+
+The first `h11-screen-p1-{control,candidate}.jsonl` are retained INVALID calibration:
+all20 foreground requests reset before TLS because the temporary backend had
+failed under a missing AF_NETLINK sandbox allowance. Real backend/dispatch TLS
+probes passed after correction; only then the new `h11-screen-valid` label began.
+This confound is proved, not inferred from inconvenient performance. Initial
+configuration gates also rejected port0 and nonexistent namespace eth0; the actual
+dispatch interface is warp-ns. These errors preceded shared activation.
+
+### Actual APK Result
+
+Experimental `build/dns-smoke/h12.apk` SHA-256
+`72381e011f6d535b2c85e8ec20e4b6654a85c1413337ca6ee59ad750672c3648` was built and installed.
+Only lib/arm64-v8a/libslipstream.so differs among assets/native from fixed.apk
+(generated dexopt profiles excluded). Gradle assembleOssRelease,
+compileOssReleaseKotlin and focused DnsMultipathAdapterTest/DnsttMultipathTest pass
+with ANDROID_HOME=/home/stfu/Android/Sdk. Broad Android lint not rerun: Kotlin is
+unchanged; the known2371-error/27-hint baseline is not claimed green.
+
+`python3 build/dns-smoke/h12-apk.py 1` then `2` installed frozen C/T then T/C with
+actual Kotlin adapters and gVisor. Pair2 candidate completed before a post-stop
+resolver UI assertion failed; the wrapper restored accepted APK. After checking
+the stopped UI, only the missing control half was run with
+`h11-run.py phone test multipath h12-gvisor-p2-control 1`. The extra gap is retained;
+no candidate window was rerun/overwritten. Report label `h12-gvisor`, two pairs:
+
+- Seq8KiB -7.71/-11.03% (0/2); median completion1.058->1.168s.
+- Loaded32KiB -13.80/-28.13% (0/2); median2.260->2.907s, max2.468->3.434s.
+- Seq32 median-1.74%; loaded8 median+10.29% but range-12.89/+33.46%.
+- DL median-10.99%; seq512-13.79% (0/2); loaded128-19.94% (0/2).
+- All32/32 comparison uploads, DL/recovery, HTTPS DE-direct and transaction-checked
+  UDP passed; one child while active, zero after stop. Earlier accepted-APK direct
+  calibration `h11-apk-direct-1.jsonl` also passed8/8 uploads and TCP/UDP egress.
+
+REJECT H12: actual short-upload regressions invalidate the native-only gain.
+No six-pair gVisor confirmation or candidate production promotion is warranted.
+This is direct evidence that the Python native timing is not APK-equivalent, not
+a diagnosis of Telegram or a proof that the RTT hypothesis can never work.
+
+### Restoration And Failures
+
+Original Flowd binary/base units/nftables are byte-identical to new backup
+`/root/backups/owenclave-h11-20260909T171047Z/`. Two disclosed shared restart
+boundaries enabled and removed dispatch; backend-only correction did not restart
+production. Final Flowd PID3142713/Slipstream3142714, NRestarts0/0 stable and null
+output; WARP PID589/NRestarts0 never restarted. Corrected server SHAd7667b1e remains.
+systemd-analyze verify/nft check pass; public UDP53/private warpns40001 present;
+40002/40003/40004/40005 absent. Test token rejected after removal; during deployment
+unknown/private destinations failed closed, test-backend-down closed while production
+transaction-checked UDP retained WARP. No credentials/pin/production route changes.
+
+Fresh restored accepted-APK production labels `h12-restored-{mp,single,auto,mp-repeat}`:
+all four HTTPS traces report warp=on/DE and all UDP transactions pass. A fresh bound
+WARP UDP reference and production Flowd reference matched44b3817c244f during single.
+Full fixture acceptance is NOT clean:29/32 uploads acknowledged, four failed
+foreground requests across40, all failed windows retained:
+
+- MP: loaded8KiB ACK timeout40.001s after8192 bytes submitted locally; not remotely
+  acknowledged. Background TLS resets15.403s/0.191s also retained, not cancellations.
+- Single: seq512KiB ACK timeout40.039s after local submission524288; DL1MiB TLS
+  reset11.503s. Other requests passed.
+- Automatic: all8 uploads plus DL/recovery passed.
+- MP repeat: seq512KiB TLS reset11.561s, zero submitted; other requests passed.
+
+An initial interface-bound cloudflare.com WARP HTTPS reference timed out before
+screening; a fresh www.cloudflare.com reference passed warp=on. Final same-fixture
+DE direct/WARP/WARP/direct controls bypassed Android, FlowRelay and Slipstream:
+8/8 exact8/512KiB uploads passed at27kB/s pacing, WARP TLS0.035-0.123s. Artifact
+`build/dns-smoke/h12-server-references.jsonl`. These bounded sequential controls
+do not reproduce loaded traffic and neither prove WARP alone nor exonerate it.
+
+Temporary h11.conf, owenclave-h11-{backend,fixture}.service, flowd-h11 binary,
+all owenclave-h11 nft rules and /run/owenclave-h11 credentials/private key removed.
+All host credential copies/symlinks removed; no phone credential files were created.
+Accepted APKc8f2c194 and jniLibs native64cbc7 restored; production-token manual
+tcp+mp://77.88.8.88:53 verified, VPN off/zero children,100%/29C final preflight.
+Final restored `:app:assembleOssRelease` passed and reproduced byte-exact accepted
+SHA-256c8f2c194 in `app/build/outputs/apk/oss/release/Owenclave-0.17.50-arm64-v8a.apk`.
+Delivered /home/stfu/Torrents/apk untouched. Candidate APK/ELFs, source deltas and
+exclusive aggregate JSONLs/reports remain ignored research artifacts, not releases.
+
 ## Completion
 
-R1 verified; this native-smoke implementation/screening/calibration campaign is
-closed with evidence-backed H6/H7/H8 rejections and R3 restoration verified. The
-broader R2 optimization objective remains active, not a global optimum or a Telegram
-fix. Future carrier changes use this native screen before any APK build; only a
-credible non-regressing signal advances to actual gVisor candidate confirmation.
-Known TLS/ack failures are now measured separately from bulk speed and must not be
-erased by successful later windows. All test runtime/credentials removed, production
-unchanged, no push or delivered-artifact change. Appropriate tracked harness/docs
-are the only retained implementation changes.
+R1 verified. H11/H12 campaign completed through actual H12 APK/gVisor rejection,
+exact rollback and full laboratory teardown. R2 remains active; no new winner,
+global optimum, Telegram diagnosis or external blocker is claimed. R3 restoration
+is verified, but its clean production payload gate remains unresolved with the
+specific failures above. Do not mark the broader goal complete or erase failed
+windows with prior successes. No background promises, push or delivered APK change.

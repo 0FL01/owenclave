@@ -79,7 +79,7 @@ can vary by destination/flow; a single trace IP is not a stable fixture allowlis
 Do not broaden production routing to accommodate the test. Remove temporary units,
 listeners, firewall rules, private keys and all local/remote credential copies at
 the end. Neither fixture nor direct dispatch is currently deployed. The documented
-latest backup anchor is `/root/backups/owenclave-rnd-20260909T154514Z/`; it has original
+latest backup anchor is `/root/backups/owenclave-h11-20260909T171047Z/`; it has original
 production binaries/units/firewall, not usable test credentials. Deploying/removing
 the dispatch override restarts FlowRelay **and** its dependent Slipstream service;
 WARP is not restarted. The restored original FlowRelay predates `-check`: verify
