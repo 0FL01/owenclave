@@ -62,18 +62,12 @@ in-scope action has a falsifiable expected result; record evidence and smallest 
 
 ## Current Checkpoint
 
-R2 remains open, no additional throughput optimization accepted. H4 did not pass
-confirmation. Two consecutive bounded diagnostic checkpoints did not reproduce the
-failure or establish its cause; stop this experiment batch rather than keep running
-the same probes until a favorable series appears. This is not a proven external
-blocker, a universal optimum, or completion of the throughput objective.
-
-Next materially different checkpoint: accepted-MP startup-only windows, explicitly
-record Connected state, TLS phases and first-stream failure alongside bounded
-aggregate FlowRelay SYN state. The12 successful control probes below shared one
-startup and do NOT cover repeated startup. A demonstrated cause must precede a
-revised pipeline candidate or a new acceptance series; do not erase failed H4
-confirmation or merely repeat until six passing pairs. No background work remains.
+The explicitly requested continuation batch is closed: six independent startup
+windows, H5 queue-overflow screens/failed confirmation, and four independent
+before/after-DL upload diagnostics are executed below. No announced immediate test
+is left unperformed. R2's broader throughput objective remains active, not blocked
+or complete; no new gain accepted. H4 is not reinstated and H5 is removed. Do not
+treat successful diagnostics as erasing failures or as a new acceptance series.
 
 ## Current State
 
@@ -216,9 +210,105 @@ confirmation or merely repeat until six passing pairs. No background work remain
   sinks null, memory4337664/4636672 bytes; WARP namespace unit active NRestarts0.
   No remote config/binary/routing changes. All diagnostic background jobs terminal.
 
+## Executed Continuation
+
+- Startup-only investigation: `python build/dns-multipath/startup-diagnostic.py`,
+  immutable startup-diagnostic.jsonl. Six independent accepted-MP starts with35s
+  intersession gaps, Connected at first UI check, one child, zero after each stop.
+  Six first trace TLS requests and six acknowledged128KiB uploads all HTTP200.
+  Trace total0.548-0.724s; upload4.919-7.059s; battery100%,26C. These are independent
+  startups, unlike the prior12 requests inside one connection. No11.6s TLS failure
+  reproduced; no conclusion that readiness or pipeline caused historical failures.
+- Concurrent bounded server observation job1788951504589-41 completed:913 samples
+  over480s, FlowRelay PID-only socket state/queue aggregates, no addresses/payloads.
+  Max SYN-SENT11, ESTAB39, FIN-WAIT-1 8, recv9196/send5077 bytes. No per-flow
+  attribution; clocks were not calibrated for exact phone/server timestamp joins.
+  Counts alone neither prove session-limit saturation nor identify a failed dial.
+  An attempted remote read of its local SSH spool failed; check_process recovered
+  completed aggregate output. No production traffic logging was enabled.
+- Readiness/call-chain inspection: SlipstreamInstance drains native QUIC
+  `Connection ready`; streams.rs emits it on picoquic_callback_ready. It is not a
+  destination probe. flow_relay.rs sends SOCKS success before returning OPEN, then
+  streams.rs dispatches NewStream under the5s local SOCKS handshake timeout. Thus
+  curl TCP connect timing inside gVisor is not proof of remote destination connect.
+  FlowRelay main.go parses authenticated OPEN under5s header deadline, clears that
+  read deadline and dials under10s total context; up to16 resolved addresses are
+  attempted sequentially, all bound to CloudflareWARP. Relay then preserves normal
+  independent stream lifetime, not an HTTP response deadline. No deadline change
+  is justified by matching a wall-clock duration alone.
+- The historical JVM accept timeout is in src/test-only DnsTcpExchangeTest, not the
+  packaged adapter. Its read phase compares an accepted peer port with localPort of
+  a Socket concurrently connecting, after leaving the write-phase peer in backlog.
+  This unsynchronized comparison is a plausible scheduling race; the failed run
+  did not establish it conclusively. It does not reproduce Android TLS or upload
+  failure. Neither fixture nor production code was changed to hide that failure.
+
+### H5: Retain Newer Queued Queries
+
+- Predeclared target DL, same gates. Motivated by diagnostic adapter drops2.24% and
+  mean queue waits28/46ms. MP-only DROP_OLDEST replaces oldest unsent queued query
+  rather than rejecting new trySend on overflow; 28/28 workers,32/32 queues, active
+  requests, deadlines, single/Auto, native polling and server unchanged. This might
+  reduce stale polling, or instead lose useful payload/increase reordering.
+- Gradle `:app:assembleOssRelease :app:compileOssReleaseKotlin
+  :app:testOssDebugUnitTest --tests '*DnsMultipathAdapterTest'
+  --tests '*DnsttMultipathTest' --console=plain --quiet` passed with
+  ANDROID_HOME=/home/stfu/Android/Sdk; four focused JVM tests, not full lint/clippy.
+  Frozen freshqueue.apk SHA-256
+  fe5909eb76327f211ba293d9eded9af81cd01c81f970f6d442ac8bf95b367de4;
+  native64cbc7 and assets/other native entries equal accepted control (comparison
+  excludes generated assets/dexopt/baseline.prof and baseline.profm). Hashes
+  checked locally and after each installation. Preserved source diff SHA-256
+  acbee3b998ea50b34ff6c77a1f4f3e8b8b994d02a8094b35c621366d678d499d
+  at ignored build/dns-multipath/freshqueue-source.patch.
+- Commands: `python build/dns-multipath/optimize.py freshqueue settled 1 ct <hash>`
+  and `settled 2 tc`; then NEW `confirm 1 ct` and `confirm 2 tc`, same frozen hash.
+  The literal hash is above. All freshqueue-*.jsonl windows preserved, no overwrite.
+- Screening rates B/s: pair1 C240161/20619, T284301/29877 (DL/UL); pair2
+  C257215/22402, T284170/27977. Paired medians DL+14.43%,UL+34.89%; required failures0,
+  bulk8/8 both. Loaded inclusive p95 C0.772434/T0.723218s, max0.809191/0.748224s.
+  This promising screening signal did not survive independent confirmation.
+- Confirmation pair1 C266990/29143, T245818/22007: DL-7.93%,UL-24.49%.
+  Pair2 T235131/21670, C265162/ULfailed: DL-11.33%; UL ratio invalid. Accepted control
+  again hit75.002329s timeout, HTTP0, curl size_upload131072, TTFB0; trace, DL,
+  following small requests, bulk and recovery passed. Failure retained, no invented
+  acknowledgement and no deletion as an outlier. Both candidates lost DL; this is
+  not a six-pair result. H5 rejected, production source restored exactly to4ba57ad.
+- Incomplete confirmation loaded p95 C0.704815/T0.773457s, max0.704952/0.796988s;
+  bulk8/8 both. Candidate native lifetime CPU14.2-17.7% of one core, RSS9184-9648KiB,
+  bg threads92-97. Control17.2-18.1%, RSS9176-9456KiB excluding timeout-window
+  lifetime average4.4%/9492KiB; these are not interval CPU or battery measurements.
+
+### Upload Phase Discrimination
+
+- `python build/dns-multipath/upload-phase.py`: four fresh accepted-MP startups,
+  each128KiB upload before, exact1MiB DL,128KiB upload after,25s diagnostic deadlines,
+  full aggregate DNS/connect/TLS/TTFB/total timing. This is diagnosis, not replacement
+  of the75s failed required transfer. All12 HTTP200, exact sizes, zero children after
+  every stop; immutable upload-phase.jsonl. Before/after upload seconds:
+  4.749907/4.783519,5.678950/5.961456,4.874935/5.353200,4.707378/11.496193.
+  Last slow upload had TLS complete0.316448s, first response11.496077s. It is a
+  post-handshake delay, not the FlowRelay10s destination-dial timeout. No deterministic
+  post-DL failure demonstrated, and no endpoint/transport root cause established.
+- The75s timeout with size_upload131072 is distinct from H4's rc35/TLS0 first-trace
+  failure. Bytes accepted by curl's TLS write do not prove remote HTTP consumption.
+  Working subsequent independent streams argue against a persistent whole-carrier
+  outage, not against a per-stream loss/stall or external endpoint problem.
+- Concurrent job1788953180972-43 completed608 aggregate samples/320s: max SYN-SENT1,
+  ESTAB14, FIN-WAIT-1 14, recv0/send111046 bytes across FlowRelay sockets. Aggregates
+  include other sessions and cannot locate the delayed stream. No server changes,
+  no packet/payload logging. All observation jobs are terminal.
+- Final owning-node gates: corrected server hash d7667b1e unchanged;
+  slipstream/flowd active, NRestarts0/1 unchanged, stdout/stderr null,
+  memory6270976/5832704 bytes. Retained APK and Kotlin/native source identities are
+  unchanged from the already verified three-mode TCP/UDP acceptance above; the
+  diagnostic runs do not replace or generalize that evidence. No delivered artifact
+  directory edits. No performance candidate source retained; only this goal changed.
+
 ## Completion
 
 R1 verified; R3 restored-runtime safety and acceptance verified. R2 and objective
-remain active: four meaningful hypotheses tested, no new gain adopted. Final phone
+remain active: five meaningful hypotheses tested, no new gain adopted. The bounded
+continuation and its announced startup/upload investigations are executed. Final phone
 is accepted c8f2c194 APK with manual MP selected and VPN stopped. Only this evidence
 document is newly committed; no push, rejected production changes, or hidden jobs.
