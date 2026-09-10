@@ -39,9 +39,10 @@ def read_window(path):
             or cleanup[0]['child_alive'] or cleanup[0]['workers_alive']):
         raise ValueError('Incomplete/harness-failed window: ' + path.name)
     requests = {(r['kind'], r['condition'], r['requested']): r for r in rows
-                if r.get('condition') in {'sequential', 'loaded', 'recovery'}}
+                 if r['kind'] in {'up', 'down'} and r['condition'] != 'background'}
     startup_failed = not requests and not windows[0]['ok']
-    if not startup_failed and len(requests) != 10:
+    expected = 7 if manifests[0].get('workload') == 'short-parallel' else 10
+    if not startup_failed and len(requests) != expected:
         raise ValueError('Incomplete workload: ' + path.name)
     if any(r.get('fixture_version', 2) != 2 for r in requests.values()):
         raise ValueError('Fixture version mismatch')
@@ -72,18 +73,22 @@ def main():
             control = a.get(key, {}).get('ack_Bps', 0)
             candidate = b.get(key, {}).get('ack_Bps', 0)
             ratios.setdefault('-'.join(map(str, key)), []).append(100 * (candidate / control - 1) if control else None)
-    frozen = [{k: v for k, v in m.items() if k not in {'native_sha256', 'order', 'topology', 'path_layout', 'domain_layout'}}
+    frozen = [{k: v for k, v in m.items() if k not in {'native_sha256', 'order', 'topology', 'path_layout', 'domain_layout', 'connections', 'partition'}}
               for m in manifests.values()]
     if frozen[0] != frozen[1]:
         raise ValueError('Control/candidate workload, adapter or fixture drift')
     result = dict(label=args.label, pairs=args.pairs, paired={k: paired(v) for k, v in sorted(ratios.items())}, variants={})
     for variant, rows in all_rows.items():
-        requests = [r for r in rows if r.get('condition') in {'sequential', 'loaded', 'recovery'}]
+        requests = [r for r in rows if r['kind'] in {'up', 'down'} and r['condition'] != 'background']
         ups = [r for r in requests if r['kind'] == 'up']
         groups = sorted({(r['condition'], r['requested']) for r in ups})
         result['variants'][variant] = dict(
             startup=summary([r['seconds'] for r in rows if r['kind'] == 'startup']),
             failed_windows=sum(not r['ok'] for r in rows if r['kind'] == 'window'),
+            background_failures=[{k: r[k] for k in ('phase', 'seconds', 'error')}
+                                 for r in rows if r.get('condition') == 'background'
+                                 and not r['ok'] and r.get('error') != 'Cancelled'],
+            parallel_group_seconds=summary([r['seconds'] for r in rows if r['kind'] == 'parallel_group']),
             failed_requests=[{k: r[k] for k in ('kind', 'condition', 'requested', 'phase', 'seconds', 'ack_Bps', 'submitted')}
                              for r in requests if not r['ok']],
             upload_seconds={f'{c}-{n}': summary([r['seconds'] for r in ups if (r['condition'], r['requested']) == (c, n)])

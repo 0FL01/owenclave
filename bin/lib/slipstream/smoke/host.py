@@ -90,6 +90,9 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--order', choices=['accepted', 'reverse'], default='accepted')
     p.add_argument('--topology', choices=TOPOLOGIES, default='accepted')
+    p.add_argument('--connections', type=int, choices=[1, 2], default=1)
+    p.add_argument('--partition', action='store_true')
+    p.add_argument('--workload', choices=['full', 'short-parallel'], default='full')
     p.add_argument('--domains', choices=['legacy', 'old', 'new', 'split', 'split-reverse'], default='legacy')
     p.add_argument('--deadline', type=float, default=40)
     p.add_argument('--egress', choices=['direct', 'warp'], default='direct')
@@ -129,7 +132,9 @@ def main():
                     '--native', REMOTE + '/native-client', '--cert', REMOTE + '/carrier.crt',
                     '--fixture-cert', REMOTE + '/fixture.crt', '--fixture-host', args.fixture_host,
                     '--order', args.order, '--topology', args.topology, '--domains', args.domains,
-                    '--deadline', str(args.deadline), '--egress', args.egress])
+                    '--deadline', str(args.deadline), '--egress', args.egress,
+                    '--connections', str(args.connections), '--workload', args.workload] +
+                    (['--partition'] if args.partition else []))
                 proc = subprocess.Popen(['adb', '-s', args.serial, 'shell', '-T', shlex.join(command)],
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 try:

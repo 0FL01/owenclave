@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instruction 2026-09-09, commit all changes first, then continue iterative multipath DNS optimization for more throughput.
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## Objective
 
@@ -37,10 +37,10 @@ accepted phone/runtime identity. Do not claim a universal optimum.
   no push. Primary evidence: this document, existing harnesses, installed hashes
   and service gates. Status: in_progress. Original production runtime,
   accepted APK and production-token manual MP restored, VPN stopped/zero children.
-   Latest H13 closure keeps production untouched and verifies TCP/UDP WARP in all APK
-   modes, but full payload acceptance is NOT clean: native MP and APK single retain
-   TLS/ACK failures; APK MP/Automatic pass this window only. Earlier failures remain.
-   No performance code adopted; see H13 for phase evidence and exact teardown.
+    Latest H15 closure keeps production untouched and verifies TCP/UDP WARP in all
+    APK modes. Full payload acceptance is NOT clean:22/24 upload ACKs, MP sequential
+    512KiB and Automatic loaded128KiB time out; single passes this window only.
+    Earlier failures remain. No performance code adopted; H15 teardown is below.
 
 ## Constraints And Envelope
 
@@ -84,6 +84,17 @@ work at a proven external blocker, approved budget boundary, or when no remainin
 in-scope action has a falsifiable expected result; record evidence and smallest unlock.
 
 ## Current Checkpoint
+
+H15 closed with supported rejection, not an accepted speedup: independent QUIC
+connections with shared or partitioned56/64 DNS resources failed the combined
+short-UL/reliability/DL criteria. See the complete campaign below. Actual accepted
+APK/gVisor was repeated, production restored and temporary facilities removed.
+R2 remains active; H15 is not a proof that all sharding is useless or no defect
+exists. No six-pair promotion or APK pool is justified by these screens. The next
+materially different causal target is native admission/flow-blocked/retransmission
+accounting, or the unresolved TLS resets, not another constant/domain repetition.
+
+Previous checkpoint:
 
 H13 causal campaign is closed below: partial-body delivery, rather than lost HTTP
 ACK, is supported for the two latest phone ACK timeouts. Local asymmetric paths
@@ -1189,10 +1200,165 @@ Verified live during H13; these justify mechanisms, not measured speed claims.
 7. https://www.rfc-editor.org/rfc/rfc9000.html
 8. https://github.com/python/cpython/issues/142352
 
+## H15 Independent Connections, 2026-09-10
+
+### Hypothesis And Scope
+
+Latest user request explicitly permits isolated sharding research, not changing
+the production one-child contract. H15 asks whether connection isolation removes
+the DL/UL competition identified in H13. Two native clients each own an independent
+QUIC connection and use the same domain, accepted ELF, pin, token and WARP backend.
+The shared variant uses the same two28/32 adapters; the partition variant uses
+four14/16 adapters, two per connection. Both total56 workers/64 queued queries,
+two payload flows, one phone owner and one aggregate15s readiness deadline.
+Independent QUIC windows/process overhead are additional fixed state, not an
+equal-memory/CPU claim. Production remains one process. A one-process pool would
+require a separate bounded implementation and APK/gVisor confirmation after a
+credible gain; these screens did not justify it.
+
+Full workload keeps foreground on connection one and continuously offered DL on
+connection two. Serial TCP is not striped. A separate short-parallel workload
+compares two serial32KiB uploads with two concurrent pairs, no DL, exact SHA ACK.
+No messages/accounts, public proxy, new suffix, token/pin or production routing
+change. Python is not equivalent to Kotlin blocking IO, as documented previously.
+
+Source inspection found per-path congestion state, already-enabled multipath,
+stream priority2 and common connection flow control. `configure_common` calls
+`picoquic_set_max_data_control` with the8MiB write-buffer setting. A flow-control
+stall was NOT measured, so raising windows or claiming a MAX_DATA bug is unsupported.
+The account analogy remains plausible when accounts have independent service
+budgets; extra QUIC connections do not create independent DNS-worker or recursive
+capacity. QUIC streams already isolate ordered stream delivery; independent
+connections additionally isolate connection state, not a proven cross-stream HOL
+defect. RFC9000 sections2/4 and picoquic context/path architecture support these
+mechanisms, not a speed prediction:
+
+- https://www.rfc-editor.org/rfc/rfc9000.html
+- https://github.com/private-octopus/picoquic/wiki/Internal-structures-and-states
+- https://github.com/private-octopus/picoquic/blob/master/doc/architecture.md
+
+The older wiki's historical multipath status is not used for current behavior;
+the pinned local source and actual two-path execution establish that separately.
+
+### Local Causal Evidence
+
+Accepted Linux client/server hashes remain `ac9ce614`/`7d9ab58b` from H13. Native
+output discarded; only synthetic aggregate counts/bytes, phase totals and cleanup
+retained. Default single-client refactor calibration reproduced H13's latency class.
+All below use constant offered DL, no load release or enlarged DNS budget.
+
+| Synthetic path delays | Connections / queues | Loaded512KiB ACK time | Outcome |
+| --- | --- | --- | --- |
+| 80/400ms, two windows | one / shared | 31.222,32.028s | 2/2 ACK |
+| 80/400ms, two windows | two / shared DCUBIC | 40s,40s | 0/2 ACK |
+| 80/400ms, two windows | two / shared client BBR | 40s,40s | 0/2 ACK |
+| 80/400ms, two windows | two / partition | 25.424,25.480s | 2/2 ACK, lower DL service |
+| 80/80ms, full window | one / shared | 17.483s | 8/8 UL ACK |
+| 80/80ms, full window | two / shared | 25.745s | 8/8 UL ACK, slower |
+
+Shared DCUBIC slow-path drops rose from1674/3934 and1257/3586 received queries in
+controls to6553/9501 and5688/8836 with two connections. These are whole-window
+aggregates, including recovery, not payload loss measurements. Queues/workers
+reached32/28. Partition caps each to16/14; foreground recovered while background
+bridge bytes fell from roughly8.4MB to4.2MB per focused window (durations differ).
+Thus connection isolation alone is insufficient; admission competition persists
+outside Android, Yandex and WARP, and reservation trades DL service for UL.
+This identifies queue coupling, not the precise native packet/ACK scheduler defect.
+BBR was tested in this new two-connection condition, not as a repeat of H3.
+
+Short concurrent32KiB pairs,80/400ms, two windows/four groups: one connection
+completed in2.488..2.725s; independent shared connections in3.556..6.394s. All exact
+ACKs passed, so even without continuous DL there is no local parallel-flow gain.
+The first `h15-local-control.jsonl` was interrupted by a too-short host command
+timeout; its partial0.472s UL and complete cleanup remain. Replacement is explicitly
+`h15-local-control-fresh.jsonl`, not an overwritten/relabelled success.
+
+### Android LTE Screens
+
+Each variant below has two fresh balanced CT/TC pairs with frozen per-batch script,
+native/fixture hashes and resource layout. Accepted native `64cbc7d1`, installed APK
+`c8f2c194` unchanged throughout. Full screen and short-parallel screen are separate
+workloads, not pooled wins. Percentages are paired acknowledged-throughput deltas;
+control failure yields undefined ratio, candidate failure zero throughput.
+
+| Two-connection variant | Key observations | Decision |
+| --- | --- | --- |
+| Shared, full | C16/16 vs T14/16 UL ACK; loaded8 -77.39%, loaded32 -21.95%; seq8 -16.95%, seq32 +27.92%; DL +2.23% | reject reliability/short-UL loss |
+| Partition, full | C10/16 vs T14/16 UL ACK; loaded32 +9.19..20.16%, loaded8 -34.31..-32.61%; DL -49.12..-39.73%; both loaded512 pairs fail in both arms | reject severe tradeoff, not fake infinite gain over failed controls |
+| Shared, short-parallel | C12/12 vs T11/12 UL ACK; concurrent-pair p50 3.062 vs3.400s, max3.632 vs5.187s | reject, serial32 TLS failure retained |
+| Partition, short-parallel | C12/12 vs T12/12 UL ACK; pair p50 3.662 vs3.709s, max4.212 vs3.887s; serial32 medians -38.44%/-37.52% | mixed tail, no overall useful gain |
+
+Shared full T failures: loaded8 incomplete-read6.425s and loaded512 ACK timeout40s;
+also one background TLS reset11.402s. Partition C has four sequential TLS resets
+11.400..11.433s in pair2 and two loaded512 timeouts; T has two loaded512 timeouts
+and recovery TLS reset11.415s. Unexpected background failures C3/T4 are preserved
+and now explicitly exposed by `report.py`, not hidden among deliberate cancellations.
+Shared short T serial32 TLS reset10.696s is retained. These are not six-pair estimates
+or carrier-wide guarantees; all report ranges/CIs include every original window.
+No candidate met the short-ACK/DL requirements, so no confirmation batch, native
+performance patch, new APK, or automatic production architecture change was made.
+
+### Retained APK And Cleanup
+
+Actual gVisor MP/single/Automatic each passed independent HTTPS `warp=on,loc=DE`
+and transaction-matched20-byte UDP request/32-byte response with foreign egress.
+Full payloads total22/24 upload ACK: MP sequential512KiB40.038s timeout, Automatic
+loaded128KiB40.001s timeout; single8/8. All sequential1MiB DL/recovery passed.
+This is not clean acceptance and does not repair previous failures. Direct baseline
+both before/after reached ya.ru302 and google.com301: ordinary LTE, NOT reproduced
+Restricted LTE. No restriction-bypass claim is possible in this window.
+
+One-shot fixture totals on shutdown:260 TLS-complete/authenticated requests,
+123 complete upload bodies,253 replies drained,7 HTTP timeouts,0 IO errors,
+123 close aborts. Across all19 phone windows exactly123/136 upload ACKs succeeded.
+This aggregate equality is consistent with incomplete-body delivery, not evidence
+of ready-ACK loss; it cannot attribute every failure without per-request metadata.
+TLS-stage failures remain unresolved. Fixture TLS5s/HTTP45s/client40s unchanged;
+no timeout increase, suppressed failure, traffic log or payload/QNAME retention.
+
+Backup `/root/backups/owenclave-h15-20260910T0745Z/` contains CURRENT dual-domain
+`slipstream.service`, persistent `nftables.conf`, `runtime.nft`, no credentials.
+Only transient `owenclave-h15-fixture.service` and one source-restricted runtime
+TCP40004 rule were used, no test dispatch/backend and no production restart.
+Fixture unit, `/run/owenclave-h15`, its bytecode/key/credentials, the exact runtime
+rule, host secret copies and phone smoke ELF/script/cert copies removed. Runtime
+ruleset matches backup exactly; persistent nft and dual-domain unit byte-identical.
+UDP53/private40001 remain;40003/40004/40005 absent. Flowd/slipstream/WARP active,
+NRestarts0/0/0, existing PIDs unchanged. Proxy output sinks remain null.
+
+21 smoke tests pass, including two-client cleanup, aggregate56/64 partition bounds,
+flow affinity/two-flow maximum, invalid mode rejection and background-error reporting.
+Component unit/nft validation passes. No Kotlin/native/Gradle rebuild needed or
+claimed; broader historical lint/clippy failures remain unsuppressed. Final phone
+08:20UTC LTE/LTE, Wi-Fi off, USB100%,28C, production-token manual MP, VPN off,
+zero children, accepted APK hash unchanged. Delivered APK directory untouched.
+
+### Evidence Index
+
+Ignored immutable evidence under `build/dns-smoke/`: `h15-local-*.jsonl`,
+`h15-phone-p{1,2}-{control,candidate}.jsonl`,
+`h15-partition-full-p{1,2}-{control,candidate}.jsonl`,
+`h15-{shared,partition}-short-parallel-p{1,2}-{control,candidate}.jsonl`,
+`h15-gvisor-{multipath,single,automatic}{,-egress}.jsonl`, and fixture totals.
+Reports include startup/timing quantiles, paired ranges/bootstrap intervals, all
+foreground failures and unexpected background failures. Report SHA256 anchors:
+
+```text
+h15-phone-report.json 6788cd88f32a3a5ae592127d260f2d1e96c25b97a76712dc5d67d0474e3ee850
+h15-partition-full-report.json c44390e8b378315a211a63f8b4ab7ede5bc434c3233c095247df0df42851284a
+h15-shared-short-parallel-report.json e73d574c66bc7c331db7a49f3fd7cbaae898bad421b17299f9e600bcc10e0694
+h15-partition-short-parallel-report.json f5ac59cd4e5f1fdaef929b94c1f7185cd1c20858f94ab415cebc2a2470ab18ea
+h15-gvisor-multipath.jsonl e89468c5e9be4c58c9b4936cb92d854ed8384e12b8648ee9383734e825bcb4f2
+h15-gvisor-single.jsonl 8c84607eff7db0721f5d57234b1b32cbe6633ad539ee32120195c94cd83b3c26
+h15-gvisor-automatic.jsonl e01c89cf44377c87e1c84402554cbc8141a13cdeab759f56dd4177468c94bd60
+h15-fixture-stats.json 789a87e23c2f9725f4ed8372d902fb5ffdc81f2801c0d35c767518d33cffcb48
+```
+
 ## Completion
 
-R1 verified. H13 completed through local causal intervention, native-on-phone then
-actual accepted APK/gVisor phase checks and full fixture teardown. R2 remains active; no new winner,
+R1 verified. H15 completed through independent-connection/queue/BBR causal tests,
+native-on-phone and actual accepted APK/gVisor checks and full fixture teardown.
+R2 remains active; no new winner,
 global optimum, Telegram diagnosis or external blocker is claimed. R3 restoration
 is verified, but its clean production payload gate remains unresolved with the
 specific failures above. Do not mark the broader goal complete or erase failed

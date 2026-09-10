@@ -29,6 +29,15 @@ changes. Host Python uses only its standard library. Unit tests additionally use
   including bootstrap; it is deliberately NOT included by `build.sh`.
   H14 was rejected after confirmation and reversed-assignment screening, not deployed
   to Kotlin/APK. See the [H14 goal](../../../../docs/goals/2026-09-10-multidomain-sharding.md).
+- H15 `--connections 2` is an explicitly isolated native-only experiment, not an APK
+  mode. Two authenticated children have independent QUIC connections but share the
+  SAME 56-worker/64-query adapters. `--partition` instead gives each connection two
+  14-worker/16-query adapters, still56/64 aggregate. Same domain, pin and backend;
+  the full workload assigns foreground to connection one and background DL to two.
+  Only two payload flows run concurrently. Independent connection windows and two
+  process runtimes add state; this is not an equal-CPU/memory production pool.
+  One child remains the default and the APK invariant. Both layouts were rejected
+  after loopback and Android LTE screens; no one-process pool was promoted.
 - Flow token and generated SOCKS credentials enter native stdin only. Host secret
   JSON is a private `0600` file with `flow_token` (32 hex digits) and `fixture_token`
   (64 hex digits). Values travel via stdin, never argv/environment or phone files.
@@ -53,6 +62,14 @@ sequentially, then each under one continuously replenished 1 MiB download. It al
 has a sequential 1 MiB download and 4 KiB recovery. The fixture acknowledges exact
 size and SHA-256, rather than merely returning HTTP 200. No Telegram/account data
 or message API is used; these probes cannot prove that Telegram voice messages work.
+
+`--workload short-parallel` separately tests two sequential32KiB uploads, then two
+pairs of concurrent32KiB uploads and4KiB recovery, without background DL. Each pair
+has aggregate completion time and exact acknowledged bytes. With two connections
+the second flow uses connection two; a single serial flow is never striped.
+Reports retain unexpected background errors separately from deliberate load
+cancellation. `window.ok` still describes foreground payloads, not background health.
+Aggregate DNS byte counters include headers and retransmissions, not goodput.
 
 `connect_s`, `tls_s`, `submitted_s`, `first_byte_s` are cumulative timestamps from
 request start; subtract adjacent timestamps for phase duration. With gVisor/local
@@ -180,13 +197,17 @@ python3 bin/lib/slipstream/smoke/causal.py \
 ```
 
 Use a new output path for each run. Default mode executes the full workload. Add
+`--connections 2` for independent clients sharing the DNS adapters; add `--partition`
+to reserve half of the same56/64 budget for each client. `--cc bbr` changes only
+client congestion control, not the server. `--workload short-parallel` selects the
+separate concurrent-upload workload and cannot be combined with `--focused`. Add
 `--focused` for only loaded512KiB plus recovery, with aggregate bridge progress every
 5 seconds (at most eight samples). Add `--release-load-after 20` only as a causal
 intervention: stopping DL changes offered load and MUST NOT be reported as a
 same-workload speed gain. Bounds: 1..6 windows, two delays0..0.5s, release0..30s,
 readiness15s, request40s, fixed bridge cap8. The exit code indicates experiment
 execution, NOT successful payload acceptance: inspect every `window.ok`, request
-failure and cleanup row. SIGINT/SIGTERM cancellation reaps both native children and
+failure and cleanup row. SIGINT/SIGTERM cancellation reaps the server and all clients and
 closes owned sockets/tasks; interrupted evidence remains exclusive-create.
 
 2026-09-09 H13: eight valid local windows, one Android-native window and three

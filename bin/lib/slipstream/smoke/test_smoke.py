@@ -20,6 +20,30 @@ from fixture import Fixture
 
 
 class HostTests(unittest.TestCase):
+    def test_causal_rejects_mislabelled_experiment_before_starting_children(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'must-not-exist.jsonl'
+            base = [sys.executable, str(Path(causal.__file__)), '--client', sys.executable,
+                    '--server', sys.executable, '--output', str(output)]
+            for extra in (['--partition'], ['--focused', '--workload', 'short-parallel']):
+                result = subprocess.run(base + extra, capture_output=True, timeout=3)
+                self.assertEqual(result.returncode, 2)
+                self.assertFalse(output.exists())
+
+    def test_connection_experiment_is_explicit_native_only(self):
+        base = ['device', '--mode', 'native', '--native', 'client', '--cert', 'carrier.crt',
+                '--fixture-host', '127.0.0.1', '--fixture-cert', 'fixture.crt']
+        with patch.object(sys, 'argv', base):
+            self.assertEqual(device.arguments().connections, 1)
+        with patch.object(sys, 'argv', base + ['--connections', '2']):
+            self.assertEqual(device.arguments().connections, 2)
+        with patch.object(sys, 'argv', base + ['--partition']), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            device.arguments()
+        for extra in (['--mode', 'gvisor'], ['--topology', 'third'], ['--domains', 'split'], ['--connections', '3']):
+            with patch.object(sys, 'argv', base + ['--connections', '2'] + extra), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                device.arguments()
+
     def test_domain_experiment_requires_native_two_path_budget(self):
         base = ['device', '--mode', 'native', '--native', 'client', '--cert', 'carrier.crt',
                 '--fixture-host', '127.0.0.1', '--fixture-cert', 'fixture.crt']
@@ -56,6 +80,18 @@ class HostTests(unittest.TestCase):
             for hosts, workers, capacity in layout:
                 self.assertGreater(capacity, 0)
                 self.assertEqual(workers % len(hosts), 0)
+
+    def test_report_keeps_background_failures_separate_from_intended_cancellation(self):
+        def window(path):
+            return dict(workload='short-parallel'), {}, [
+                dict(kind='down', condition='background', ok=False, error='TimeoutError', phase='tls', seconds=40),
+                dict(kind='down', condition='background', ok=False, error='Cancelled', phase='download', seconds=1)]
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['report', '--directory', '.', '--label', 'test', '--pairs', '1']), \
+                patch.object(report, 'read_window', window), contextlib.redirect_stdout(output):
+            report.main()
+        for variant in json.loads(output.getvalue())['variants'].values():
+            self.assertEqual(variant['background_failures'], [dict(error='TimeoutError', phase='tls', seconds=40)])
 
     def test_active_network_agent_not_callback_or_not_vpn_capability(self):
         self.assertFalse(host.active_vpn('NetworkAgentInfo{ Transports: CELLULAR Capabilities: NOT_VPN }'))
@@ -253,6 +289,12 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_owned_runtime_cancellation_reaps_child_and_56_workers(self):
         create = asyncio.create_subprocess_exec
+        adapter_type = device.Adapter
+        paths = []
+        def adapter(*args, **kwargs):
+            path = adapter_type(*args, **kwargs)
+            paths.append(path)
+            return path
         children = []
         started = asyncio.Event()
         async def child(*argv, **kwargs):
@@ -264,10 +306,11 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         async def wait(*args):
             started.set()
             await asyncio.sleep(60)
-        args = SimpleNamespace(mode='native', order='accepted', topology='third', domains='legacy', fixture_cert=self.cert, deadline=1,
+        args = SimpleNamespace(mode='native', order='accepted', topology='accepted', domains='legacy', connections=2, partition=True, workload='full', fixture_cert=self.cert, deadline=1,
                                egress='direct', native=sys.executable, domain='example.test', cert=self.cert)
         output = io.StringIO()
-        with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):
+        with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'Adapter', adapter), \
+                patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):
             task = asyncio.create_task(device.run(args, {'flow_token': 'a' * 32}))
             await asyncio.wait_for(started.wait(), 3)
             task.cancel()
@@ -276,8 +319,28 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         cleanup = json.loads(output.getvalue().splitlines()[-1])
         self.assertFalse(cleanup['child_alive'])
         self.assertEqual(cleanup['workers_alive'], 0)
-        self.assertEqual(len(cleanup['paths']), 3)
-        self.assertIsNotNone(children[0].returncode)
+        self.assertEqual(len(cleanup['paths']), 4)
+        self.assertEqual(len(children), 2)
+        self.assertEqual(sum(p.workers for p in paths), 56)
+        self.assertEqual(sum(p.queue.maxsize for p in paths), 64)
+        self.assertTrue(all(child.returncode is not None for child in children))
+
+    async def test_short_parallel_workload_has_affinity_and_at_most_two_flows(self):
+        active, maximum, calls = 0, 0, []
+        async def request(args, secret, proxy, kind, size, condition):
+            nonlocal active, maximum
+            active += 1
+            maximum = max(maximum, active)
+            calls.append((proxy, kind, size, condition))
+            await asyncio.sleep(.001)
+            active -= 1
+            return dict(ok=True, acknowledged=size)
+        with patch.object(device, 'request', request), contextlib.redirect_stdout(io.StringIO()):
+            rows = await device.workload(SimpleNamespace(workload='short-parallel'), {}, 'first', 'second')
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(maximum, 2)
+        self.assertEqual([p for p, _, _, c in calls if c.endswith('-b')], ['second', 'second'])
+        self.assertEqual(sum(s for _, k, s, _ in calls if k == 'up'), 6 * 32768)
 
     async def test_unknown_auth_zero_ack_no_secret_output(self):
         output = io.StringIO()
@@ -304,7 +367,7 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
             started.set()
             await asyncio.sleep(60)
         args = SimpleNamespace(client=Path(sys.executable), server=Path(sys.executable),
-                               delay=[.08, .4], focused=False)
+                               delay=[.08, .4], focused=False, connections=2, cc='dcubic', partition=False, workload='full')
         output = io.StringIO()
         with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):
             task = asyncio.create_task(causal.window(args, Path(self.tmp.name), 1))
@@ -316,7 +379,7 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(cleanup['child_alive'])
         self.assertEqual(cleanup['tasks_alive'], 0)
         self.assertEqual(len(cleanup['paths']), 2)
-        self.assertEqual(len(children), 2)
+        self.assertEqual(len(children), 3)
         self.assertTrue(all(child.returncode is not None for child in children))
 
     async def test_incomplete_body_not_counted_as_lost_ack(self):

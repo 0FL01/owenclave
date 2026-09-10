@@ -56,7 +56,8 @@ class Adapter(asyncio.DatagramProtocol):
         self.transport = None
         self.closed = False
         self.stats = dict(received=0, replies=0, dropped=0, errors=0, expired=0,
-                          queue_max=0, active=0, active_max=0, queue_s=0., service_s=0.)
+                          queue_max=0, active=0, active_max=0, queue_s=0., service_s=0.,
+                          query_bytes=0, reply_bytes=0)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -66,6 +67,7 @@ class Adapter(asyncio.DatagramProtocol):
         if self.closed:
             return
         self.stats['received'] += 1
+        self.stats['query_bytes'] += len(data)
         if peer[0] != '127.0.0.1' or not 12 <= len(data) <= 4096:
             self.stats['dropped'] += 1
             return
@@ -107,6 +109,7 @@ class Adapter(asyncio.DatagramProtocol):
                                     raise ValueError('DNS identity')
                                 self.transport.sendto(reply, peer)
                                 self.stats['replies'] += 1
+                                self.stats['reply_bytes'] += len(reply)
                                 break
                         except (OSError, ValueError, EOFError, TimeoutError):
                             self.stats['errors'] += 1
@@ -236,8 +239,22 @@ async def request(args, secret, proxy, kind, size, condition):
     return row
 
 
-async def workload(args, secret, proxy):
+async def workload(args, secret, proxy, background_proxy=None):
     rows = []
+    if args.workload == 'short-parallel':
+        for index in range(2):
+            rows.append(await request(args, secret, proxy, 'up', 32768, f'serial-{index}'))
+        for index in range(2):
+            start = time.monotonic()
+            pair = await asyncio.gather(
+                request(args, secret, proxy, 'up', 32768, f'parallel-{index}-a'),
+                request(args, secret, background_proxy or proxy, 'up', 32768, f'parallel-{index}-b'))
+            seconds = time.monotonic() - start
+            rows.extend(pair)
+            emit(dict(kind='parallel_group', index=index, seconds=seconds,
+                      acknowledged=sum(r['acknowledged'] for r in pair), ok=all(r['ok'] for r in pair)))
+        rows.append(await request(args, secret, proxy, 'down', 4096, 'recovery'))
+        return rows
     for size in SIZES:
         rows.append(await request(args, secret, proxy, 'up', size, 'sequential'))
     rows.append(await request(args, secret, proxy, 'down', 1048576, 'sequential'))
@@ -247,7 +264,7 @@ async def workload(args, secret, proxy):
         stop = asyncio.Event()
         async def load():
             while not stop.is_set():
-                await request(args, secret, proxy, 'down', 1048576, 'background')
+                await request(args, secret, background_proxy or proxy, 'down', 1048576, 'background')
         task = asyncio.create_task(load())
         try:
             await asyncio.sleep(.25)
@@ -260,8 +277,36 @@ async def workload(args, secret, proxy):
     return rows
 
 
+async def start_client(executable, domain, cert, argv, token, children, drains, cc='dcubic'):
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', 0))
+        port = sock.getsockname()[1]
+    credentials = (os.urandom(16).hex(), os.urandom(16).hex())
+    child = await asyncio.create_subprocess_exec(str(executable), '--tcp-listen-host', '127.0.0.1',
+        '--tcp-listen-port', str(port), '--domain', domain, '--cert', str(cert),
+        '--congestion-control', cc, '--flow-relay-stdin', *argv,
+        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT)
+    children.append(child)
+    child.stdin.write(token + ''.join(credentials).encode())
+    await child.stdin.drain()
+    child.stdin.close()
+    ready = asyncio.Event()
+    async def discard():
+        while line := await child.stdout.readline():
+            if b'Connection ready' in line:
+                ready.set()
+            match = re.search(rb'domain_usage suffix=([a-z0-9.-]+) endpoint=(\S+) data=(\d+) polls=(\d+)', line)
+            if match:
+                emit(dict(kind='domain_usage', suffix=match[1].decode(),
+                          endpoint=match[2].decode(), data=int(match[3]), polls=int(match[4])))
+    drains.append(asyncio.create_task(discard()))
+    await ready.wait()
+    return port, credentials
+
+
 async def run(args, secret):
-    paths, child, drain = [], None, None
+    paths, children, drains, proxies = [], [], [], []
     proxy = None
     started = time.monotonic()
     manifest = dict(kind='manifest', version=VERSION, mode=args.mode, order=args.order,
@@ -270,13 +315,13 @@ async def run(args, secret):
                     python=platform.python_version(), machine=platform.machine(),
                     deadline=args.deadline, sizes=SIZES, workers=56, queue=64, egress=args.egress,
                     topology=args.topology, path_layout=TOPOLOGIES[args.topology],
-                    domain_layout=args.domains)
+                     domain_layout=args.domains, connections=args.connections,
+                     partition=args.partition, workload=args.workload)
     if args.mode == 'native':
         manifest['native_sha256'] = hashlib.sha256(Path(args.native).read_bytes()).hexdigest()
     emit(manifest)
     try:
         if args.mode == 'native':
-            argv = []
             layout = list(TOPOLOGIES[args.topology])
             if args.order == 'reverse':
                 layout.reverse()
@@ -284,59 +329,46 @@ async def run(args, secret):
                         'new': ['tt.x.ass-peak.de'] * 2,
                         'split': ['t.x.ass-peak.de', 'tt.x.ass-peak.de'],
                         'split-reverse': ['tt.x.ass-peak.de', 't.x.ass-peak.de']}
-            for index, (hosts, workers, capacity) in enumerate(layout):
-                path = Adapter(hosts, workers=workers, capacity=capacity)
-                transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
-                    lambda: path, local_addr=('127.0.0.1', 0))
-                paths.append(path)
-                argv += ['--authoritative', '127.0.0.1:' + str(transport.get_extra_info('sockname')[1])]
-                if args.domains != 'legacy':
-                    argv += ['--path-domain', argv[-1] + '=' + suffixes[args.domains][index]]
-            with socket.socket() as sock:
-                sock.bind(('127.0.0.1', 0))
-                port = sock.getsockname()[1]
-            credentials = (os.urandom(16).hex(), os.urandom(16).hex())
-            child = await asyncio.create_subprocess_exec(args.native, '--tcp-listen-host', '127.0.0.1',
-                '--tcp-listen-port', str(port), '--domain', args.domain, '--cert', args.cert,
-                '--congestion-control', 'dcubic', '--flow-relay-stdin', *argv,
-                stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT)
-            child.stdin.write(bytes.fromhex(secret['flow_token']) + ''.join(credentials).encode())
-            await child.stdin.drain()
-            child.stdin.close()
-            ready = asyncio.Event()
-            async def discard():
-                while line := await child.stdout.readline():
-                    if b'Connection ready' in line:
-                        ready.set()
-                    match = re.search(rb'domain_usage suffix=([a-z0-9.-]+) endpoint=(\S+) data=(\d+) polls=(\d+)', line)
-                    if match:
-                        emit(dict(kind='domain_usage', suffix=match[1].decode(),
-                                  endpoint=match[2].decode(), data=int(match[3]), polls=int(match[4])))
-            drain = asyncio.create_task(discard())
-            await asyncio.wait_for(ready.wait(), 15)
+            partitions = args.connections if args.partition else 1
+            layouts = []
+            for _ in range(partitions):
+                argv = []
+                for index, (hosts, workers, capacity) in enumerate(layout):
+                    path = Adapter(hosts, workers=workers // partitions, capacity=capacity // partitions)
+                    transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+                        lambda: path, local_addr=('127.0.0.1', 0))
+                    paths.append(path)
+                    argv += ['--authoritative', '127.0.0.1:' + str(transport.get_extra_info('sockname')[1])]
+                    if args.domains != 'legacy':
+                        argv += ['--path-domain', argv[-1] + '=' + suffixes[args.domains][index]]
+                layouts.append(argv)
+            async with asyncio.timeout(15):
+                for connection in range(args.connections):
+                    proxies.append(await start_client(args.native, args.domain, args.cert, layouts[connection % partitions],
+                        bytes.fromhex(secret['flow_token']), children, drains))
             emit(dict(kind='startup', ok=True, seconds=time.monotonic() - started))
-            proxy = (port, credentials)
-        rows = await workload(args, secret, proxy)
+            proxy = proxies[0]
+        rows = await workload(args, secret, proxy, proxies[-1] if proxies else None)
         emit(dict(kind='window', ok=all(r['ok'] for r in rows), failures=sum(not r['ok'] for r in rows)))
         return all(r['ok'] for r in rows)
     except (OSError, ValueError, EOFError, TimeoutError) as error:
         emit(dict(kind='window', ok=False, error=type(error).__name__, seconds=time.monotonic()-started))
         return False
     finally:
-        if child and child.returncode is None:
-            child.terminate()
-            try:
-                await asyncio.wait_for(child.wait(), 2)
-            except TimeoutError:
-                child.kill()
-                await child.wait()
-        if drain:
+        for child in children:
+            if child.returncode is None:
+                child.terminate()
+                try:
+                    await asyncio.wait_for(child.wait(), 2)
+                except TimeoutError:
+                    child.kill()
+                    await child.wait()
+        for drain in drains:
             drain.cancel()
-            await asyncio.gather(drain, return_exceptions=True)
+        await asyncio.gather(*drains, return_exceptions=True)
         for path in paths:
             await path.close()
-        emit(dict(kind='cleanup', child_alive=bool(child and child.returncode is None),
+        emit(dict(kind='cleanup', child_alive=any(c.returncode is None for c in children),
                   workers_alive=sum(not t.done() for p in paths for t in p.tasks),
                   paths=[p.stats for p in paths]))
 
@@ -350,6 +382,10 @@ def arguments():
     parser.add_argument('--domains', choices=['legacy', 'old', 'new', 'split', 'split-reverse'], default='legacy')
     parser.add_argument('--order', choices=['accepted', 'reverse'], default='accepted')
     parser.add_argument('--topology', choices=TOPOLOGIES, default='accepted')
+    parser.add_argument('--connections', type=int, choices=[1, 2], default=1,
+                        help='Isolated native experiment only: shared 56/64 adapters, flow-affine clients')
+    parser.add_argument('--partition', action='store_true', help='Split same 56/64 adapter budget by connection')
+    parser.add_argument('--workload', choices=['full', 'short-parallel'], default='full')
     parser.add_argument('--fixture-host', required=True)
     parser.add_argument('--fixture-port', type=int, default=40004)
     parser.add_argument('--fixture-cert', required=True)
@@ -364,6 +400,10 @@ def arguments():
         parser.error('Native mode requires executable and carrier certificate')
     if args.domains != 'legacy' and (args.mode != 'native' or args.topology != 'accepted'):
         parser.error('Domain experiment requires native mode and accepted two-path budget')
+    if args.connections != 1 and (args.mode != 'native' or args.topology != 'accepted' or args.domains != 'legacy'):
+        parser.error('Connection experiment requires native accepted topology and legacy domain')
+    if args.partition and args.connections != 2:
+        parser.error('Partition experiment requires two connections')
     return args
 
 
