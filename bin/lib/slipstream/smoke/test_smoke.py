@@ -20,6 +20,34 @@ from fixture import Fixture
 
 
 class HostTests(unittest.TestCase):
+    def test_domain_experiment_requires_native_two_path_budget(self):
+        base = ['device', '--mode', 'native', '--native', 'client', '--cert', 'carrier.crt',
+                '--fixture-host', '127.0.0.1', '--fixture-cert', 'fixture.crt']
+        for domain in ('legacy', 'old', 'new', 'split', 'split-reverse'):
+            with patch.object(sys, 'argv', base + ['--domains', domain]):
+                self.assertEqual(device.arguments().domains, domain)
+        for extra in (['--mode', 'gvisor'], ['--topology', 'third'], ['--topology', 'shard']):
+            with patch.object(sys, 'argv', base + ['--domains', 'split'] + extra), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                device.arguments()
+
+    def test_domain_report_allows_cross_arm_but_rejects_within_arm_drift(self):
+        def window(path):
+            domain = 'split' if 'candidate' in path.name else 'old'
+            return dict(domain_layout=domain, deadline=40), {}, []
+        argv = ['report', '--directory', '.', '--label', 'domain', '--pairs', '2']
+        with patch.object(sys, 'argv', argv), patch.object(report, 'read_window', window), \
+                contextlib.redirect_stdout(io.StringIO()):
+            report.main()
+        def drift(path):
+            manifest, requests, rows = window(path)
+            if 'p2-candidate' in path.name:
+                manifest['domain_layout'] = 'split-reverse'
+            return manifest, requests, rows
+        with patch.object(sys, 'argv', argv), patch.object(report, 'read_window', drift), \
+                self.assertRaisesRegex(ValueError, 'Manifest drift within variant'):
+            report.main()
+
     def test_topologies_keep_aggregate_bounds(self):
         for layout in device.TOPOLOGIES.values():
             self.assertEqual(sum(workers for _, workers, _ in layout), 56)
@@ -236,7 +264,7 @@ class FixtureTests(unittest.IsolatedAsyncioTestCase):
         async def wait(*args):
             started.set()
             await asyncio.sleep(60)
-        args = SimpleNamespace(mode='native', order='accepted', topology='third', fixture_cert=self.cert, deadline=1,
+        args = SimpleNamespace(mode='native', order='accepted', topology='third', domains='legacy', fixture_cert=self.cert, deadline=1,
                                egress='direct', native=sys.executable, domain='example.test', cert=self.cert)
         output = io.StringIO()
         with patch.object(asyncio, 'create_subprocess_exec', child), patch.object(device, 'workload', wait), contextlib.redirect_stdout(output):

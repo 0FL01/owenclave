@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import signal
 import socket
 import ssl
@@ -268,7 +269,8 @@ async def run(args, secret):
                     fixture_cert_sha256=hashlib.sha256(Path(args.fixture_cert).read_bytes()).hexdigest(),
                     python=platform.python_version(), machine=platform.machine(),
                     deadline=args.deadline, sizes=SIZES, workers=56, queue=64, egress=args.egress,
-                    topology=args.topology, path_layout=TOPOLOGIES[args.topology])
+                    topology=args.topology, path_layout=TOPOLOGIES[args.topology],
+                    domain_layout=args.domains)
     if args.mode == 'native':
         manifest['native_sha256'] = hashlib.sha256(Path(args.native).read_bytes()).hexdigest()
     emit(manifest)
@@ -278,12 +280,18 @@ async def run(args, secret):
             layout = list(TOPOLOGIES[args.topology])
             if args.order == 'reverse':
                 layout.reverse()
-            for hosts, workers, capacity in layout:
+            suffixes = {'old': ['t.x.ass-peak.de'] * 2,
+                        'new': ['tt.x.ass-peak.de'] * 2,
+                        'split': ['t.x.ass-peak.de', 'tt.x.ass-peak.de'],
+                        'split-reverse': ['tt.x.ass-peak.de', 't.x.ass-peak.de']}
+            for index, (hosts, workers, capacity) in enumerate(layout):
                 path = Adapter(hosts, workers=workers, capacity=capacity)
                 transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
                     lambda: path, local_addr=('127.0.0.1', 0))
                 paths.append(path)
                 argv += ['--authoritative', '127.0.0.1:' + str(transport.get_extra_info('sockname')[1])]
+                if args.domains != 'legacy':
+                    argv += ['--path-domain', argv[-1] + '=' + suffixes[args.domains][index]]
             with socket.socket() as sock:
                 sock.bind(('127.0.0.1', 0))
                 port = sock.getsockname()[1]
@@ -301,6 +309,10 @@ async def run(args, secret):
                 while line := await child.stdout.readline():
                     if b'Connection ready' in line:
                         ready.set()
+                    match = re.search(rb'domain_usage suffix=([a-z0-9.-]+) endpoint=(\S+) data=(\d+) polls=(\d+)', line)
+                    if match:
+                        emit(dict(kind='domain_usage', suffix=match[1].decode(),
+                                  endpoint=match[2].decode(), data=int(match[3]), polls=int(match[4])))
             drain = asyncio.create_task(discard())
             await asyncio.wait_for(ready.wait(), 15)
             emit(dict(kind='startup', ok=True, seconds=time.monotonic() - started))
@@ -335,6 +347,7 @@ def arguments():
     parser.add_argument('--native', help='Executable Android arm64 client; no APK rebuild')
     parser.add_argument('--cert', help='Unchanged public carrier certificate')
     parser.add_argument('--domain', default='t.x.ass-peak.de')
+    parser.add_argument('--domains', choices=['legacy', 'old', 'new', 'split', 'split-reverse'], default='legacy')
     parser.add_argument('--order', choices=['accepted', 'reverse'], default='accepted')
     parser.add_argument('--topology', choices=TOPOLOGIES, default='accepted')
     parser.add_argument('--fixture-host', required=True)
@@ -349,6 +362,8 @@ def arguments():
         parser.error('Port or deadline outside bound')
     if args.mode == 'native' and not (args.native and args.cert):
         parser.error('Native mode requires executable and carrier certificate')
+    if args.domains != 'legacy' and (args.mode != 'native' or args.topology != 'accepted'):
+        parser.error('Domain experiment requires native mode and accepted two-path budget')
     return args
 
 

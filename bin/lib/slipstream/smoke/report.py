@@ -72,7 +72,7 @@ def main():
             control = a.get(key, {}).get('ack_Bps', 0)
             candidate = b.get(key, {}).get('ack_Bps', 0)
             ratios.setdefault('-'.join(map(str, key)), []).append(100 * (candidate / control - 1) if control else None)
-    frozen = [{k: v for k, v in m.items() if k not in {'native_sha256', 'order', 'topology', 'path_layout'}}
+    frozen = [{k: v for k, v in m.items() if k not in {'native_sha256', 'order', 'topology', 'path_layout', 'domain_layout'}}
               for m in manifests.values()]
     if frozen[0] != frozen[1]:
         raise ValueError('Control/candidate workload, adapter or fixture drift')

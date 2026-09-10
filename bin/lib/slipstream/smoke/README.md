@@ -21,6 +21,14 @@ changes. Host Python uses only its standard library. Unit tests additionally use
   Retry stays worker-affine; QUIC sees pooled RTT/loss on that adapter. Both retain
   aggregate56/64. Equal budgets do not prove equal polling load or independent
   same-provider capacity. These are rejected research options, not APK profile modes.
+- H14 `--domains old/new/split/split-reverse` assigns `t.x.ass-peak.de` and
+  `tt.x.ass-peak.de` explicitly to the two accepted native paths; default `legacy`
+  emits no mapping flag. Use the H14 ELF, not the accepted APK ELF, for these modes.
+  Data/poll suffix counters are aggregates, not retained QNAMEs. The research patch
+  `../multidomain-experimental.patch` applies after the accepted client patches,
+  including bootstrap; it is deliberately NOT included by `build.sh`.
+  H14 was rejected after confirmation and reversed-assignment screening, not deployed
+  to Kotlin/APK. See the [H14 goal](../../../../docs/goals/2026-09-10-multidomain-sharding.md).
 - Flow token and generated SOCKS credentials enter native stdin only. Host secret
   JSON is a private `0600` file with `flow_token` (32 hex digits) and `fixture_token`
   (64 hex digits). Values travel via stdin, never argv/environment or phone files.
@@ -87,11 +95,15 @@ can vary by destination/flow; a single trace IP is not a stable fixture allowlis
 Do not broaden production routing to accommodate the test. Remove temporary units,
 listeners, firewall rules, private keys and all local/remote credential copies at
 the end. Neither fixture nor direct dispatch is currently deployed. The documented
-latest backup anchor is `/root/backups/owenclave-h11-20260909T171047Z/`; it has original
+dispatch backup anchor is `/root/backups/owenclave-h11-20260909T171047Z/`; it has original
 production binaries/units/firewall, not usable test credentials. Deploying/removing
 the dispatch override restarts FlowRelay **and** its dependent Slipstream service;
 WARP is not restarted. The restored original FlowRelay predates `-check`: verify
 its original hash/unit and bounded namespace-loopback startup, not unsupported flags.
+H14's unit/firewall-only anchor is `/root/backups/owenclave-h14-20260909T215102Z/`;
+its validated second server suffix is retained, not automatically rolled back on
+client rejection. H14 used unchanged production WARP for both arms, not direct egress.
+Its fixture, rule, private key and host/phone credential copies have been removed.
 
 ## Commands
 
@@ -115,7 +127,9 @@ confirmation (initially six), not reused screening windows. To re-screen H6 add
 reproducibility supply the control APK as both inputs, without `--candidate-native`.
 For H9/H10 use that same APK as both inputs and `--candidate-topology third` or
 `--candidate-topology shard` respectively. Topology/order/native identity may differ
-between arms; each arm's manifest must remain fixed throughout a report.
+between arms, as may H14 domain layout; each arm's manifest must remain fixed
+throughout a report. Use individual `host.py` windows with `--domains` for H14;
+the pair wrapper does not select domain layouts.
 
 Retained R&D reports need no live fixture or credentials:
 

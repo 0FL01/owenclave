@@ -90,6 +90,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--order', choices=['accepted', 'reverse'], default='accepted')
     p.add_argument('--topology', choices=TOPOLOGIES, default='accepted')
+    p.add_argument('--domains', choices=['legacy', 'old', 'new', 'split', 'split-reverse'], default='legacy')
     p.add_argument('--deadline', type=float, default=40)
     p.add_argument('--egress', choices=['direct', 'warp'], default='direct')
     args = p.parse_args()
@@ -127,7 +128,7 @@ def main():
                 command = termux([PREFIX + '/bin/python', REMOTE + '/device.py', '--mode', args.mode,
                     '--native', REMOTE + '/native-client', '--cert', REMOTE + '/carrier.crt',
                     '--fixture-cert', REMOTE + '/fixture.crt', '--fixture-host', args.fixture_host,
-                    '--order', args.order, '--topology', args.topology,
+                    '--order', args.order, '--topology', args.topology, '--domains', args.domains,
                     '--deadline', str(args.deadline), '--egress', args.egress])
                 proc = subprocess.Popen(['adb', '-s', args.serial, 'shell', '-T', shlex.join(command)],
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)

@@ -10,6 +10,7 @@ from pathlib import Path
 
 BIN = Path(os.environ['SLIPSTREAM_TEST_BIN'])
 CERT = Path(os.environ['SLIPSTREAM_TEST_CERTS'])
+DOMAINS = ('t.x.ass-peak.de', 'tt.x.ass-peak.de') if os.environ.get('MULTIDOMAIN') == '1' else ('test.com', 'test.com')
 
 
 def port():
@@ -19,13 +20,15 @@ def port():
 
 
 class PathProxy(asyncio.DatagramProtocol):
-    def __init__(self, upstream, delay=0, dead=False):
+    def __init__(self, upstream, delay=0, dead=False, domain=None):
         self.upstream = upstream
         self.delay = delay
         self.dead = dead
         self.peer = None
         self.tx = self.rx = self.dropped = 0
         self.pending = set()
+        self.domain = domain
+        self.domain_mismatch = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -37,6 +40,15 @@ class PathProxy(asyncio.DatagramProtocol):
             target = self.peer
         else:
             self.tx += 1
+            if self.domain:
+                labels, offset = [], 12
+                while offset < len(data) and data[offset]:
+                    n = data[offset]
+                    labels.append(data[offset+1:offset+1+n])
+                    offset += n + 1
+                # Compare only; never retain or emit the payload-bearing name.
+                suffix = b'.'.join(labels[-len(self.domain.split('.')):]).lower()
+                self.domain_mismatch += suffix != self.domain.encode()
             self.peer = addr
             target = self.upstream
         if self.dead or target is None or len(self.pending) >= 128:
@@ -91,7 +103,7 @@ async def check(mode):
         server = await asyncio.create_subprocess_exec(*prefix, os.environ.get('SERVER_BINARY', str(BIN / 'slipstream-server')),
             '--dns-listen-host', '127.0.0.1', '--dns-listen-port', str(dnsport),
             '--target-address', f'127.0.0.1:{target.sockets[0].getsockname()[1]}',
-            '--domain', 'test.com', '--cert', str(CERT / 'cert.pem'), '--key', str(CERT / 'key.pem'),
+            '--domain', DOMAINS[0], '--domain', DOMAINS[1], '--cert', str(CERT / 'cert.pem'), '--key', str(CERT / 'key.pem'),
             stdout=asyncio.subprocess.PIPE if debug else asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
         procs.append(server)
@@ -107,14 +119,16 @@ async def check(mode):
         args = []
         for i in range(2):
             proxy = PathProxy(('127.0.0.1', dnsport), .005 if i else 0,
-                              mode == 'both-dead' or (mode == 'dead-primary' and i == 0))
+                              mode == 'both-dead' or (mode == 'dead-primary' and i == 0), DOMAINS[i])
             transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
                 lambda: proxy, local_addr=('127.0.0.1', 0))
             paths.append(proxy)
             args += ['--authoritative', f'127.0.0.1:{transport.get_extra_info("sockname")[1]}']
+            if os.environ.get('MULTIDOMAIN') == '1':
+                args += ['--path-domain', args[-1] + '=' + DOMAINS[i]]
         client = await asyncio.create_subprocess_exec(str(BIN / 'slipstream-client'),
             '--tcp-listen-host', '127.0.0.1', '--tcp-listen-port', str(socksport),
-            '--domain', 'test.com', '--cert', str(CERT / ('alt_cert.pem' if mode == 'wrong-pin' else 'cert.pem')),
+            '--domain', DOMAINS[0], '--cert', str(CERT / ('alt_cert.pem' if mode == 'wrong-pin' else 'cert.pem')),
             '--congestion-control', 'dcubic', '--flow-relay-stdin', *args,
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT, start_new_session=True)
@@ -166,6 +180,8 @@ async def check(mode):
         writer.close()
         await writer.wait_closed()
         assert received == [2 * len(data)]
+        assert not any(p.domain_mismatch for p in paths)
+        assert all(p.tx > 0 for p in paths)
         return {'mode': mode, 'exact_bidirectional_bytes': 2 * len(data), 'half_close': True,
                 'paths': [{'queries': p.tx, 'responses': p.rx, 'drops': p.dropped} for p in paths]}
     except BaseException:
