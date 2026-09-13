@@ -64,7 +64,7 @@ import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
-import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttProvisioning
 import io.nekohasekai.sagernet.ktx.parseShareLinks
 import io.nekohasekai.sagernet.ui.compose.ComposeProfileSettingsActivity
 import io.nekohasekai.sagernet.ui.compose.components.DnsttBenchmarkDialog
@@ -279,6 +279,8 @@ fun ConfigurationScreen(
         benchmarkRunning = true
         benchmarkError = null
         benchmarkHost = null
+        val benchmarkDomain = profile.dnsttBean?.serverAddress
+        val benchmarkToken = profile.dnsttBean?.token
         benchmarkJob = scope.launch(Dispatchers.IO) {
             try {
                 val snapshot = DnsttBenchmark(profile).run(
@@ -294,6 +296,7 @@ fun ConfigurationScreen(
                 )
                 val storedProfile = ProfileManager.getProfile(profile.id) ?: return@launch
                 val bean = storedProfile.dnsttBean ?: return@launch
+                if (bean.serverAddress != benchmarkDomain || bean.token != benchmarkToken) return@launch
                 bean.benchmarkSnapshot = snapshot.encode()
                 ProfileManager.updateProfile(storedProfile)
             } catch (error: CancellationException) {
@@ -333,12 +336,11 @@ fun ConfigurationScreen(
         val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: return
         scope.launch(Dispatchers.IO) {
             try {
-                val token = text.trim()
-                val beans = if (isValidDnsttToken(token)) {
-                    listOf(DnsttBean().apply { this.token = token })
-                } else {
-                    parseShareLinks(text)
-                }
+                val singleProvisioning = runCatching { parseDnsttProvisioning(text) }.getOrNull()
+                val beans = if (singleProvisioning != null) listOf(DnsttBean().apply {
+                    serverAddress = singleProvisioning.domain
+                    token = singleProvisioning.token
+                }) else parseShareLinks(text)
                 if (beans.isNotEmpty()) {
                     val groupId = DataStore.selectedGroupForImport()
                     var lastId = 0L

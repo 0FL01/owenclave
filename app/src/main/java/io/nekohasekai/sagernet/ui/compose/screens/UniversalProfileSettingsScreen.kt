@@ -45,6 +45,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sagernet.database.ProxyEntity
+import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttDomain
 import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttResolver
 import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
 import io.nekohasekai.sagernet.ui.ScannerActivity
@@ -57,6 +59,7 @@ data class ProfileFieldState(
     val name: String = "",
     val iconIndex: Int = -1,
     val token: String = "",
+    val dnsttDomain: String = DnsttBean.LEGACY_DOMAIN,
     val dnsttManual: Boolean = false,
     val dnsttResolver: String = "",
     val authProvider: String = "jitsi",
@@ -79,7 +82,7 @@ fun UniversalProfileSettingsScreen(
     require(profileType == ProxyEntity.TYPE_DNSTT || profileType == ProxyEntity.TYPE_OLCRTC)
     var state by remember { mutableStateOf(initialState) }
     val canSave = profileType != ProxyEntity.TYPE_DNSTT ||
-        isValidDnsttToken(state.token) &&
+        isValidDnsttToken(state.token) && isValidDnsttDomain(state.dnsttDomain) &&
         (!state.dnsttManual || isValidDnsttResolver(state.dnsttResolver))
     val title = if (profileType == ProxyEntity.TYPE_DNSTT) "DNS Tunnel" else "OLCRTC"
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -137,7 +140,9 @@ private fun ProfileTextField(
         label = label,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         singleLine = true,
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            keyboardType = if (password) KeyboardType.Password else keyboardType,
+        ),
         visualTransformation = if (password) PasswordVisualTransformation()
         else androidx.compose.ui.text.input.VisualTransformation.None,
     )
@@ -172,10 +177,17 @@ private fun DnsttFields(state: ProfileFieldState, update: (ProfileFieldState) ->
     val context = LocalContext.current
     val scanner = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val token = result.data?.getStringExtra(ScannerActivity.EXTRA_TOKEN)
-        if (result.resultCode == Activity.RESULT_OK && token != null) update(state.copy(token = token))
+        val domain = result.data?.getStringExtra(ScannerActivity.EXTRA_DOMAIN)
+        if (result.resultCode == Activity.RESULT_OK && token != null && domain != null) {
+            update(state.copy(token = token, dnsttDomain = domain))
+        }
     }
     PreferenceHeader("DNS Tunnel")
     SectionCard {
+        ProfileTextField("Tunnel Domain", state.dnsttDomain) {
+            update(state.copy(dnsttDomain = it))
+        }
+        DividerItem()
         ProfileTextField("Flow Token (32 lowercase hex)", state.token, password = true) {
             update(state.copy(token = it))
         }
@@ -183,8 +195,9 @@ private fun DnsttFields(state: ProfileFieldState, update: (ProfileFieldState) ->
         Button(onClick = {
             scanner.launch(Intent(context, ScannerActivity::class.java).apply {
                 putExtra(ScannerActivity.EXTRA_TOKEN_ONLY, true)
+                putExtra(ScannerActivity.EXTRA_CURRENT_DOMAIN, state.dnsttDomain)
             })
-        }) { Text("Scan token") }
+        }) { Text("Scan provisioning key or token") }
         DividerItem()
         io.nekohasekai.sagernet.ui.compose.components.SwitchPreferenceItem(
             title = "Manual DNS resolver",

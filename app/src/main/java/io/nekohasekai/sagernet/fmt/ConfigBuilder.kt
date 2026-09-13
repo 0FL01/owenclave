@@ -33,9 +33,9 @@ import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.V2rayBuildResult.IndexEntity
-import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttResolver
 import io.nekohasekai.sagernet.fmt.dnstt.isValidDnsttToken
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttDomain
 import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
 import io.nekohasekai.sagernet.fmt.gson.gson
 import io.nekohasekai.sagernet.fmt.v2ray.V2RayConfig
@@ -387,14 +387,15 @@ fun buildV2RayConfig(
                     ProxyEntity.TYPE_DNSTT -> {
                         val bean = entity.dnsttBean ?: error("Missing DNS Tunnel bean")
                         require(isValidDnsttToken(bean.token)) { "DNS Tunnel Flow token is required" }
+                        val domain = parseDnsttDomain(bean.serverAddress)
                         val resolvers = bean.resolver.takeIf { it.isNotEmpty() }
                             ?.let { listOf(parseDnsttResolver(it)) }.orEmpty()
                         val client = dnsttClients.getOrPut(
-                            Triple(DnsttBean.DOMAIN, bean.resolver, bean.token),
+                            Triple(domain, resolvers.joinToString(","), bean.token),
                         ) {
                             DnsttClientConfig(
                                 mkPort(),
-                                DnsttBean.DOMAIN,
+                                domain,
                                 resolvers,
                                 bean.token,
                                 Uuid.generateV4().toHexString(),

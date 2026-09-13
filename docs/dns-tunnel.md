@@ -46,11 +46,28 @@ application TCP or UDP
   -> deployment-owned egress
 ```
 
-DNS Tunnel is a dedicated `DnsttBean`/`TYPE_DNSTT` profile. Quick setup accepts only
-a raw 32-lowercase-hex Flow token through the profile editor, scanner or Configuration
-clipboard action; `t.x.ass-peak.de` and its bundled certificate are fixed by the app.
-Generic SSH profiles and `ssh://` or resolver-bearing `dnstt://` imports and exports
+DNS Tunnel is a dedicated `DnsttBean`/`TYPE_DNSTT` profile. Its app-owned canonical
+provisioning credential is
+`owenclave-dns://<domain>?token=<32-lowercase-hex>`. The scanner and Configuration
+clipboard action accept it and update the domain and Flow token atomically; the
+profile editor also exposes both values as separate fields. The domain is stored per
+profile and normalized to a lowercase ASCII FQDN. Ports, paths, fragments, duplicate
+or unknown query fields, IP literals, carrier-incompatible domains over 238 characters
+and malformed tokens are rejected.
+
+A standalone raw 32-lowercase-hex token remains compatible. A new clipboard import
+uses the historical `t.x.ass-peak.de` domain; scanning a raw token while editing an
+existing profile preserves that profile's domain. The resolver, profile name and
+benchmark snapshot are deliberately excluded from the credential. This scheme is an
+Owenclave provisioning contract, not the unrelated community `dnstt://` public-key
+format. Generic SSH profiles, Android deep-link registration and DNS profile export
 are intentionally absent.
+
+The bundled Slipstream certificate remains the trust anchor for every profile.
+Changing the domain therefore supports another delegated name for the compatible
+pinned service, not an arbitrary server or certificate. Legacy stored profiles are
+read with the historical domain. Changing a profile's domain or token clears its old
+resolver benchmark snapshot.
 
 Automatic mode stores no resolver. At startup Owenclave snapshots the active
 non-VPN underlay and tries the first two unique DNS addresses over TCP, then TCP

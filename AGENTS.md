@@ -19,8 +19,12 @@ Android proxy client based on Exclave/SagerNet. Application ID is
 ## DNS Tunnel rules
 
 - DNS Tunnel uses `DnsttBean`/`TYPE_DNSTT`; generic SSH profiles and `ssh://` or
-  `dnstt://` provisioning are intentionally absent.
-- Automatic setup accepts only a 32-lowercase-hex token and snapshots the first two
+  `dnstt://` provisioning are intentionally absent. Owenclave's canonical credential
+  is `owenclave-dns://<domain>?token=<32-lowercase-hex>`; the domain is per-profile,
+  while trust remains pinned to the one bundled Slipstream certificate.
+- Automatic setup accepts the canonical credential or a legacy raw 32-lowercase-hex
+  token. A raw token keeps the edited profile's domain and uses the historical domain
+  for a new import. It snapshots the first two
   unique non-VPN underlay DNS addresses, then TCP `77.88.8.8:53` and
   `77.88.8.1:53`. Manual mode accepts exactly one `udp://host:port` or
   `tcp://host:port` override, or the explicit experimental Yandex pair documented in

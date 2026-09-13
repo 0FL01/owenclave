@@ -18,6 +18,7 @@ import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.database.RuleEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.fmt.dnstt.DnsttBean
+import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttDomain
 import io.nekohasekai.sagernet.fmt.dnstt.parseDnsttResolver
 import io.nekohasekai.sagernet.ktx.applyDefaultValues
 import io.nekohasekai.sagernet.fmt.olcrtc.OLCRTCBean
@@ -442,6 +443,7 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
                 val b = entity.dnsttBean ?: return s
                 s.copy(
                     token = b.token ?: "",
+                    dnsttDomain = b.serverAddress ?: DnsttBean.LEGACY_DOMAIN,
                     dnsttManual = b.resolver?.isNotEmpty() == true,
                     dnsttResolver = b.resolver ?: "",
                 )
@@ -464,9 +466,13 @@ class ComposeProfileSettingsActivity : ComponentActivity() {
         when (type) {
             ProxyEntity.TYPE_DNSTT -> {
                 val b = entity.dnsttBean ?: DnsttBean().applyDefaultValues()
+                val oldDomain = b.serverAddress
+                val oldToken = b.token
                 b.name = state.name
                 b.token = state.token
+                b.serverAddress = parseDnsttDomain(state.dnsttDomain)
                 b.resolver = if (state.dnsttManual) parseDnsttResolver(state.dnsttResolver).toString() else ""
+                if (b.serverAddress != oldDomain || b.token != oldToken) b.benchmarkSnapshot = ""
                 entity.dnsttBean = b
             }
             ProxyEntity.TYPE_OLCRTC -> {

@@ -31,6 +31,7 @@ public class KryoConverters {
         try {
             bean.deserializeFromBuffer(buffer);
         } catch (KryoException e) {
+            if (e instanceof DnsttBean.UnsupportedVersionException) throw e;
             Logs.INSTANCE.w(e);
         }
         bean.initializeDefaultValues();
