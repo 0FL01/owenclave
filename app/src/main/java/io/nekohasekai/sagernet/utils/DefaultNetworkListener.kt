@@ -24,6 +24,7 @@ package io.nekohasekai.sagernet.utils
 import android.annotation.TargetApi
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.LinkProperties
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiInfo
@@ -127,6 +128,9 @@ object DefaultNetworkListener {
 
             override fun onLost(network: Network) =
                 runBlocking { networkActor.send(NetworkMessage.Lost(network)) }
+
+            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) =
+                runBlocking { networkActor.send(NetworkMessage.Update(network)) }
         }
     } else {
         object: ConnectivityManager.NetworkCallback() {
@@ -141,6 +145,9 @@ object DefaultNetworkListener {
 
             override fun onLost(network: Network) =
                 runBlocking { networkActor.send(NetworkMessage.Lost(network)) }
+
+            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) =
+                runBlocking { networkActor.send(NetworkMessage.Update(network)) }
         }
     }
 

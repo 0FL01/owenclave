@@ -26,6 +26,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.ProxyInfo
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -44,6 +45,7 @@ import io.nekohasekai.sagernet.utils.Subnet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 import libexclavecore.*
 import android.net.VpnService as BaseVpnService
 
@@ -107,6 +109,10 @@ class VpnService : BaseVpnService(),
             }
     private var networkListenerKey: Any? = null
     private var lastUnderlyingNetwork: Network? = null
+    internal var recoveryUnderlay: Any? = null
+        private set
+
+    private data class Underlay(val network: Network, val properties: List<Any?>)
 
     override suspend fun startProcesses() {
         startVpn()
@@ -123,7 +129,7 @@ class VpnService : BaseVpnService(),
 
     @Suppress("EXPERIMENTAL_API_USAGE")
     override fun killProcesses() {
-        data.proxy?.v2rayPoint?.withLocalResolver(null)
+        data.proxy?.takeUnless { it.isClosed }?.pointOrNull()?.withLocalResolver(null)
         tun?.apply {
             close()
         }
@@ -134,11 +140,14 @@ class VpnService : BaseVpnService(),
         tun?.apply {
             tun = null
         }
-        val listenerKey = networkListenerKey
-        networkListenerKey = null
-        lastUnderlyingNetwork = null
-        GlobalScope.launch(Dispatchers.Default) {
-            if (listenerKey != null) DefaultNetworkListener.stop(listenerKey)
+        if (data.jitsiRecovery == null) {
+            val listenerKey = networkListenerKey
+            networkListenerKey = null
+            lastUnderlyingNetwork = null
+            recoveryUnderlay = null
+            GlobalScope.launch(Dispatchers.Default) {
+                if (listenerKey != null) DefaultNetworkListener.stop(listenerKey)
+            }
         }
     }
 
@@ -173,11 +182,22 @@ class VpnService : BaseVpnService(),
         val listenerKey = Any()
         networkListenerKey = listenerKey
         DefaultNetworkListener.start(listenerKey) {
-            if (networkListenerKey === listenerKey) {
+            runOnMainDispatcher {
+                if (networkListenerKey !== listenerKey) return@runOnMainDispatcher
                 val previous = lastUnderlyingNetwork
                 if (it != null) lastUnderlyingNetwork = it
                 underlyingNetwork = it
                 SagerNet.reloadNetwork(it)
+                recoveryUnderlay = it?.takeUnless { network ->
+                    SagerNet.connectivity.getNetworkCapabilities(network)
+                        ?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+                }?.let { network ->
+                    val properties = SagerNet.connectivity.getLinkProperties(network)
+                    Underlay(network, listOf(properties?.interfaceName,
+                        properties?.linkAddresses?.toSet(), properties?.routes?.toSet(),
+                        properties?.dnsServers?.toSet()))
+                }
+                data.jitsiRecovery?.update(recoveryUnderlay)
                 if (
                     it != null && previous != null && previous != it && data.state.canStop &&
                     data.proxy?.hasDnsTunnel() == true
@@ -385,6 +405,7 @@ class VpnService : BaseVpnService(),
     override fun onRevoke() = stopRunner()
 
     override fun onDestroy() {
+        stopRunner()
         super.onDestroy()
         data.binder.close()
     }

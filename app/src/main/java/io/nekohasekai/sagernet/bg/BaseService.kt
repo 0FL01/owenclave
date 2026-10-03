@@ -43,6 +43,8 @@ import io.nekohasekai.sagernet.utils.PackageCache
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.selects.select
+import java.io.IOException
 import libexclavecore.AppStats
 import libexclavecore.Libexclavecore
 import libexclavecore.TrafficListener
@@ -83,6 +85,7 @@ class BaseService {
         val binder = Binder(this)
         var connectingJob: Job? = null
         var restartAfterStop = false
+        internal var jitsiRecovery: JitsiRecovery? = null
 
         fun changeState(s: State, msg: String? = null) {
             if (state == s && msg == null) return
@@ -400,6 +403,7 @@ class BaseService {
         }
 
         fun stopRunner(restart: Boolean = false, msg: String? = null, keepState: Boolean = true) {
+            data.jitsiRecovery = null
             synchronized(data) {
                 if (data.state == State.Stopping) {
                     if (!restart) data.restartAfterStop = false
@@ -457,6 +461,78 @@ class BaseService {
         }
 
         suspend fun preInit() {}
+
+        /** The existing connecting job remains the sole owner, including while waiting offline. */
+        suspend fun runJitsi(initial: ProxyInstance, recovery: JitsiRecovery) {
+            // init identified the actual outbound graph; rebuild only after an underlay is available
+            // so an offline start cannot retain stale carrier DNS in its native configuration.
+            killProcesses()
+            var failures = 0
+            while (currentCoroutineContext().isActive) {
+                delay(500) // coalesce the initial Available / LinkProperties callback burst
+                recovery.awaitOnline()
+                if (DataStore.selectedProxy != initial.profile.id) {
+                    stopRunner()
+                    return
+                }
+                val revision = recovery.current.revision
+                val proxy = ProxyInstance(initial.profile, this)
+                data.proxy = proxy
+                var failed = false
+                try {
+                    coroutineScope {
+                        val attempt = async {
+                            proxy.init()
+                            proxy.processes = GuardedProcessPool(restartOnExit = false) {
+                                runOnMainDispatcher {
+                                    if (data.proxy === proxy && data.jitsiRecovery === recovery) recovery.failed()
+                                }
+                            }
+                            DataStore.currentProfile = proxy.profile.id
+                            DataStore.startedProfile = proxy.profile.id
+                            if (DataStore.connectionStart == 0L) DataStore.connectionStart = System.currentTimeMillis()
+                            startProcesses()
+                            data.changeState(State.Connected)
+                            data.binder.checkLoop()
+                            for ((type, routeName) in proxy.config.alerts) {
+                                data.binder.broadcast { it.routeAlert(type, routeName) }
+                            }
+                            lateInit()
+                            awaitCancellation()
+                        }
+                        val changed = async { recovery.awaitChange(revision) }
+                        try {
+                            select<Unit> {
+                                attempt.onAwait { }
+                                changed.onAwait { failed = it.failure }
+                            }
+                        } finally {
+                            attempt.cancelAndJoin()
+                            changed.cancelAndJoin()
+                        }
+                    }
+                } catch (error: IOException) {
+                    Logs.w(error)
+                    failed = true
+                } finally {
+                    // close cancels the guard; join its child teardown before publishing a replacement.
+                    withContext(NonCancellable) {
+                        try {
+                            killProcesses()
+                        } finally {
+                            proxy.processesOrNull()?.awaitClosed()
+                        }
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                data.changeState(State.Connecting)
+                if (failed) {
+                    recovery.awaitOnline()
+                    delay(JitsiRecovery.retryDelay(failures))
+                    failures = (failures + 1).coerceAtMost(4)
+                } else failures = 0
+            }
+        }
 
         var wakeLock: PowerManager.WakeLock?
         fun acquireWakeLock()
@@ -516,6 +592,12 @@ class BaseService {
                     Executable.killAll()    // clean up old processes
                     preInit()
                     proxy.init()
+                    if (this@Interface is VpnService && proxy.hasJitsi()) {
+                        val recovery = JitsiRecovery(this@Interface.recoveryUnderlay)
+                        data.jitsiRecovery = recovery
+                        runJitsi(proxy, recovery)
+                        return@runOnMainDispatcher
+                    }
                     proxy.processes = GuardedProcessPool {
                         Logs.w(it)
                         stopRunner(false, it.readableMessage)

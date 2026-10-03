@@ -4,6 +4,7 @@
 set -euo pipefail
 
 OLCRTC_COMMIT="35881bc206abd56fea107e72d63f186bf08aac1c"
+PATCH="$(cd "$(dirname "$0")" && pwd)/jitsi-recovery.patch"
 OLCRTC_SRC="${OLCRTC_SRC:-${TMPDIR:-/tmp}/owenclave-olcrtc}"
 OUT_ROOT="${OUT_ROOT:-$(cd "$(dirname "$0")/../../.." && pwd)/app/src/main/jniLibs}"
 TC="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
@@ -13,10 +14,15 @@ if [ ! -d "$OLCRTC_SRC/.git" ]; then
   git clone https://github.com/openlibrecommunity/olcrtc.git "$OLCRTC_SRC"
 fi
 git -C "$OLCRTC_SRC" fetch --depth 1 origin "$OLCRTC_COMMIT"
+if git -C "$OLCRTC_SRC" apply --reverse --check "$PATCH" 2>/dev/null; then
+  git -C "$OLCRTC_SRC" apply --reverse "$PATCH"
+fi
 git -C "$OLCRTC_SRC" checkout --detach --force "$OLCRTC_COMMIT"
 git -C "$OLCRTC_SRC" reset --hard "$OLCRTC_COMMIT"
 test "$(git -C "$OLCRTC_SRC" rev-parse HEAD)" = "$OLCRTC_COMMIT"
 test -z "$(git -C "$OLCRTC_SRC" status --short)"
+git -C "$OLCRTC_SRC" apply --check "$PATCH"
+git -C "$OLCRTC_SRC" apply "$PATCH"
 
 echo "olcrtc src: $OLCRTC_SRC"
 echo "jniLibs out: $OUT_ROOT"

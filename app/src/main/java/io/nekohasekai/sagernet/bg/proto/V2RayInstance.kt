@@ -112,6 +112,7 @@ import java.net.Socket
 
     lateinit var config: V2rayBuildResult
     lateinit var v2rayPoint: V2RayInstance
+    fun pointOrNull() = if (::v2rayPoint.isInitialized) v2rayPoint else null
 
     // ProxyInstance probes this legacy view for debug output. Keep it empty so
     // sidecar configuration is never exposed outside this instance.
@@ -125,12 +126,17 @@ import java.net.Socket
     // awaitReady() waits for these to accept connections.
     private val readinessPorts = mutableListOf<Int>()
     open lateinit var processes: GuardedProcessPool
+    fun processesOrNull() = if (::processes.isInitialized) processes else null
     private var cacheFiles = ArrayList<File>()
     fun isInitialized(): Boolean {
         return ::config.isInitialized
     }
 
     fun hasDnsTunnel() = isInitialized() && config.dnsttClients.isNotEmpty()
+
+    fun hasJitsi() = isInitialized() && config.index.any { (_, chain) ->
+        chain.values.any { (it.requireBean() as? OLCRTCBean)?.authProvider == "jitsi" }
+    }
 
     protected open fun buildConfig() {
         config = buildV2RayConfig(profile)
@@ -301,7 +307,8 @@ import java.net.Socket
         }
     }
 
-    private var isClosed = false
+    var isClosed = false
+        private set
 
     @Suppress("EXPERIMENTAL_API_USAGE")
     override fun close() {

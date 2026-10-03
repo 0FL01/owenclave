@@ -38,7 +38,10 @@ import java.io.IOException
 import java.io.InputStream
 import kotlin.concurrent.thread
 
-class GuardedProcessPool(private val onFatal: suspend (IOException) -> Unit) : CoroutineScope {
+class GuardedProcessPool(
+    private val restartOnExit: Boolean = true,
+    private val onFatal: suspend (IOException) -> Unit,
+) : CoroutineScope {
     companion object {
         private val pid by lazy {
             Class.forName("java.lang.ProcessManager\$ProcessImpl").getDeclaredField("pid")
@@ -78,6 +81,7 @@ class GuardedProcessPool(private val onFatal: suspend (IOException) -> Unit) : C
                     val startTime = SystemClock.elapsedRealtime()
                     val exitCode = exitChannel.receive()
                     running = false
+                    if (!restartOnExit) throw IOException("$cmdName exited (exit code: $exitCode)")
                     when {
                         SystemClock.elapsedRealtime() - startTime < 1000 -> throw IOException(
                             "$cmdName exits too fast (exit code: $exitCode)")
@@ -130,5 +134,9 @@ class GuardedProcessPool(private val onFatal: suspend (IOException) -> Unit) : C
     fun close(scope: CoroutineScope) {
         cancel()
         coroutineContext[Job]!!.also { job -> scope.launch { job.cancelAndJoin() } }
+    }
+
+    suspend fun awaitClosed() {
+        coroutineContext[Job]!!.join()
     }
 }

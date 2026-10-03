@@ -170,6 +170,7 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
     }
 
     override fun close() {
+        if (isClosed) return
         SagerNet.started = false
 
         persistStats()
@@ -230,7 +231,7 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
 
     private val outboundStats = OutboundStats(profile)
     fun outboundStats(): Pair<OutboundStats, HashMap<Long, OutboundStats>> {
-        if (!isInitialized()) return outboundStats to statsOutbounds
+        if (!isInitialized() || isClosed) return outboundStats to statsOutbounds
         uplinkProxy = 0L
         downlinkProxy = 0L
 
@@ -301,6 +302,7 @@ class ProxyInstance(profile: ProxyEntity, val service: BaseService.Interface) : 
     }
 
     fun persistStats() {
+        if (!isInitialized() || pointOrNull() == null || isClosed) return
         runBlocking {
             try {
                 outboundStats()
